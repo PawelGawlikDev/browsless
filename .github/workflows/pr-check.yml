@@ -25,6 +25,7 @@ jobs:
         with:
           node-version: 20.11.1
       - run: corepack enable
+      - run: pnpm --version
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
