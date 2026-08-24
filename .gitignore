@@ -1,5 +1,7 @@
 # Logs
 logs
+!src/components/dashboard/logs/
+!src/components/dashboard/logs/**
 !src/dashboard/pages/logs/
 !src/dashboard/pages/logs/**
 *.log
