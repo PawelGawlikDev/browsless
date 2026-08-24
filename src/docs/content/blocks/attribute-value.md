@@ -7,25 +7,25 @@ title: Attribute Value Block
 Get the value of the specified attribute from the element.
 
 - **Element selector** <br>
-	[Element selector](../workflow/element-selector.md).
+  [Element selector](../workflow/element-selector.md).
 
 - **Attribute name** <br>
-	Name of the attribute to retrieve.
+  Name of the attribute to retrieve.
 
 - **Assign to variable** <br>
-	Whether assign the value into a [variable](../workflow/variables.md) or not.
+  Whether assign the value into a [variable](../workflow/variables.md) or not.
 
 - **Variable name** <br>
-	Name of the variable to assign the value.
+  Name of the variable to assign the value.
 
 - **Insert to table** <br>
-	Whether insert the value into the [table](../workflow/table.md) or not.
+  Whether insert the value into the [table](../workflow/table.md) or not.
 
 - **Select column** <br>
-	The column where the value will be inserted.
+  The column where the value will be inserted.
 
 - **Add extra row** <br>
-	Insert an extra row into [table](../workflow/table.md).
+  Insert an extra row into [table](../workflow/table.md).
 
 ## Find Element Attribute Name
 

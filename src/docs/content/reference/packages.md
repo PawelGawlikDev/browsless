@@ -4,21 +4,24 @@ title: Packages
 
 # Packages
 
-Packages (previously called block folders) are used to wrap a block or multiple blocks to make it reusable. For example, when you have blocks for sending an email and want to use them in another workflow, you can make those blocks as a package instead of copying and pasting them. 
+Packages (previously called block folders) are used to wrap a block or multiple blocks to make it reusable. For example, when you have blocks for sending an email and want to use them in another workflow, you can make those blocks as a package instead of copying and pasting them.
 
 ## Creating a package
 
 There are two ways to create a package,
 
 ### From Workflow Editor
+
 To create a package from a workflow editor, select blocks first. You can select a block by pressing shift and dragging the mouse to the blocks you want to select. Right-click and click the "Set as package" menu.
 
 ![Create package](https://s3.ap-southeast-1.amazonaws.com/automa-pub/i/2024/12/03/10dc4w-73.gif)
 
 ### From Package Page
+
 You only need to navigate to the packages page, click the "New package" button, and input the package name and description.
 
 ## Editing a Package
+
 To edit a package, go to the packages page and select the package you want to edit. It is the same way how you edit a workflow, except a package doesn't have the table and global data.
 
 ### Set Package as Block

@@ -3,6 +3,7 @@ title: Workflow Parameters
 ---
 
 # Workflow Parameters
+
 Define a parameter for the workflow.
 Let's say you have a workflow to automate the search of a keyword in several search engines, and the keyword is different on each run. Instead of opening the dashboard, edit the workflow, and change the keyword in the Forms block. You can add a parameter where you can input the keyword every time you run the workflow.
 
@@ -15,7 +16,7 @@ To add a parameter to the workflow, you need to:
 3. Click the "Parameters" button
 4. Click the "Add parameter" button
 
-You can rename the parameter, select the parameter type, or input the default value. 
+You can rename the parameter, select the parameter type, or input the default value.
 
 ![Add parameter](https://s3.ap-southeast-1.amazonaws.com/automa-pub/i/2024/12/02/16iwo6-ow.png)
 

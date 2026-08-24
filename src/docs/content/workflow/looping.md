@@ -27,17 +27,20 @@ And when you're not defining the loop scope using the Loop Breakpoint block, the
 The above will execute the Forms and the Get Text block once and then continue to the Export Data block.
 
 ### Access Loop Item
+
 You can use [expressions](./expressions.md) to access data from the current loop iteration inside the loop scope. For example, <code v-pre>{{loopData.loopId}}</code>; replace the `loopId` with the Loop id you inputted inside the Loop Data or Loop Element block.
 
 ![Access loop item](https://s3.ap-southeast-1.amazonaws.com/automa-pub/i/2024/12/02/16yduo-ib.png)
 
 The <code v-pre>{{loopData.loopId}}</code> expression will return:
+
 ```json
 {
   "data": ...,
   "$index": 1
 }
 ```
+
 So if you want to access the index of the loop, you can use [expressions](./expressions.md) like <code v-pre>{{loopData.loopId.$index}}</code>; And to get the loop value, you don't need to write the `data` property like <code v-pre>{{loopData.loopId.data}}</code>; Automa will automatically assign it to the expressions. But if you use [JavaScript expressions](./expressions.md#javascript-expressions), you must include the `data` property <code v-pre>!!{{loopData.loopId.data}}</code>
 
 ## Using the Repeat Task Block

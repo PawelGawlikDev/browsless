@@ -3,6 +3,7 @@ title: JavaScript Execution Context
 ---
 
 # JavaScript Execution Context
+
 Execution context means the environment where the JavaScript code will execute.
 In Automa, there are two environments you can choose from, Active Tab and Background.
 
@@ -10,6 +11,7 @@ In Automa, there are two environments you can choose from, Active Tab and Backgr
 
 The workflow will inject the JavaScript code into the active tab of the workflow. Select this environment when you want to do DOM manipulation or when you want to get the attribute or text from an element.
 But for some websites, it's not allowed to inject JS code. It's because they have Content Security Policy (CSP) which makes can't inject third-party code. To check if third-party code is allowed, you can open the Chrome Dev Tools by pressing `ctrl+shift+i`; in the `console` tab paste the below code:
+
 ```js
 const script = document.createElement('script');
 script.textContent = 'alert("Hello world!")';

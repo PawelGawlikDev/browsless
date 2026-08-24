@@ -1,4 +1,4 @@
-***
+---
 
 ::: warning Note
 This block will not work without an active tab. Because of that, use the [Active Tab block](../blocks/active-tab.md) or [New Tab block](../blocks/new-tab.md) before using this block.
