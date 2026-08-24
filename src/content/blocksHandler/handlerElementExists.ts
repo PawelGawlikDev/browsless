@@ -1,0 +1,37 @@
+import handleSelector from '../handleSelector';
+import type { SelectorBlock } from '@/types/migration-helpers';
+type ElementExistsBlock = SelectorBlock & {
+  data: SelectorBlock['data'] & {
+    tryCount?: number;
+    timeout?: number;
+  };
+};
+const elementExists = (block: ElementExistsBlock) => {
+  return new Promise<boolean>((resolve) => {
+    let trying = 0;
+    const isExists = async () => {
+      try {
+        const element = await handleSelector(block, { returnElement: true });
+        if (!element) throw new Error('element-not-found');
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const checkElement = async () => {
+      if (trying > (block.data.tryCount || 1)) {
+        resolve(false);
+        return;
+      }
+      const isElementExist = await isExists();
+      if (isElementExist) {
+        resolve(true);
+      } else {
+        trying += 1;
+        setTimeout(checkElement, block.data.timeout || 500);
+      }
+    };
+    checkElement();
+  });
+};
+export default elementExists;

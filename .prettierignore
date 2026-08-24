@@ -1,0 +1,7 @@
+.agents
+.output
+.wxt
+coverage
+dist
+node_modules
+pnpm-lock.yaml

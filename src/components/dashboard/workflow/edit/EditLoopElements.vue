@@ -1,0 +1,125 @@
+<template>
+  <edit-interaction-base :data="data" hide-multiple hide-mark-el @change="updateData">
+    <template #prepend:selector>
+      <ui-input
+        :model-value="data.loopId"
+        class="mb-4 w-full"
+        :label="t('workflow.blocks.loop-data.loopId')"
+        :placeholder="t('workflow.blocks.loop-data.loopId')"
+        @change="updateLoopId"
+      />
+    </template>
+    <ui-input
+      :model-value="data.maxLoop"
+      :label="t('workflow.blocks.loop-data.maxLoop.label')"
+      :title="t('workflow.blocks.loop-data.maxLoop.title')"
+      class="mt-3 w-full"
+      @change="updateData({ maxLoop: $event })"
+    />
+    <ui-checkbox
+      :model-value="data.reverseLoop"
+      class="mt-2"
+      @change="updateData({ reverseLoop: $event })"
+    >
+      {{ t('workflow.blocks.loop-data.reverse') }}
+    </ui-checkbox>
+    <div class="mt-4 mb-8 border-t pt-4">
+      <p class="text-sm text-gray-600 dark:text-gray-200">
+        {{ t('workflow.blocks.loop-elements.loadMore') }}
+      </p>
+      <ui-select
+        :model-value="data.loadMoreAction"
+        :label="t('common.action')"
+        class="mt-2 w-full"
+        @change="updateData({ loadMoreAction: $event })"
+      >
+        <option v-for="action in actions" :key="action" :value="action">
+          {{ t(`workflow.blocks.loop-elements.actions.${action}`) }}
+        </option>
+      </ui-select>
+      <edit-autocomplete
+        v-if="['click-element', 'click-link'].includes(data.loadMoreAction)"
+        block
+        class="mt-2"
+        trigger-class="!flex items-end"
+      >
+        <ui-input
+          :model-value="data.actionElSelector"
+          :label="t('workflow.blocks.base.selector')"
+          placeholder="CSS Selector or XPath"
+          class="mr-2 flex-1"
+          autocomplete="off"
+          @change="updateData({ actionElSelector: $event })"
+        />
+        <shared-el-selector-actions
+          :selector="data.actionElSelector"
+          @update:selector="updateData({ actionElSelector: $event })"
+        />
+      </edit-autocomplete>
+      <ui-input
+        v-if="['click-element', 'scroll', 'scroll-up'].includes(data.loadMoreAction)"
+        :model-value="data.actionElMaxWaitTime"
+        label="Max seconds wait for more elements"
+        class="mt-2 w-full"
+        placeholder="0"
+        type="number"
+        @change="updateData({ actionElMaxWaitTime: +$event })"
+      />
+      <ui-checkbox
+        v-if="data.loadMoreAction.includes('scroll')"
+        :model-value="data.scrollToBottom"
+        class="mt-4"
+        @change="updateData({ scrollToBottom: $event })"
+      >
+        {{
+          t(
+            `workflow.blocks.loop-elements.${
+              data.loadMoreAction === 'scroll-up' ? 'scrollToTop' : 'scrollToBottom'
+            }`
+          )
+        }}
+      </ui-checkbox>
+      <ui-input
+        v-if="data.loadMoreAction === 'click-link'"
+        :model-value="data.actionPageMaxWaitTime"
+        label="Max seconds wait for the page to load"
+        class="mt-2 w-full"
+        placeholder="0"
+        type="number"
+        @change="updateData({ actionPageMaxWaitTime: +$event })"
+      />
+    </div>
+  </edit-interaction-base>
+</template>
+<script setup>
+import { onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { nanoid } from 'nanoid/non-secure';
+import SharedElSelectorActions from '@/components/dashboard/shared/SharedElSelectorActions.vue';
+import EditAutocomplete from './EditAutocomplete.vue';
+import EditInteractionBase from './EditInteractionBase.vue';
+const props = defineProps({
+  data: {
+    type: Object,
+    default: () => ({}),
+  },
+});
+const emit = defineEmits(['update:data']);
+const actions = ['none', 'click-element', 'click-link', 'scroll', 'scroll-up'];
+const { t } = useI18n();
+const updateData = (value) => {
+  emit('update:data', { ...props.data, ...value });
+};
+const updateLoopId = (id) => {
+  let loopId = id.replace(/\s/g, '');
+  if (!loopId) {
+    loopId = nanoid(6);
+  }
+  updateData({ loopId });
+};
+onMounted(() => {
+  if (!props.data.loopId) {
+    updateData({ loopId: nanoid(6) });
+  }
+});
+</script>

@@ -1,0 +1,17 @@
+{
+  "extends": "./.wxt/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "skipLibCheck": true,
+    "useDefineForClassFields": false,
+    "verbatimModuleSyntax": false,
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": [".wxt/**/*.d.ts", "entrypoints", "src", "wxt.config.ts", "global.d.ts"]
+}

@@ -1,0 +1,58 @@
+<template>
+  <div class="container py-8 pb-4">
+    <div class="flex items-center">
+      <h1 class="text-2xl font-semibold">
+        {{ t('common.storage') }}
+      </h1>
+      <a
+        href="#"
+        title="Docs"
+        class="ml-2 text-gray-600 dark:text-gray-200"
+        target="_blank"
+      >
+        <v-remixicon name="riInformationLine" size="20" />
+      </a>
+    </div>
+    <ui-tabs v-model="state.activeTab" class="mt-5" @change="onTabChange">
+      <ui-tab value="tables">
+        {{ t('workflow.table.title', 2) }}
+      </ui-tab>
+      <ui-tab value="variables">
+        {{ t('workflow.variables.title', 2) }}
+      </ui-tab>
+      <ui-tab value="credentials">
+        {{ t('credential.title', 2) }}
+      </ui-tab>
+    </ui-tabs>
+    <ui-tab-panels v-model="state.activeTab">
+      <ui-tab-panel value="tables">
+        <storage-tables />
+      </ui-tab-panel>
+      <ui-tab-panel value="variables">
+        <storage-variables />
+      </ui-tab-panel>
+      <ui-tab-panel value="credentials">
+        <storage-credentials />
+      </ui-tab-panel>
+    </ui-tab-panels>
+  </div>
+</template>
+<script setup>
+import StorageCredentials from '@/components/dashboard/storage/StorageCredentials.vue';
+import StorageTables from '@/components/dashboard/storage/StorageTables.vue';
+import StorageVariables from '@/components/dashboard/storage/StorageVariables.vue';
+import { reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
+const tabs = ['tables', 'variables', 'credentials'];
+const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
+const { tab } = route.query;
+const state = reactive({
+  activeTab: tabs.includes(tab) ? tab : 'tables',
+});
+const onTabChange = (value) => {
+  router.replace({ query: { tab: value } });
+};
+</script>

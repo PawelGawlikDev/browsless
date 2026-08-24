@@ -1,0 +1,107 @@
+<template>
+  <div>
+    <ui-textarea
+      :model-value="data.description"
+      :placeholder="t('common.description')"
+      class="w-full"
+      @change="updateData({ description: $event })"
+    />
+    <edit-autocomplete v-if="!data.activeTab" class="mt-2">
+      <label for="new-tab-url" class="input-label">
+        {{ t('workflow.blocks.new-tab.url') }}
+      </label>
+      <ui-textarea
+        id="new-tab-url"
+        :model-value="data.url"
+        rows="1"
+        class="w-full"
+        autocomplete="off"
+        placeholder="http://example.com/"
+        @change="updateData({ url: $event })"
+      />
+    </edit-autocomplete>
+    <ui-checkbox
+      :model-value="data.updatePrevTab"
+      class="mt-2 leading-tight"
+      :title="t('workflow.blocks.new-tab.updatePrevTab.title')"
+      @change="updateData({ updatePrevTab: $event })"
+    >
+      {{ t('workflow.blocks.new-tab.updatePrevTab.text') }}
+    </ui-checkbox>
+    <ui-checkbox
+      :model-value="data.waitTabLoaded"
+      class="mt-2 leading-tight"
+      :title="t('workflow.blocks.new-tab.waitTabLoaded')"
+      @change="updateData({ waitTabLoaded: $event })"
+    >
+      {{ t('workflow.blocks.new-tab.waitTabLoaded') }}
+    </ui-checkbox>
+    <ui-checkbox
+      :model-value="data.active"
+      class="my-2"
+      @change="updateData({ active: $event })"
+    >
+      {{ t('workflow.blocks.new-tab.activeTab') }}
+    </ui-checkbox>
+    <ui-checkbox :model-value="data.inGroup" @change="updateData({ inGroup: $event })">
+      {{ t('workflow.blocks.new-tab.tabToGroup') }}
+    </ui-checkbox>
+    <ui-checkbox
+      :model-value="data.customUserAgent"
+      block
+      class="mt-2"
+      @change="updateData({ customUserAgent: $event })"
+    >
+      {{ t('workflow.blocks.new-tab.customUserAgent') }}
+    </ui-checkbox>
+    <ui-input
+      v-if="data.customUserAgent"
+      :model-value="data.userAgent"
+      placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      class="mt-1 w-full"
+      @change="updateData({ userAgent: $event })"
+    />
+    <div class="mt-4">
+      <p>{{ t('workflow.blocks.new-tab.tab-zoom') }}</p>
+      <vue-slider
+        :min="0.25"
+        :max="4.5"
+        :interval="0.25"
+        :model-value="data.tabZoom || 1"
+        @change="updateData({ tabZoom: $event })"
+      />
+    </div>
+  </div>
+</template>
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+import VueSlider from 'vue-slider-component';
+import EditAutocomplete from './EditAutocomplete.vue';
+import 'vue-slider-component/theme/default.css';
+type NewTabData = {
+  description?: string;
+  activeTab?: boolean;
+  url?: string;
+  updatePrevTab?: boolean;
+  waitTabLoaded?: boolean;
+  active?: boolean;
+  inGroup?: boolean;
+  customUserAgent?: boolean;
+  userAgent?: string;
+  tabZoom?: number;
+  [key: string]: unknown;
+};
+const props = defineProps({
+  data: {
+    type: Object as () => NewTabData,
+    default: () => ({}),
+  },
+});
+const emit = defineEmits<{
+  'update:data': [value: NewTabData];
+}>();
+const { t } = useI18n();
+const updateData = (value: Partial<NewTabData>) => {
+  emit('update:data', { ...props.data, ...value });
+};
+</script>

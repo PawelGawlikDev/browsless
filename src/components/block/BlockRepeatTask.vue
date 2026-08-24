@@ -1,0 +1,83 @@
+<template>
+  <block-base
+    :id="componentId"
+    :data="data"
+    :block-id="id"
+    :block-data="block"
+    class="repeat-task w-64"
+    @delete="$emit('delete', id)"
+    @update="$emit('update', $event)"
+    @settings="$emit('settings', $event)"
+  >
+    <Handle :id="`${id}-input-1`" type="target" :position="Position.Left" />
+    <div class="mb-2 flex items-center">
+      <div
+        :class="data.disableBlock ? 'bg-box-transparent' : block.category.color"
+        class="mr-4 inline-block rounded-lg p-2 text-sm dark:text-black"
+      >
+        <v-remixicon name="riRepeat2Line" size="20" class="mr-1 inline-block" />
+        <span>{{ t('workflow.blocks.repeat-task.name') }}</span>
+      </div>
+    </div>
+    <div class="bg-input relative flex items-center rounded-lg">
+      <input
+        :value="data.repeatFor"
+        placeholder="0"
+        class="bg-transparent py-2 px-4 focus:ring-0"
+        style="padding-right: 57px; width: 95%"
+        @keydown.stop
+        @input="handleInput"
+      />
+      <span class="absolute right-4 text-gray-600 dark:text-gray-200">
+        {{ t('workflow.blocks.repeat-task.times') }}
+      </span>
+    </div>
+    <p class="text-right text-gray-600 dark:text-gray-200">
+      {{ t('workflow.blocks.repeat-task.repeatFrom') }}
+    </p>
+    <Handle :id="`${id}-output-1`" type="source" :position="Position.Right" />
+    <Handle
+      :id="`${id}-output-2`"
+      type="source"
+      :position="Position.Right"
+      style="top: auto; bottom: 12px"
+    />
+  </block-base>
+</template>
+<script setup>
+import { useI18n } from 'vue-i18n';
+import { Handle, Position } from '@vue-flow/core';
+import { useComponentId } from '@/composable/componentId';
+import { useEditorBlock } from '@/composable/editorBlock';
+import BlockBase from './BlockBase.vue';
+const { t } = useI18n();
+const props = defineProps({
+  id: {
+    type: String,
+    default: '',
+  },
+  label: {
+    type: String,
+    default: '',
+  },
+  data: {
+    type: Object,
+    default: () => ({}),
+  },
+});
+const emit = defineEmits(['delete', 'update', 'settings']);
+const block = useEditorBlock(props.label);
+const componentId = useComponentId('block-delay');
+const handleInput = ({ target }) => {
+  emit('update', { repeatFor: target.value });
+};
+</script>
+<style>
+.drawflow .repeat-task .outputs {
+  top: 74px !important;
+  transform: none !important;
+}
+.drawflow .repeat-task .output {
+  margin-bottom: 22px;
+}
+</style>

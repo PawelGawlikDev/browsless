@@ -1,0 +1,178 @@
+<template>
+  <div>
+    <ui-popover
+      :options="{ animation: null }"
+      trigger-width
+      class="mb-2 w-full"
+      trigger-class="w-full"
+    >
+      <template #trigger>
+        <ui-button class="w-full">
+          <p class="text-overflow mr-2 flex-1 text-left">
+            {{
+              tempDate.days.length === 0
+                ? t('workflow.blocks.trigger.selectDay')
+                : getDaysText(tempDate.days)
+            }}
+          </p>
+          <v-remixicon
+            size="28"
+            name="riArrowDropDownLine"
+            class="-mr-2 text-gray-600 dark:text-gray-200"
+          />
+        </ui-button>
+      </template>
+      <div class="grid grid-cols-2 gap-2">
+        <ui-checkbox
+          v-for="(day, id) in days"
+          :key="id"
+          :model-value="data.days?.includes(id)"
+          @change="onSelectDayChange($event, id)"
+        >
+          {{ t(`workflow.blocks.trigger.days.${id}`) }}
+        </ui-checkbox>
+      </div>
+    </ui-popover>
+    <div class="flex items-center">
+      <ui-input v-model="tempDate.time" type="time" class="mr-2 flex-1" step="1" />
+      <ui-button variant="accent" @click="addTime">
+        {{ t('workflow.blocks.trigger.addTime') }}
+      </ui-button>
+    </div>
+    <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-2">
+      <ui-expand
+        v-for="day in sortedDaysArr"
+        :key="day.id"
+        header-class="focus:ring-0 flex items-center w-full group text-left"
+        type="time"
+        class="w-full"
+      >
+        <template #header>
+          <p class="flex-1">
+            {{ t(`workflow.blocks.trigger.days.${day.id}`) }}
+          </p>
+          <span class="text-gray-600 dark:text-gray-200">
+            <v-remixicon
+              name="riDeleteBin7Line"
+              class="group invisible mr-1 inline-block group-hover:visible"
+              @click="removeDay(day.id)"
+            />
+            {{ day.times.length }}x
+          </span>
+        </template>
+        <div class="mb-1 grid grid-cols-2 gap-1">
+          <div
+            v-for="(time, timeIndex) in day.times"
+            :key="day.id + time"
+            class="group flex items-center rounded-lg border p-2"
+          >
+            <span class="flex-1"> {{ formatTime(time) }} </span>
+            <v-remixicon
+              name="riDeleteBin7Line"
+              class="cursor-pointer"
+              size="18"
+              @click.stop="removeDayTime(day.id, timeIndex)"
+            />
+          </div>
+        </div>
+      </ui-expand>
+    </div>
+  </div>
+</template>
+<script setup>
+import { reactive, computed, ref, watch, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useToast } from 'vue-toastification';
+import dayjs from '@/lib/dayjs';
+import { isObject } from '@/utils/helper';
+const props = defineProps({
+  data: {
+    type: Object,
+    default: () => ({}),
+  },
+});
+const emit = defineEmits(['update']);
+const days = {
+  0: 'Sunday',
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday',
+};
+const { t } = useI18n();
+const toast = useToast();
+const daysArr = ref(null);
+const tempDate = reactive({
+  days: [],
+  time: '00:00',
+});
+const sortedDaysArr = computed(() =>
+  daysArr.value ? daysArr.value.slice().sort((a, b) => a.id - b.id) : []
+);
+const formatTime = (time) => {
+  const [hour, minute, seconds] = time.split(':');
+  return dayjs()
+    .hour(hour)
+    .minute(minute)
+    .second(seconds || 0)
+    .format('hh:mm:ss A');
+};
+const removeDay = (dayId) => {
+  const dayIndex = daysArr.value.findIndex((day) => day.id === dayId);
+  if (dayIndex === -1) return;
+  daysArr.value.splice(dayIndex, 1);
+};
+const removeDayTime = (dayId, timeIndex) => {
+  const dayIndex = daysArr.value.findIndex((day) => day.id === dayId);
+  if (dayIndex === -1) return;
+  daysArr.value[dayIndex].times.splice(timeIndex, 1);
+  if (daysArr.value[dayIndex].times.length === 0) {
+    daysArr.value.splice(dayIndex, 1);
+  }
+};
+const addTime = () => {
+  tempDate.days.forEach((dayId) => {
+    const dayIndex = daysArr.value.findIndex(({ id }) => id === dayId);
+    if (dayIndex === -1) {
+      daysArr.value.push({
+        id: dayId,
+        times: [tempDate.time],
+      });
+    } else {
+      const isTimeExist = daysArr.value[dayIndex].times.includes(tempDate.time);
+      if (isTimeExist) {
+        const message = t('workflow.blocks.trigger.timeExist', {
+          time: formatTime(tempDate.time),
+          day: t(`workflow.blocks.trigger.days.${dayId}`),
+        });
+        toast.error(message);
+        return;
+      }
+      daysArr.value[dayIndex].times.push(tempDate.time);
+    }
+  });
+};
+const onSelectDayChange = (value, id) => {
+  if (value) tempDate.days.push(+id);
+  else tempDate.days.splice(tempDate.days.indexOf(+id), 1);
+};
+const getDaysText = (dayIds) => {
+  return dayIds.map((day) => t(`workflow.blocks.trigger.days.${day}`)).join(', ');
+};
+watch(
+  daysArr,
+  (value, oldValue) => {
+    if (!oldValue) return;
+    emit('update', { days: value });
+  },
+  { deep: true }
+);
+onMounted(() => {
+  const isStringDay = props.data.days.length > 0 && !isObject(props.data.days[0]);
+  daysArr.value = isStringDay
+    ? props.data.days.map((day) => ({ id: day, times: [props.data.time] }))
+    : props.data.days;
+});
+</script>
