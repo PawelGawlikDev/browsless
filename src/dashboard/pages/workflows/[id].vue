@@ -843,10 +843,10 @@ const autoAlign = () => {
     state.animateBlocks = false;
   }, 500);
 };
-const toggleSidebar = () => {
+function toggleSidebar() {
   state.showSidebar = !state.showSidebar;
   setExtensionStorageValue('local', 'workflow:sidebar', state.showSidebar);
-};
+}
 const getBlockDefinition = (blockId, blockNodeId = null) => {
   if (blocks[blockId]) return blocks[blockId];
   if (blockNodeId) {
@@ -1149,7 +1149,7 @@ const copyElements = (nodes, edges, initialPos) => {
     edges: newEdges,
   };
 };
-const duplicateElements = ({ nodes, edges }) => {
+function duplicateElements({ nodes, edges }) {
   const selectedNodes = editor.value.getSelectedNodes.value;
   const selectedEdges = editor.value.getSelectedEdges.value;
   const { edges: newEdges, nodes: newNodes } = copyElements(
@@ -1165,7 +1165,7 @@ const duplicateElements = ({ nodes, edges }) => {
   editor.value.addNodes(newNodes);
   editor.value.addEdges(newEdges);
   state.dataChanged = true;
-};
+}
 const copySelectedElements = (data = {}) => {
   const nodes = data.nodes || editor.value.getSelectedNodes.value;
   const edges = data.edges || editor.value.getSelectedEdges.value;
@@ -1228,14 +1228,14 @@ const onKeydown = ({ ctrlKey, metaKey, shiftKey, key, target, repeat }) => {
     undoRedoCommand(shiftKey ? 'redo' : 'undo', { target });
   }
 };
-const fetchConnectedTable = async () => {
+async function fetchConnectedTable() {
   const table = await dbStorage.tablesItems
     .where('id')
     .equals(workflow.value.connectedTable)
     .first();
   if (!table) return;
   connectedTable.value = table;
-};
+}
 const checkWorkflowPermission = () => {
   getWorkflowPermissions(editorData.value).then((permissions) => {
     if (permissions.length === 0) return;

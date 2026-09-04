@@ -71,7 +71,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     name: 'logs-details',
-    path: '/logs/:id?',
+    path: '/logs/:id?/:mode?',
     component: LogsDetails,
   },
   {

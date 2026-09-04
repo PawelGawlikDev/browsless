@@ -15,19 +15,21 @@ To get, update, or clear values in a Google Sheet, you need to connect a spreads
 ![Connect spreadsheet](https://s3.ap-southeast-1.amazonaws.com/automa-pub/i/2024/12/03/ml5uc-hh.png)
 
 ## Create a Spreadsheet
+
 You can use it to create a spreadsheet.
 
 - **Assign to variable** <br>
-	Whether assign the created spreadsheet id into a [variable](../workflow/variables.md) or not.
+  Whether assign the created spreadsheet id into a [variable](../workflow/variables.md) or not.
 
 - **Variable name** <br>
-	Name of the variable to assign the created spreadsheet id.
+  Name of the variable to assign the created spreadsheet id.
 
 - **Insert to table** <br>
-	Whether insert the created spreadsheet id into the [table](../workflow/table.md) or not.
+  Whether insert the created spreadsheet id into the [table](../workflow/table.md) or not.
 
 - **Select column** <br>
-	The column where the created spreadsheet id will be inserted.
+  The column where the created spreadsheet id will be inserted.
 
 ## When to Use it?
+
 You can use this block when your workflow requires an intensive updating of a spreadsheet in a short period. For example, update a row on each iteration of [a loop](../workflow/looping.md).
