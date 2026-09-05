@@ -27,7 +27,9 @@ const sectionTitle = computed(
         </router-link>
 
         <div class="mb-8">
-          <p class="text-sm font-medium uppercase tracking-[0.2em] text-accent">{{ sectionTitle }}</p>
+          <p class="text-sm font-medium uppercase tracking-[0.2em] text-accent">
+            {{ sectionTitle }}
+          </p>
           <h1 class="mt-3 text-3xl font-semibold">{{ article.title }}</h1>
         </div>
 

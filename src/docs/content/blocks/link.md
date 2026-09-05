@@ -11,6 +11,6 @@ Because sometimes an anchor element has [`target="_blank"`](https://developer.mo
 So to fix this, you need to use the Link block. It will grab the URL from the anchor element and open it on the same tab.
 
 - **Element selector** <br>
-	[Element selector](../workflow/element-selector.md).
+  [Element selector](../workflow/element-selector.md).
 
 <!--@include: ../parts/blocks-interaction-note.md-->

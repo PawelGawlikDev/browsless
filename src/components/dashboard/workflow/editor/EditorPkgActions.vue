@@ -62,7 +62,7 @@ const dialog = useDialog();
 const router = useRouter();
 const packageStore = usePackageStore();
 const shortcuts = useShortcut([getShortcut('editor:save', savePackage)]);
-const deletePackage = () => {
+function deletePackage() {
   dialog.confirm({
     okVariant: 'danger',
     okText: 'Delete',
@@ -73,8 +73,8 @@ const deletePackage = () => {
       router.replace('/packages');
     },
   });
-};
-const updatePackage = (data = {}, changedIndicator = false) => {
+}
+function updatePackage(data = {}, changedIndicator = false) {
   return packageStore
     .update({
       data,
@@ -84,8 +84,8 @@ const updatePackage = (data = {}, changedIndicator = false) => {
       emit('update', { data, changedIndicator });
       return result;
     });
-};
-const savePackage = () => {
+}
+function savePackage() {
   const flow = props.editor.toObject();
   flow.edges = flow.edges.map((edge) => {
     delete edge.sourceNode;
@@ -93,5 +93,5 @@ const savePackage = () => {
     return edge;
   });
   updatePackage({ data: flow }, false);
-};
+}
 </script>

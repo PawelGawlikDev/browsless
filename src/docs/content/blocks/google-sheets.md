@@ -7,6 +7,7 @@ title: Google Sheets Block
 Read or write Google Sheets spreadsheet data.
 
 ## Access To Spreadsheet
+
 Before using this block, you need to give Automa access to the spreadsheet first. There're two ways that you can do that:
 
 1. Share the spreadsheet with the public.
@@ -17,6 +18,7 @@ When you share the spreadsheet with the public, Automa only has read access to i
 ![Service account](https://s3.ap-southeast-1.amazonaws.com/automa-pub/i/2024/12/03/mj8jg-g1.png)
 
 ## Spreadsheet Id
+
 The Spreadsheet Id contains letters, numbers, hyphens, or underscores. And you can find it in the Google Sheets URL.
 
 <code>
@@ -26,21 +28,23 @@ The Spreadsheet Id contains letters, numbers, hyphens, or underscores. And you c
 ![Spreadsheet Id](https://s3.ap-southeast-1.amazonaws.com/automa-pub/i/2024/12/03/mj8jh-f2.png)
 
 ## Range
+
 The range of the values of the cells that you want to get or update, you can define the cells range by using the [A1 Notation](https://developers.google.com/sheets/api/guides/concepts#expandable-1) like `Sheet1!A1:B2` or [R1C1 notation](https://developers.google.com/sheets/api/guides/concepts#expandable-2) like `Sheet1!R1C1:R2C2`.
 
 ## Get Spreadsheet Values
+
 Get the cells values of the spreadsheet.
 
 - **Reference key** <br>
-	The key for identifying the google sheets data.
+  The key for identifying the google sheets data.
 
 - **Use the first row as keys** <br>
-	Use the first row of the spreadsheet as the object key. For example, when you have a spreadsheet like this.
+  Use the first row of the spreadsheet as the object key. For example, when you have a spreadsheet like this.
 
-	| name | age |
-	| --- | --- |
-	| foo | 22 |
-	| bar | 23 |
+  | name | age |
+  | ---- | --- |
+  | foo  | 22  |
+  | bar  | 23  |
 
 ```json
 // option disabled
@@ -51,31 +55,38 @@ Get the cells values of the spreadsheet.
 ```
 
 ### Accessing Sheets Data
+
 To access the spreadsheet values from an input of a block, you can use expressions like <code v-pre>{{ googleSheets.referenceKey.path }}</code> syntax.
 
 Read more: [Expressions](../workflow/expressions.md)
 
 ## Update Spreadsheet Values
+
 Update the cells values of the spreadsheet.
 
 - **Value input option** <br>
-	Determines how input data should be interpreted, default to `RAW`.
+  Determines how input data should be interpreted, default to `RAW`.
 
-	| Value | Description |
-	| --- | --- |
-	| `RAW` | The values the user has entered will not be parsed and will be stored as-is |
-	| `USER_ENTERED` | The values will be parsed as if the user typed them into the UI. Numbers will stay as numbers, but strings may be converted to numbers, dates, etc. following the same rules that are applied when entering text into a cell via the Google Sheets UI. |
+  | Value          | Description                                                                                                                                                                                                                                            |
+  | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+  | `RAW`          | The values the user has entered will not be parsed and will be stored as-is                                                                                                                                                                            |
+  | `USER_ENTERED` | The values will be parsed as if the user typed them into the UI. Numbers will stay as numbers, but strings may be converted to numbers, dates, etc. following the same rules that are applied when entering text into a cell via the Google Sheets UI. |
 
-	Read more on the [Google developer page](https://developers.google.com/sheets/api/reference/rest/v4/ValueInputOption)
+  Read more on the [Google developer page](https://developers.google.com/sheets/api/reference/rest/v4/ValueInputOption)
 
 - **Data from** <br>
-	The source of the data for updating the spreadsheet, defaults to [table](../workflow/table.md).
-	When using the custom option, the inputted data must be an array of an arrays data type with valid JSON syntax.
+  The source of the data for updating the spreadsheet, defaults to [table](../workflow/table.md).
+  When using the custom option, the inputted data must be an array of an arrays data type with valid JSON syntax.
 
-	**Example**
-	```json
-	[["name", "age"], ["foo", 22], ["bar", 23, "text"]]
-	```
+  **Example**
+
+  ```json
+  [
+    ["name", "age"],
+    ["foo", 22],
+    ["bar", 23, "text"]
+  ]
+  ```
 
 - **Use keys as the first row** <br>
-	Use the columns as the first row on the spreadsheet.
+  Use the columns as the first row on the spreadsheet.

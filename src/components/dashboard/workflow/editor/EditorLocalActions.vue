@@ -251,7 +251,7 @@ const copyWorkflowId = () => {
     textarea.blur();
   });
 };
-const saveWorkflow = async () => {
+async function saveWorkflow() {
   try {
     const flow = props.editor.toObject();
     flow.edges = flow.edges.map((edge) => {
@@ -277,8 +277,8 @@ const saveWorkflow = async () => {
   } catch (error) {
     console.error(error);
   }
-};
-const executeCurrWorkflow = async () => {
+}
+async function executeCurrWorkflow() {
   if (mainStore.settings.editor.saveWhenExecute && props.isDataChanged) {
     saveWorkflow();
   }
@@ -286,7 +286,7 @@ const executeCurrWorkflow = async () => {
     ...props.workflow,
     isTesting: props.isDataChanged,
   });
-};
+}
 const clearRenameModal = () => {
   Object.assign(renameState, {
     id: '',

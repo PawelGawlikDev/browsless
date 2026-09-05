@@ -31,12 +31,12 @@ Assign the results from your AI Power workflow to variables. The number and name
 
 ![](https://winrobot-pub-a-1302949341.cos.ap-shanghai.myqcloud.com/image/20250718173702/88015363f6b069ffa030e92597cad97e.png)
 
-*Additionally, AI Power offers agent building capabilities, though this feature is not yet integrated into the Automa Extension. Stay tuned for future updates!*
+_Additionally, AI Power offers agent building capabilities, though this feature is not yet integrated into the Automa Extension. Stay tuned for future updates!_
 
 ## Additional Resources
 
 For more details, check out these helpful resources:
 
-  * [Create a New Workflow in AI Power](https://docs.automa.site/AIPower/819038756436922368)
-  * [Knowledge Base Overview](https://docs.automa.site/AIPower/819048519287656448)
-  * [Connect an External Database](https://docs.automa.site/AIPower/819048427348512768)
+- [Create a New Workflow in AI Power](https://docs.automa.site/AIPower/819038756436922368)
+- [Knowledge Base Overview](https://docs.automa.site/AIPower/819048519287656448)
+- [Connect an External Database](https://docs.automa.site/AIPower/819048427348512768)

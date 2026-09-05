@@ -3,7 +3,8 @@ title: Testing Mode
 ---
 
 # Testing Mode
-Testing mode allows you to test and debug your Automa workflow. 
+
+Testing mode allows you to test and debug your Automa workflow.
 
 You can test each step of the workflow and verify the output of each step without the need to execute the entire workflow. Click the <v-remixicon name="riBug2Line" /> icon to enter the workflow into testing mode.
 
