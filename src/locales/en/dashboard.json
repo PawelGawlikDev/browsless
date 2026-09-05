@@ -155,7 +155,6 @@
       "invalidPassword": "Invalid password",
       "workflowsAdded": "{count} workflows have been added",
       "name": "Backup workflows",
-      "needSignin": "You need to sign in first",
       "backup": {
         "button": "Backup",
         "settings": "Backup settings",
@@ -166,25 +165,6 @@
         "title": "Restore workflows",
         "button": "Restore",
         "update": "Update if the workflow exists"
-      },
-      "cloud": {
-        "buttons": {
-          "local": "Local",
-          "cloud": "Cloud"
-        },
-        "location": "Location",
-        "delete": "Delete backup",
-        "title": "Cloud Backup",
-        "sync": "Sync",
-        "lastSync": "Last sync",
-        "lastBackup": "Last backup",
-        "select": "Select workflows",
-        "storedWorkflows": "Workflows that are stored in the cloud",
-        "selected": "Selected",
-        "selectText": "Select workflows that you want to backup",
-        "selectAll": "Select all",
-        "deselectAll": "Deselect all",
-        "needSelectWorkflow": "You need to select workflows that you want to backup"
       }
     }
   },
@@ -240,7 +220,7 @@
     "browse": "Browse workflows",
     "name": "Workflow name",
     "rename": "Rename workflow",
-    "backupCloud": "Backup workflow to cloud",
+    "backupCloud": "Backup workflows",
     "add": "Add workflow",
     "clickToEnable": "Click to enable",
     "toggleSidebar": "Toggle sidebar",
