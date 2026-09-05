@@ -1,18 +1,5 @@
 <template>
   <div class="max-w-xl">
-    <ui-card class="mb-12">
-      <h2 class="mb-2 font-semibold">
-        {{ t('settings.backupWorkflows.cloud.title') }}
-      </h2>
-      <div class="py-4 text-center">
-        <p>
-          {{ t('settings.backupWorkflows.needSignin') }}
-        </p>
-        <ui-button tag="a" href="#" target="_blank" class="mt-4 inline-block w-44">
-          {{ t('auth.signIn') }}
-        </ui-button>
-      </div>
-    </ui-card>
     <h2 class="mb-2 font-semibold">
       {{ t('settings.backupWorkflows.title') }}
     </h2>

@@ -4,7 +4,7 @@
     class="mx-auto flex h-full w-full max-w-lg flex-col dark:text-gray-100"
   >
     <nav class="mb-4 flex w-full items-center border-b p-4">
-      <span class="bg-box-transparent rounded-full p-1 dark:bg-none">
+      <span class="p-1 dark:bg-none">
         <img src="@/assets/logo.svg" class="w-10" />
       </span>
       <p class="ml-4 text-lg font-semibold">Browsless</p>
