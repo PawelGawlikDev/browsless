@@ -119,13 +119,13 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { extensionStorage } from '@/lib/extensionStorage';
 import { useDialog } from '@/composable/dialog';
 import { useHasPermissions } from '@/composable/hasPermissions';
 import dbStorage from '@/db/storage';
 import { readableCron } from '@/lib/cronstrue';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import { fileSaver, openFilePicker, parseJSON } from '@/utils/helper';
 import cronParser from 'cron-parser';
 import AES from 'crypto-js/aes';
@@ -136,7 +136,16 @@ import { onMounted, reactive, toRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'vue-toastification';
 import { browser } from 'wxt/browser';
-const BACKUP_SCHEDULES = {
+import type { Workflow } from '@/types/models';
+
+interface BackupPayload {
+  isProtected: boolean;
+  workflows: string;
+  storageTables?: string;
+  storageVariables?: string;
+}
+
+const BACKUP_SCHEDULES: Record<string, string> = {
   '0 8 * * *': 'Every day',
   '0 8 * * 0': 'Every week',
 };
@@ -147,16 +156,28 @@ const BACKUP_ITEMS_INCLUDES = [
 const { t } = useI18n();
 const toast = useToast();
 const dialog = useDialog();
-const workflowStore = useWorkflowStore();
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 const downloadPermission = useHasPermissions(['downloads']);
-const state = reactive({
+const state = reactive<{
+  lastSync: number | null;
+  encrypt: boolean;
+  lastBackup: number | null;
+  loadingSync: boolean;
+  updateIfExists: boolean;
+}>({
   lastSync: null,
   encrypt: false,
   lastBackup: null,
   loadingSync: false,
   updateIfExists: false,
 });
-const localBackupSchedule = reactive({
+const localBackupSchedule = reactive<{
+  schedule: string;
+  lastBackup: number | null;
+  includedItems: string[];
+  customSchedule: string;
+  folderName: string;
+}>({
   schedule: '',
   lastBackup: null,
   includedItems: [],
@@ -172,7 +193,7 @@ const registerScheduleBackup = async () => {
         localBackupSchedule.schedule === 'custom'
           ? localBackupSchedule.customSchedule
           : localBackupSchedule.schedule;
-      const parsedExpression = cronParser.parseExpression(expression).next();
+      const parsedExpression = cronParser.parse(expression).next();
       if (!parsedExpression) return;
       await browser.alarms.create('schedule-local-backup', {
         when: parsedExpression.getTime(),
@@ -190,22 +211,26 @@ const getBackupScheduleCron = () => {
     const expression = localBackupSchedule.customSchedule;
     return `${readableCron(expression)}`;
   } catch (error) {
-    return error.message;
+    return (error as Error).message;
   }
 };
 const backupWorkflows = async () => {
   try {
-    const workflows = workflowStore.getWorkflows.reduce((acc, workflow) => {
-      if (workflow.isProtected) return acc;
-      delete workflow.$id;
-      delete workflow.createdAt;
-      delete workflow.data;
-      delete workflow.isDisabled;
-      delete workflow.isProtected;
-      acc.push(workflow);
-      return acc;
-    }, []);
-    const payload = {
+    const workflows = workflowStore.getWorkflows.reduce<Partial<Workflow>[]>(
+      (acc, workflow) => {
+        if (workflow.isProtected) return acc;
+        const workflowCopy = { ...workflow } as Partial<Workflow>;
+        delete workflowCopy.$id;
+        delete workflowCopy.createdAt;
+        delete workflowCopy.data;
+        delete workflowCopy.isDisabled;
+        delete workflowCopy.isProtected;
+        acc.push(workflowCopy);
+        return acc;
+      },
+      []
+    );
+    const payload: BackupPayload = {
       isProtected: state.encrypt,
       workflows: JSON.stringify(workflows),
     };
@@ -217,7 +242,7 @@ const backupWorkflows = async () => {
       const variables = await dbStorage.variables.toArray();
       payload.storageVariables = JSON.stringify(variables);
     }
-    const downloadFile = (data) => {
+    const downloadFile = (data: BackupPayload) => {
       const fileName = `browsless-${dayjs().format('DD-MM-YYYY')}.json`;
       const blob = new Blob([JSON.stringify(data)], {
         type: 'application/json',
@@ -232,7 +257,7 @@ const backupWorkflows = async () => {
         title: t('settings.backupWorkflows.title'),
         okText: t('settings.backupWorkflows.backup.button'),
         inputType: 'password',
-        onConfirm: (password) => {
+        onConfirm: (password: string) => {
           const encryptedWorkflows = AES.encrypt(payload.workflows, password).toString();
           const hmac = hmacSHA256(encryptedWorkflows, password).toString();
           payload.workflows = hmac + encryptedWorkflows;
@@ -250,7 +275,7 @@ const restoreWorkflows = async () => {
   try {
     const [file] = await openFilePicker('application/json');
     const reader = new FileReader();
-    const insertWorkflows = (workflows) => {
+    const insertWorkflows = (workflows: Partial<Workflow>[]) => {
       const newWorkflows = workflows.map((workflow) => {
         if (!state.updateIfExists) {
           workflow.createdAt = Date.now();
@@ -258,7 +283,7 @@ const restoreWorkflows = async () => {
         }
         return workflow;
       });
-      const showMessage = (event) => {
+      const showMessage = (event: Record<string, unknown>) => {
         toast(
           t('settings.backupWorkflows.workflowsAdded', {
             count: Object.values(event).length,
@@ -272,15 +297,23 @@ const restoreWorkflows = async () => {
       }
       return workflowStore.insert(newWorkflows).then(showMessage);
     };
-    reader.onload = ({ target }) => {
-      let payload = parseJSON(target.result, null);
-      if (!payload) payload = parseJSON(window.decodeURIComponent(target.result), null);
+    reader.onload = ({ target }: ProgressEvent<FileReader>) => {
+      let payload = parseJSON<BackupPayload | null>(target?.result as string, null);
+      if (!payload) {
+        payload = parseJSON<BackupPayload | null>(
+          window.decodeURIComponent(target?.result as string),
+          null
+        );
+      }
       if (!payload) return;
-      const storageTables = parseJSON(payload.storageTables, null);
+      const storageTables = parseJSON<unknown>(payload.storageTables as string, null);
       if (Array.isArray(storageTables)) {
         dbStorage.tablesItems.bulkPut(storageTables);
       }
-      const storageVariables = parseJSON(payload.storageVariables, null);
+      const storageVariables = parseJSON<unknown>(
+        payload.storageVariables as string,
+        null
+      );
       if (Array.isArray(storageVariables)) {
         dbStorage.variables.bulkPut(storageVariables);
       }
@@ -290,7 +323,8 @@ const restoreWorkflows = async () => {
           title: t('settings.backupWorkflows.restore.title'),
           okText: t('settings.backupWorkflows.restore.button'),
           inputType: 'password',
-          onConfirm: (password) => {
+          onConfirm: (password: string) => {
+            if (!payload) return;
             const hmac = payload.workflows.substring(0, 64);
             const encryptedWorkflows = payload.workflows.substring(64);
             const decryptedHmac = hmacSHA256(encryptedWorkflows, password).toString();
@@ -301,29 +335,34 @@ const restoreWorkflows = async () => {
             const decryptedWorkflows = AES.decrypt(encryptedWorkflows, password).toString(
               encUtf8
             );
-            payload.workflows = parseJSON(decryptedWorkflows, []);
-            insertWorkflows(payload.workflows);
+            const parsedWorkflows = parseJSON<Partial<Workflow>[]>(
+              decryptedWorkflows,
+              []
+            );
+            insertWorkflows(parsedWorkflows);
           },
         });
       } else {
-        payload.workflows = parseJSON(payload.workflows, []);
-        insertWorkflows(payload.workflows);
+        const parsedWorkflows = parseJSON<Partial<Workflow>[]>(payload.workflows, []);
+        insertWorkflows(parsedWorkflows);
       }
     };
     reader.readAsText(file);
   } catch (error) {
     console.error(error);
-    toast.error(error.message);
+    toast.error((error as Error).message);
   }
 };
 onMounted(async () => {
-  const { lastBackup, lastSync, localBackupSettings } = await extensionStorage.local.get([
-    'lastSync',
-    'lastBackup',
-    'localBackupSettings',
-  ]);
+  const { lastBackup, lastSync, localBackupSettings } = (await extensionStorage.local.get(
+    ['lastSync', 'lastBackup', 'localBackupSettings']
+  )) as {
+    lastSync?: number;
+    lastBackup?: number;
+    localBackupSettings?: Partial<typeof localBackupSchedule>;
+  };
   Object.assign(localBackupSchedule, localBackupSettings || {});
-  state.lastSync = lastSync;
-  state.lastBackup = lastBackup;
+  state.lastSync = lastSync ?? null;
+  state.lastBackup = lastBackup ?? null;
 });
 </script>

@@ -138,7 +138,7 @@
     @selected="onElementsSelected"
   />
 </template>
-<script setup>
+<script setup lang="ts">
 import SelectorElementsDetail from '@/components/content/selector/SelectorElementsDetail.vue';
 import SelectorQuery from '@/components/content/selector/SelectorQuery.vue';
 import SharedElementSelector from '@/components/content/shared/SharedElementSelector.vue';
@@ -150,16 +150,39 @@ import { inject, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from 
 import { browser } from 'wxt/browser';
 import { getElementRect } from '../utils';
 import getSelectorOptions from './getSelectorOptions';
-let connectedPort = null;
+import type { ElementSelectorMode, SelectedElementRect } from './types';
+
+type RuntimePort = Parameters<
+  Parameters<typeof browser.runtime.onConnect.addListener>[0]
+>[0];
+
+let connectedPort: RuntimePort | null = null;
 const originalFontSize = document.documentElement.style.fontSize;
-const selectedElement = {
+const selectedElement: {
+  path: Node[];
+  pathIndex: number;
+  cache: WeakMap<Node, string>;
+} = {
   path: [],
   pathIndex: 0,
   cache: new WeakMap(),
 };
-const rootElement = inject('rootElement');
-const cardEl = ref('cardEl');
-const state = reactive({
+const rootElement = inject<HTMLElement>('rootElement');
+const cardEl = ref<HTMLElement | null>(null);
+const state = reactive<{
+  hide: boolean;
+  elSelector: string;
+  destroyed: boolean;
+  isDragging: boolean;
+  selectList: boolean;
+  isExecuting: boolean;
+  selectElements: SelectedElementRect[];
+  showSettings: boolean;
+  selectorType: ElementSelectorMode;
+  selectedElements: SelectedElementRect[];
+  activeTab: string;
+  isSelectBlockElement: boolean;
+}>({
   hide: false,
   elSelector: '',
   destroyed: false,
@@ -191,8 +214,8 @@ const cardElementObserver = new ResizeObserver(([entry]) => {
   cardRect.width = width;
   cardRect.height = height;
 });
-const updateSelector = debounce((selector) => {
-  let frameSelector;
+const updateSelector = debounce((selector: string) => {
+  let frameSelector: string | undefined;
   let elSelector = selector;
   if (selector.includes('|>')) {
     [frameSelector, elSelector] = selector.split(/\|>(.+)/);
@@ -203,10 +226,10 @@ const updateSelector = debounce((selector) => {
       const frame = FindElement[selectorType]({
         selector: frameSelector,
         multiple: false,
-      });
-      if (!['IFRAME', 'FRAME'].includes(frame.tagName)) return;
+      }) as HTMLIFrameElement | null;
+      if (!frame || !['IFRAME', 'FRAME'].includes(frame.tagName)) return;
       const { top, left } = frame.getBoundingClientRect();
-      frame.contentWindow.postMessage(
+      frame.contentWindow?.postMessage(
         {
           selectorType,
           selector: elSelector,
@@ -220,7 +243,7 @@ const updateSelector = debounce((selector) => {
     const elements = FindElement[selectorType]({
       selector: elSelector,
       multiple: true,
-    });
+    }) as Element[] | null;
     state.selectedElements = Array.from(elements || []).map((el) =>
       getElementRect(el, true)
     );
@@ -229,19 +252,35 @@ const updateSelector = debounce((selector) => {
     state.selectedElements = [];
   }
 }, 200);
-const toggleHighlightElement = ({ index, highlight }) => {
+const toggleHighlightElement = ({
+  index,
+  highlight,
+}: {
+  index: number;
+  highlight: boolean;
+}) => {
   state.selectedElements[index].highlight = highlight;
 };
-const onElementsSelected = ({ selector, elements, path, selectElements }) => {
+const onElementsSelected = ({
+  selector,
+  elements,
+  path,
+  selectElements,
+}: {
+  selector?: string;
+  elements?: SelectedElementRect[];
+  path?: Node[];
+  selectElements?: SelectedElementRect[];
+}) => {
   if (path) {
     selectedElement.path = path;
     selectedElement.pathIndex = 0;
   }
-  state.elSelector = selector;
+  state.elSelector = selector ?? '';
   state.selectedElements = elements || [];
   state.selectElements = selectElements || [];
 };
-const onMousemove = ({ clientX, clientY }) => {
+const onMousemove = ({ clientX, clientY }: MouseEvent) => {
   if (!state.isDragging) return;
   const height = window.innerHeight;
   const width = document.documentElement.clientWidth;
@@ -252,13 +291,13 @@ const onMousemove = ({ clientX, clientY }) => {
   cardRect.x = clientX;
   cardRect.y = clientY;
 };
-const selectElementPath = (type) => {
+const selectElementPath = (type: 'up' | 'down') => {
   let pathIndex =
     type === 'up' ? selectedElement.pathIndex + 1 : selectedElement.pathIndex - 1;
-  let element = selectedElement.path[pathIndex];
-  if ((type === 'up' && !element) || element?.tagName === 'BODY') return;
+  let element = selectedElement.path[pathIndex] as Element | undefined;
+  if ((type === 'up' && !element) || (element as Element)?.tagName === 'BODY') return;
   if (type === 'down' && !element) {
-    const previousElement = selectedElement.path[selectedElement.pathIndex];
+    const previousElement = selectedElement.path[selectedElement.pathIndex] as Element;
     const childEl = Array.from(previousElement.children).find(
       (el) => !['STYLE', 'SCRIPT'].includes(el.tagName)
     );
@@ -268,20 +307,22 @@ const selectElementPath = (type) => {
     pathIndex = 0;
   }
   selectedElement.pathIndex = pathIndex;
-  state.selectedElements = [getElementRect(element, true)];
-  state.elSelector = selectedElement.cache.has(element)
-    ? selectedElement.cache.get(element)
-    : findSelector(element, getSelectorOptions(selectorSettings));
+  state.selectedElements = [getElementRect(element as Element, true)];
+  state.elSelector = selectedElement.cache.has(element as Element)
+    ? (selectedElement.cache.get(element as Element) as string)
+    : findSelector(element as Element, getSelectorOptions(selectorSettings));
 };
 const onMouseup = () => {
   if (state.isDragging) state.isDragging = false;
 };
-const onMessage = ({ data }) => {
+const onMessage = ({
+  data,
+}: MessageEvent<{ type?: string; elements?: SelectedElementRect[] }>) => {
   if (data.type !== 'browsless:selected-elements') return;
-  state.selectedElements = data.elements;
+  state.selectedElements = data.elements ?? [];
 };
 const destroy = () => {
-  rootElement.style.display = 'none';
+  if (rootElement) rootElement.style.display = 'none';
   Object.assign(state, {
     hide: true,
     activeTab: '',
@@ -313,7 +354,7 @@ const saveSelector = () => {
   destroy();
 };
 const attachListeners = () => {
-  cardElementObserver.observe(cardEl.value);
+  if (cardEl.value) cardElementObserver.observe(cardEl.value);
   window.addEventListener('message', onMessage);
   window.addEventListener('mouseup', onMouseup);
   window.addEventListener('mousemove', onMousemove);
@@ -353,6 +394,7 @@ onMounted(() => {
     Object.assign(selectorSettings, settings);
   });
   setTimeout(() => {
+    if (!cardEl.value) return;
     const { height, width } = cardEl.value.getBoundingClientRect();
     cardRect.x = window.innerWidth - (width + 35);
     cardRect.y = 20;

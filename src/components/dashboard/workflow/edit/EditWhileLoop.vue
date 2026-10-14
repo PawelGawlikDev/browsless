@@ -31,20 +31,21 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WhileLoopData, ConditionGroup } from '@/types/block-editor';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid';
 import SharedConditionBuilder from '@/components/dashboard/shared/SharedConditionBuilder/index.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => WhileLoopData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: WhileLoopData] }>();
 const { t } = useI18n();
-const defaultConditions = () => [
+const defaultConditions = (): ConditionGroup[] => [
   {
     id: nanoid(),
     conditions: [
@@ -88,7 +89,7 @@ const defaultConditions = () => [
   },
 ];
 const showConditionBuilder = ref(false);
-const updateData = (value) => {
+const updateData = (value: Partial<WhileLoopData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 onMounted(() => {

@@ -9,18 +9,19 @@
     </ui-checkbox>
   </edit-interaction-base>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { LinkData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import EditInteractionBase from './EditInteractionBase.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => LinkData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: LinkData] }>();
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<LinkData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

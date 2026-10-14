@@ -12,21 +12,19 @@
     <slot></slot>
   </component>
 </template>
-<script>
-export default {
-  props: {
-    active: Boolean,
-    disabled: Boolean,
-    small: Boolean,
-    tag: {
-      type: String,
-      default: 'div',
-    },
-    color: {
-      type: String,
-      default:
-        'bg-primary text-primary dark:bg-secondary dark:text-secondary bg-opacity-10 dark:bg-opacity-10',
-    },
-  },
-};
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    active?: boolean;
+    disabled?: boolean;
+    small?: boolean;
+    tag?: string;
+    color?: string;
+  }>(),
+  {
+    tag: 'div',
+    color:
+      'bg-primary text-primary dark:bg-secondary dark:text-secondary bg-opacity-10 dark:bg-opacity-10',
+  }
+);
 </script>

@@ -10,23 +10,24 @@
     <slot />
   </ui-autocomplete>
 </template>
-<script setup>
+<script setup lang="ts">
 import { inject, shallowReactive, computed } from 'vue';
 import objectPath from 'object-path';
 defineProps({
   disabled: Boolean,
 });
-const autocompleteData = inject('autocompleteData', {});
+const autocompleteData =
+  inject<import('vue').Ref<Record<string, unknown>>>('autocompleteData');
 const state = shallowReactive({
   path: '',
   pathLen: -1,
 });
-const autocompleteFilter = ({ text, item }) => {
+const autocompleteFilter = ({ text, item }: { text: string; item: string }) => {
   if (!text) return true;
   const query = text.replace('@', '.').split('.').pop();
   return item.toLocaleLowerCase().includes(query);
 };
-const onSearch = (value) => {
+const onSearch = (value: string) => {
   const pathArr = (value ?? '').replace('@', '.').split('.');
   state.path = (pathArr.length > 1 ? pathArr.slice(0, -1) : pathArr).join('.');
   state.pathLen = pathArr.length;

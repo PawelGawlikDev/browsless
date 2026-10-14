@@ -41,28 +41,32 @@
     />
   </block-base>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { Handle, Position } from '@vue-flow/core';
 import { useComponentId } from '@/composable/componentId';
 import { useEditorBlock } from '@/composable/editorBlock';
 import BlockBase from './BlockBase.vue';
+import type { BlockNodeData } from '@/types/editor';
 
-const props = defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-defineEmits(['delete', 'edit', 'update', 'settings']);
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: BlockNodeData & { selector?: string };
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({}),
+  }
+);
+defineEmits<{
+  delete: [id: string];
+  edit: [];
+  update: [payload: Record<string, unknown>];
+  settings: [payload: unknown];
+}>();
 
 const { t } = useI18n();
 const block = useEditorBlock(props.label);

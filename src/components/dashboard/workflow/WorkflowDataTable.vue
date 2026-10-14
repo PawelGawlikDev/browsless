@@ -70,7 +70,7 @@
           :model-value="columns[index].name"
           :placeholder="t('workflow.table.column.name')"
           class="flex-1"
-          @blur="updateColumnName(index, $event.target)"
+          @blur="updateColumnName(index, $event.target as HTMLInputElement)"
         />
         <ui-select
           v-model="columns[index].type"
@@ -84,7 +84,7 @@
         </ui-select>
         <button
           v-if="!Boolean(workflow.connectedTable)"
-          @click="state.columns.splice(index, 1)"
+          @click="state.columns.splice(Number(index), 1)"
         >
           <v-remixicon name="riDeleteBin7Line" />
         </button>
@@ -92,7 +92,8 @@
     </ul>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { Workflow } from '@/types/models';
 import { computed, onMounted, watch, reactive } from 'vue';
 import { nanoid } from 'nanoid';
 import { useI18n } from 'vue-i18n';
@@ -102,18 +103,24 @@ import { dataTypes } from '@/utils/constants/table';
 import { useWorkflowStore } from '@/stores/workflow';
 const props = defineProps({
   workflow: {
-    type: Object,
+    type: Object as () => Workflow,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update', 'close', 'change', 'connect', 'disconnect']);
+const emit = defineEmits<{
+  update: [data: Partial<Workflow>];
+  change: [data: Partial<Workflow>];
+  close: [];
+  connect: [];
+  disconnect: [];
+}>();
 const { t } = useI18n();
 const workflowStore = useWorkflowStore();
 const state = reactive({
   query: '',
-  columns: [],
-  tableList: [],
-  connectedTable: null,
+  columns: [] as import('@/types/models').WorkflowDataColumn[],
+  tableList: [] as import('@/types/db').DbStorageTableItem[],
+  connectedTable: null as import('@/types/db').DbStorageTableItem | null,
 });
 const columns = computed({
   get() {
@@ -124,13 +131,13 @@ const columns = computed({
     state.columns = value;
   },
 });
-const getColumnName = (name) => {
+const getColumnName = (name: string) => {
   const columnName = name.replace(/[\s@[\]]/g, '');
   const isColumnExists = state.columns.some((column) => column.name === columnName);
   if (isColumnExists || columnName.trim() === '') return '';
   return columnName;
 };
-const updateColumnName = (index, target) => {
+const updateColumnName = (index: number, target: HTMLInputElement) => {
   const columnName = getColumnName(target.value);
   if (!columnName) {
     target.value = state.columns[index].name;
@@ -144,7 +151,7 @@ const addColumn = () => {
   state.columns.push({ id: nanoid(5), name: columnName, type: 'string' });
   state.query = '';
 };
-const connectTable = (table) => {
+const connectTable = (table: import('@/types/db').DbStorageTableItem) => {
   workflowStore
     .update({
       id: props.workflow.id,
@@ -170,7 +177,7 @@ const disconnectTable = () => {
 };
 watch(
   () => state.columns,
-  debounce((newValue) => {
+  debounce((newValue: import('@/types/models').WorkflowDataColumn[]) => {
     if (props.workflow.connectedTable) return;
     const data = { table: newValue };
     emit('update', data);

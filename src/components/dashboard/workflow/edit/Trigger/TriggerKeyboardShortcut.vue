@@ -36,24 +36,27 @@
     </p>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerFormData } from '@/types/block-editor';
 import { reactive, onBeforeUnmount, onDeactivated } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { recordShortcut } from '@/utils/recordKeys';
 import { getReadableShortcut } from '@/composable/shortcut';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => TriggerFormData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: Partial<TriggerFormData>];
+}>();
 const { t } = useI18n();
 const recordKeys = reactive({
   isRecording: false,
   keys: `${props.data.shortcut}`,
 });
-const onKeydown = (event) => {
+const onKeydown = (event: KeyboardEvent) => {
   event.preventDefault();
   event.stopPropagation();
   recordShortcut(event, (keys) => {

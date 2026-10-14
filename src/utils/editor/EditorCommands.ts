@@ -1,5 +1,5 @@
-type EditorNode = { id: string } & Record<string, unknown>;
-type EditorEdge = { id: string } & Record<string, unknown>;
+type EditorNode = import('@vue-flow/core').Node;
+type EditorEdge = import('@vue-flow/core').Edge & { id: string };
 
 type EditorLike = {
   addNodes: (nodes: EditorNode[]) => unknown;

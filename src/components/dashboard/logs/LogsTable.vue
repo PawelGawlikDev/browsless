@@ -13,22 +13,22 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 
-defineProps({
-  currentLog: {
-    type: Object,
-    default: () => ({}),
-  },
-  tableData: {
-    type: Object,
-    default: () => ({
+withDefaults(
+  defineProps<{
+    currentLog?: Record<string, unknown>;
+    tableData?: { body: Record<string, unknown>[]; header: Record<string, unknown>[] };
+  }>(),
+  {
+    currentLog: () => ({}),
+    tableData: () => ({
       body: [],
       header: [],
     }),
-  },
-});
+  }
+);
 
 const { t } = useI18n();
 </script>

@@ -3,10 +3,8 @@
     <slot></slot>
   </div>
 </template>
-<script>
-export default {
-  props: {
-    disabled: Boolean,
-  },
-};
+<script setup lang="ts">
+defineProps<{
+  disabled?: boolean;
+}>();
 </script>

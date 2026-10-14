@@ -44,13 +44,6 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.d.ts'],
-    rules: {
-      'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-    },
-  },
-  {
     rules: {
       'no-console': 'off',
       'no-debugger': 'warn',
@@ -88,6 +81,20 @@ export default tseslint.config(
       'vue/first-attribute-linebreak': 'off',
       'vue/attribute-hyphenation': 'off',
       'vue/v-on-event-hyphenation': 'off',
+    },
+  },
+  {
+    files: ['**/*.d.ts'],
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
+  {
+    files: ['**/*.vue'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      'vue/block-lang': ['error', { script: { lang: 'ts' } }],
     },
   },
   eslintConfigPrettier

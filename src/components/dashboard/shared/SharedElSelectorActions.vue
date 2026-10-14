@@ -18,25 +18,26 @@
     </ui-button>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useToast } from 'vue-toastification';
 import { useGroupTooltip } from '@/composable/groupTooltip';
 import elementSelector from '@/dashboard/utils/elementSelector';
-const props = defineProps({
-  findBy: {
-    type: String,
-    default: null,
-  },
-  multiple: {
-    type: Boolean,
-    default: false,
-  },
-  selector: {
-    type: String,
-    default: '',
-  },
-});
-const emit = defineEmits(['update:selector']);
+
+const props = withDefaults(
+  defineProps<{
+    findBy?: string | null;
+    multiple?: boolean;
+    selector?: string;
+  }>(),
+  {
+    findBy: null,
+    multiple: false,
+    selector: '',
+  }
+);
+const emit = defineEmits<{
+  'update:selector': [selector: string];
+}>();
 useGroupTooltip();
 const toast = useToast();
 const selectElement = () => {
@@ -52,7 +53,7 @@ const verifySelector = () => {
       findBy: props.findBy,
     })
     .then((result) => {
-      if (!result.notFound) return;
+      if (!('notFound' in result) || !result.notFound) return;
       toast.error('Element not found');
     });
 };

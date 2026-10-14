@@ -77,7 +77,8 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { ExecuteWorkflowData } from '@/types/block-editor';
 import { computed, shallowReactive, defineAsyncComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -87,7 +88,7 @@ const SharedCodemirror = defineAsyncComponent(
 );
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => ExecuteWorkflowData,
     default: () => ({}),
   },
   hideBase: {
@@ -95,22 +96,22 @@ const props = defineProps({
     default: false,
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: ExecuteWorkflowData] }>();
 const { t } = useI18n();
 const route = useRoute();
 const workflowStore = useWorkflowStore();
 const state = shallowReactive({
   showGlobalData: false,
 });
-const filterWorkflows = (workflows) =>
+const filterWorkflows = (workflows: import('@/types/models').Workflow[]) =>
   workflows
     .filter(({ id, drawflow }) => {
       const flow = typeof drawflow === 'string' ? drawflow : JSON.stringify(drawflow);
-      return id !== route.params.id && !flow.includes(route.params.id);
+      return id !== route.params.id && !flow.includes(String(route.params.id));
     })
     .sort((a, b) => (a.name > b.name ? 1 : -1));
 const workflows = computed(() => filterWorkflows(workflowStore.getWorkflows));
-const updateData = (value) => {
+const updateData = (value: Partial<ExecuteWorkflowData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

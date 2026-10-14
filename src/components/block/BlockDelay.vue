@@ -34,7 +34,7 @@
       type="text"
       required
       @keydown.stop
-      @input="$emit('update', { time: $event.target.value })"
+      @input="handleTimeInput"
     />
     <div
       v-if="block.details.id !== 'trigger'"
@@ -49,37 +49,44 @@
     <Handle :id="`${id}-output-1`" type="source" :position="Position.Right" />
   </block-base>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { Handle, Position } from '@vue-flow/core';
 import { useComponentId } from '@/composable/componentId';
 import { useEditorBlock } from '@/composable/editorBlock';
 import BlockBase from './BlockBase.vue';
-const props = defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-defineEmits(['update', 'delete', 'settings']);
+import type { BlockNodeData } from '@/types/editor';
+
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: BlockNodeData & { time?: string };
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({}),
+  }
+);
+const emit = defineEmits<{
+  update: [payload: Record<string, unknown>];
+  delete: [id: string];
+  settings: [payload: unknown];
+}>();
 const { t } = useI18n();
 const block = useEditorBlock(props.label);
 const componentId = useComponentId('block-delay');
-const handleStartDrag = (event) => {
+const handleTimeInput = (event: Event) => {
+  emit('update', { time: (event.target as HTMLInputElement).value });
+};
+const handleStartDrag = (event: DragEvent) => {
   const payload = {
     id: props.label,
     data: props.data,
     blockId: props.id,
     fromBlockBasic: true,
   };
-  event.dataTransfer.setData('block', JSON.stringify(payload));
+  event.dataTransfer?.setData('block', JSON.stringify(payload));
 };
 </script>

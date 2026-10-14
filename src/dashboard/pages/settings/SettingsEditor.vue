@@ -52,19 +52,20 @@
     </ui-list>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import cloneDeep from 'lodash.clonedeep';
-import { useStore } from '@/stores/main';
+import { useStore, type MainStoreInstance } from '@/stores/main';
+import type { EditorSettings } from '@/types/models';
 
 const { t } = useI18n();
-const store = useStore();
+const store = useStore() as MainStoreInstance;
 
-const settings = reactive({});
+const settings = reactive<Partial<EditorSettings>>({});
 
 watch(settings, () => {
-  store.updateSettings({ editor: settings });
+  store.updateSettings({ editor: settings as EditorSettings });
 });
 
 onMounted(() => {

@@ -6,7 +6,10 @@ type WorkflowExecuteOptions = Record<string, unknown>;
 type WorkflowPayload = WorkflowNode | Record<string, unknown>;
 
 class RendererWorkflowService {
-  static executeWorkflow(workflowData: WorkflowPayload, options: WorkflowExecuteOptions) {
+  static executeWorkflow(
+    workflowData: WorkflowPayload,
+    options: WorkflowExecuteOptions = {}
+  ) {
     const clonedWorkflowData: Record<string, unknown> = {};
     Object.keys(workflowData).forEach((key) => {
       clonedWorkflowData[key] = toRaw((workflowData as Record<string, unknown>)[key]);

@@ -62,22 +62,34 @@
     </template>
   </shared-card>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import SharedCard from '@/components/dashboard/shared/SharedCard.vue';
+import type { Workflow } from '@/types/models';
 
-defineProps({
-  workflow: {
-    type: Object,
-    default: () => ({}),
-  },
-  menu: {
-    type: Array,
-    default: () => [],
-  },
-  isPinned: Boolean,
-});
-defineEmits(['toggleDisable', 'togglePin', 'execute']);
+interface WorkflowMenuItem {
+  id: string;
+  name: string;
+  icon?: string;
+  action: (workflow: Workflow) => void;
+}
+
+withDefaults(
+  defineProps<{
+    workflow?: Workflow;
+    menu?: WorkflowMenuItem[];
+    isPinned?: boolean;
+  }>(),
+  {
+    workflow: () => ({}) as Workflow,
+    menu: () => [],
+  }
+);
+defineEmits<{
+  toggleDisable: [];
+  togglePin: [];
+  execute: [];
+}>();
 
 const { t } = useI18n();
 </script>

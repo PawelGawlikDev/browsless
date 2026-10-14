@@ -22,13 +22,15 @@
         <component
           :is="tab.component"
           :settings="settings"
+          :workflow="workflow"
           @update="settings[$event.key] = $event.value"
         />
       </ui-tab-panel>
     </ui-tab-panels>
   </ui-card>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { Workflow } from '@/types/models';
 import { onMounted, ref, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import cloneDeep from 'lodash.clonedeep';
@@ -40,11 +42,14 @@ import SettingsGeneral from './settings/SettingsGeneral.vue';
 
 const props = defineProps({
   workflow: {
-    type: Object,
+    type: Object as () => Workflow,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update', 'close']);
+const emit = defineEmits<{
+  update: [data: { settings: Partial<import('@/types/models').WorkflowSettings> }];
+  close: [];
+}>();
 
 const { t } = useI18n();
 
@@ -72,7 +77,7 @@ const tabs = [
 ];
 
 const activeTab = ref('general');
-const settings = reactive({
+const settings = reactive<Partial<import('@/types/models').WorkflowSettings>>({
   publicId: '',
   restartTimes: 3,
   notification: true,

@@ -1,6 +1,6 @@
 <template>
   <div class="grid grid-cols-2 gap-4">
-    <ui-card v-for="item in data" :key="item">
+    <ui-card v-for="item in data" :key="item.id">
       <div class="mb-4 flex items-center">
         <div class="text-overflow mr-4 flex-1">
           <p class="text-overflow mr-2 w-full">{{ item.state.name }}</p>
@@ -39,7 +39,8 @@
     </ui-card>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { RunningWorkflowEntry } from '@/types/editor';
 import { browser } from 'wxt/browser';
 import { useI18n } from 'vue-i18n';
 import { getBlocks } from '@/utils/getSharedData';
@@ -47,24 +48,24 @@ import dayjs from '@/lib/dayjs';
 import RendererWorkflowService from '@/service/renderer/RendererWorkflowService';
 defineProps({
   data: {
-    type: Array,
-    default: () => [],
+    type: Array as () => RunningWorkflowEntry[],
+    default: (): RunningWorkflowEntry[] => [],
   },
 });
 const { t } = useI18n();
 const blocks = getBlocks();
-const getBlock = (item) => {
+const getBlock = (item: RunningWorkflowEntry) => {
   if (!item.state.currentBlock) return {};
-  return blocks[item.state.currentBlock.name];
+  return blocks[item.state.currentBlock[0]?.name] || {};
 };
-const formatDate = (date, format) => {
+const formatDate = (date: number, format: string) => {
   if (format === 'relative') return dayjs(date).fromNow();
   return dayjs(date).format(format);
 };
-const openTab = (tabId) => {
+const openTab = (tabId: number) => {
   browser.tabs.update(tabId, { active: true });
 };
-const stopWorkflow = (item) => {
-  RendererWorkflowService.stopWorkflowExecution(item);
+const stopWorkflow = (item: RunningWorkflowEntry) => {
+  RendererWorkflowService.stopWorkflowExecution(item.id);
 };
 </script>

@@ -63,29 +63,52 @@
     </ui-tab-panels>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { shallowReactive, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import dbLogs from '@/db/logs';
 import dayjs from '@/lib/dayjs';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import { countDuration, convertArrObjTo2DArr } from '@/utils/helper';
 import LogsTable from '@/components/dashboard/logs/LogsTable.vue';
-import LogsHistory from '@/components/dashboard/logs/LogsHistory.vue';
+import LogsHistory, {
+  type HistoryItem,
+} from '@/components/dashboard/logs/LogsHistory.vue';
 import LogsVariables from '@/components/dashboard/logs/LogsVariables.vue';
-const props = defineProps({
-  logId: {
-    type: String,
-    default: '',
-  },
-});
-const emit = defineEmits(['close']);
+import type { DbLogItem } from '@/types/db';
+
+interface CurrentLogEntry extends Partial<DbLogItem> {
+  history: HistoryItem[];
+  data: {
+    table?: Record<string, unknown>[];
+    variables?: Record<string, unknown>;
+  };
+  workflowId?: string | null;
+}
+interface TableHeaderCol extends Record<string, unknown> {
+  text: string;
+  value: string;
+  filterable?: boolean;
+  sortable?: boolean;
+}
+
+const props = withDefaults(
+  defineProps<{
+    logId?: string | number;
+  }>(),
+  {
+    logId: '',
+  }
+);
+const emit = defineEmits<{
+  close: [redirect?: boolean];
+}>();
 const { t } = useI18n();
 const router = useRouter();
-const workflowStore = useWorkflowStore();
-const ctxData = shallowRef({});
-const parentLog = shallowRef(null);
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
+const ctxData = shallowRef<Record<string, unknown>>({});
+const parentLog = shallowRef<DbLogItem | null>(null);
 const tabs = [
   { id: 'logs', name: t('common.log', 2) },
   { id: 'table', name: t('workflow.table.title') },
@@ -95,12 +118,16 @@ const state = shallowReactive({
   activeTab: 'logs',
   workflowExists: false,
 });
-const tableData = shallowReactive({
+const tableData = shallowReactive<{
+  converted: boolean;
+  body: Record<string, unknown>[];
+  header: TableHeaderCol[];
+}>({
   converted: false,
   body: [],
   header: [],
 });
-const currentLog = shallowRef({
+const currentLog = shallowRef<CurrentLogEntry>({
   history: [],
   data: {
     table: [],
@@ -110,7 +137,7 @@ const currentLog = shallowRef({
 const deleteLog = () => {
   dbLogs.items
     .where('id')
-    .equals(props.logId)
+    .equals(props.logId as unknown as number)
     .delete()
     .then(() => {
       emit('close');
@@ -128,40 +155,48 @@ const convertToTableData = () => {
   tableData.converted = true;
   tableData.body = data.map((item, index) => ({ ...item, id: index + 1 }));
   tableData.header = header.map((name) => ({
-    text: name,
-    value: name,
+    text: name as string,
+    value: name as string,
     filterable: true,
   }));
   tableData.header.unshift({ value: 'id', text: '', sortable: false });
 };
-const onTabChange = (value) => {
+const onTabChange = (value: string | number) => {
   if (value === 'table' && !tableData.converted) {
     convertToTableData();
   }
 };
 const fetchLog = async () => {
   if (!props.logId) return;
-  const logDetail = await dbLogs.items.where('id').equals(props.logId).last();
+  const logDetail = await dbLogs.items
+    .where('id')
+    .equals(props.logId as unknown as number)
+    .last();
   if (!logDetail) return;
   tableData.body = [];
   tableData.header = [];
   parentLog.value = null;
   tableData.converted = false;
-  const [logCtxData, logHistory, logsData] = await Promise.all(
-    ['ctxData', 'histories', 'logsData'].map((key) =>
-      dbLogs[key].where('logId').equals(props.logId).last()
-    )
-  );
-  ctxData.value = logCtxData?.data || {};
+  const logId = props.logId as unknown as number;
+  const [logCtxData, logHistory, logsData] = await Promise.all([
+    dbLogs.ctxData.where('logId').equals(logId).last(),
+    dbLogs.histories.where('logId').equals(logId).last(),
+    dbLogs.logsData.where('logId').equals(logId).last(),
+  ]);
+  ctxData.value = (logCtxData?.data as Record<string, unknown>) || {};
   currentLog.value = {
-    history: logHistory?.data || [],
-    data: logsData?.data || {},
+    history: (logHistory?.data as HistoryItem[]) || [],
+    data: (logsData?.data as CurrentLogEntry['data']) || {},
     ...logDetail,
   };
-  state.workflowExists = Boolean(workflowStore.getById(logDetail.workflowId));
-  const parentLogId = logDetail.collectionLogId || logDetail.parentLog?.id;
+  state.workflowExists = Boolean(workflowStore.getById(logDetail.workflowId as string));
+  const parentLogId = logDetail.collectionId || logDetail.parentLog;
   if (parentLogId) {
-    parentLog.value = (await dbLogs.items.where('id').equals(parentLogId).last()) || null;
+    parentLog.value =
+      (await dbLogs.items
+        .where('id')
+        .equals(parentLogId as unknown as number)
+        .last()) || null;
   }
 };
 watch(() => props.logId, fetchLog, { immediate: true });

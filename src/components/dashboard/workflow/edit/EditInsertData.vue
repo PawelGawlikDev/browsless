@@ -159,9 +159,12 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowInjectionContext } from '@/types/editor';
+import type { InsertDataData, InsertDataItem } from '@/types/block-editor';
 import getFile, { readFileAsBase64 } from '@/utils/getFile';
 import Papa from 'papaparse';
+import cloneDeep from 'lodash.clonedeep';
 import { defineAsyncComponent, inject, ref, shallowReactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'vue-toastification';
@@ -173,30 +176,30 @@ const SharedCodemirror = defineAsyncComponent(
 );
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => InsertDataData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: InsertDataData] }>();
 const { t } = useI18n();
 const toast = useToast();
-const workflow = inject('workflow', {});
+const workflow = inject<WorkflowInjectionContext>('workflow');
 const showModal = ref(false);
 const hasFileAccess = ref(false);
-const dataList = ref(JSON.parse(JSON.stringify(props.data.dataList)));
+const dataList = ref<InsertDataItem[]>(cloneDeep(props.data.dataList || []));
 const previewState = shallowReactive({
   data: '',
-  itemId: '',
+  itemId: -1,
 });
 const clearPreview = () => {
-  previewState.itemId = '';
+  previewState.itemId = -1;
   previewState.data = '';
 };
-const removeItem = (index) => {
+const removeItem = (index: number) => {
   dataList.value.splice(index, 1);
   clearPreview();
 };
-const updateData = (value) => {
+const updateData = (value: Partial<InsertDataData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 const addItem = () => {
@@ -209,27 +212,27 @@ const addItem = () => {
     action: 'default',
   });
 };
-const changeItemType = (index, type) => {
+const changeItemType = (index: number, type: string) => {
   dataList.value[index] = {
     ...dataList.value[index],
     type,
     name: '',
   };
 };
-const setAsFile = (item) => {
+const setAsFile = (item: InsertDataItem) => {
   if (!hasFileAccess.value) {
     window.open('');
     return;
   }
   item.isFile = !item.isFile;
 };
-const previewData = async (index, item) => {
+const previewData = async (index: number, item: InsertDataItem) => {
   try {
     const path = item.filePath || '';
     const isExcel = /.xlsx?$/.test(path);
     const isJSON = path.endsWith('.json');
     const action = item.action || item.csvAction || 'default';
-    let responseType = 'text';
+    let responseType: 'text' | 'json' | 'blob' = 'text';
     if (isJSON) responseType = 'json';
     else if (action === 'base64' || (isExcel && action !== 'default'))
       responseType = 'blob';
@@ -256,14 +259,14 @@ const previewData = async (index, item) => {
       const sheetName = wb.SheetNames.includes(inputtedSheet)
         ? inputtedSheet
         : wb.SheetNames[0];
-      const options = {};
+      const options: import('xlsx').Sheet2JSONOpts = {};
       if (item.xlsRange) options.range = item.xlsRange;
       if (!action.includes('header')) options.header = 1;
       const sheetData = utilsXlsx.sheet_to_json(wb.Sheets[sheetName], options);
       result = JSON.stringify(sheetData, null, 2);
     }
     previewState.itemId = index;
-    previewState.data = result;
+    previewState.data = typeof result === 'string' ? result : JSON.stringify(result);
   } catch (error) {
     console.error(error);
     toast.error(error.message);

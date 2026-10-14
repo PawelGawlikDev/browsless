@@ -31,7 +31,7 @@ import { reactive, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 type BlockSettingState = {
-  blockTimeout: number;
+  blockTimeout?: number;
   debugMode?: boolean;
   id?: string;
 };

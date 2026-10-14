@@ -23,17 +23,15 @@
     ></path>
   </svg>
 </template>
-<script>
-export default {
-  props: {
-    size: {
-      type: [String, Number],
-      default: '24',
-    },
-    color: {
-      type: String,
-      default: 'text-primary',
-    },
-  },
-};
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    size?: string | number;
+    color?: string;
+  }>(),
+  {
+    size: '24',
+    color: 'text-primary',
+  }
+);
 </script>

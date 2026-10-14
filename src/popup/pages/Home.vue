@@ -135,7 +135,8 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { Workflow } from '@/types/models';
 import BackgroundUtils from '@/background/BackgroundUtils';
 import HomeWorkflowCard from '@/components/popup/home/HomeWorkflowCard.vue';
 import { useDialog } from '@/composable/dialog';
@@ -159,7 +160,7 @@ const folderStore = useFolderStore();
 const workflowStore = useWorkflowStore();
 useGroupTooltip();
 const sorts = ['name', 'createdAt', 'updatedAt', 'mostUsed'];
-const sortState = shallowReactive({
+const sortState = shallowReactive<{ by: string; order: 'asc' | 'desc' }>({
   by: 'createdAt',
   order: 'desc',
 });
@@ -168,12 +169,13 @@ const state = shallowReactive({
   cardHeight: 255,
   retrieved: false,
   haveAccess: true,
-  pinnedWorkflows: [],
+  pinnedWorkflows: [] as string[],
+  activeTab: '',
   activeFolder: '',
   showSettingsPopup: true,
 });
 const pinnedWorkflows = computed(() => {
-  const list = [];
+  const list: Workflow[] = [];
   state.pinnedWorkflows.forEach((workflowId) => {
     const workflow = workflowStore.getById(workflowId);
     if (
@@ -206,7 +208,7 @@ const closeSettingsPopup = () => {
   state.showSettingsPopup = false;
   setExtensionStorageValue('local', 'settingsPopup', false);
 };
-const togglePinWorkflow = (workflow) => {
+const togglePinWorkflow = (workflow: Workflow) => {
   const index = state.pinnedWorkflows.indexOf(workflow.id);
   const copyData = [...state.pinnedWorkflows];
   if (index === -1) {
@@ -219,7 +221,9 @@ const togglePinWorkflow = (workflow) => {
     pinnedWorkflows: copyData,
   });
 };
-const executeWorkflow = async (workflow) => {
+const executeWorkflow = async (
+  workflow: Workflow & { options?: Record<string, unknown> }
+) => {
   try {
     await RendererWorkflowService.executeWorkflow(workflow, workflow.options);
     window.close();
@@ -227,24 +231,24 @@ const executeWorkflow = async (workflow) => {
     console.error(error);
   }
 };
-const updateWorkflow = (id, data) => {
+const updateWorkflow = (id: string, data: Partial<Workflow>) => {
   return workflowStore.update({
     id,
     data,
   });
 };
-const renameWorkflow = ({ id, name }) => {
+const renameWorkflow = ({ id, name }: Pick<Workflow, 'id' | 'name'>) => {
   dialog.prompt({
     title: t('home.workflow.rename'),
     placeholder: t('common.name'),
     okText: t('common.rename'),
     inputValue: name,
-    onConfirm: (newName) => {
+    onConfirm: (newName: string) => {
       updateWorkflow(id, { name: newName });
     },
   });
 };
-const deleteWorkflow = ({ id, name }) => {
+const deleteWorkflow = ({ id, name }: Pick<Workflow, 'id' | 'name'>) => {
   dialog.confirm({
     title: t('home.workflow.delete'),
     okVariant: 'danger',
@@ -254,7 +258,7 @@ const deleteWorkflow = ({ id, name }) => {
     },
   });
 };
-const openDashboard = (url) => {
+const openDashboard = (url: string) => {
   BackgroundUtils.openDashboard(url);
 };
 const initElementSelector = async () => {
@@ -268,7 +272,7 @@ const initElementSelector = async () => {
     window.close();
   });
 };
-const openWorkflowPage = ({ id }) => {
+const openWorkflowPage = ({ id }: { id: string }) => {
   let url = `/workflows/${id}`;
   openDashboard(url);
 };
@@ -284,14 +288,19 @@ watch(
 );
 onMounted(async () => {
   const savedSorts =
-    (await getExtensionStorageValue('local', 'popup-workflow-sort', {})) || {};
+    (await getExtensionStorageValue<{
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      activeFolder?: string;
+    }>('local', 'popup-workflow-sort', {})) || {};
   sortState.by = savedSorts.sortBy || 'createdAt';
   sortState.order = savedSorts.sortOrder || 'desc';
   state.activeFolder = savedSorts.activeFolder || '';
   state.showSettingsPopup =
     (await getExtensionStorageValue('local', 'settingsPopup', true)) ?? true;
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-  state.haveAccess = /^(https?)/.test(tab.url);
+  state.activeTab = tab?.url || '';
+  state.haveAccess = /^(https?)/.test(state.activeTab);
   const storage = await extensionStorage.local.get('pinnedWorkflows');
   state.pinnedWorkflows = storage.pinnedWorkflows || [];
   await folderStore.load();

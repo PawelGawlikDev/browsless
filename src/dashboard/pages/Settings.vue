@@ -38,7 +38,7 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 const { t } = useI18n();
@@ -49,7 +49,7 @@ const menus = [
   { id: 'editor', path: '/editor', icon: 'riMindMap' },
   { id: 'shortcuts', path: '/shortcuts', icon: 'riKeyboardLine' },
 ];
-const onSelectChanged = (value) => {
-  router.push(value);
+const onSelectChanged = (value: string | number) => {
+  router.push(value as string);
 };
 </script>

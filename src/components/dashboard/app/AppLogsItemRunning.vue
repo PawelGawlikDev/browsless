@@ -66,34 +66,55 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { computed, watch, shallowRef, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { countDuration } from '@/utils/helper';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import dbLogs from '@/db/logs';
 import dayjs from '@/lib/dayjs';
-import LogsHistory from '@/components/dashboard/logs/LogsHistory.vue';
+import LogsHistory, {
+  type HistoryItem,
+} from '@/components/dashboard/logs/LogsHistory.vue';
 import RendererWorkflowService from '@/service/renderer/RendererWorkflowService';
-const props = defineProps({
-  logId: {
-    type: String,
-    default: '',
-  },
-});
-const emit = defineEmits(['close']);
+
+interface RunningWorkflowStateEntry {
+  id: string;
+  workflowId?: string;
+  state: {
+    name: string;
+    startedTimestamp: number;
+    logs?: HistoryItem[];
+    currentBlock: { id?: string; name: string; startedAt: number }[];
+  };
+}
+
+const props = withDefaults(
+  defineProps<{
+    logId?: string | number;
+  }>(),
+  {
+    logId: '',
+  }
+);
+const emit = defineEmits<{
+  close: [];
+}>();
 const { t } = useI18n();
 const router = useRouter();
-const workflowStore = useWorkflowStore();
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 const key = shallowRef(0);
 const interval = setInterval(() => {
   key.value += 1;
 }, 1000);
-const running = computed(() =>
-  workflowStore.getAllStates.find(({ id }) => id === props.logId)
+const running = computed(
+  () =>
+    workflowStore.getAllStates.find(({ id }) => id === props.logId) as unknown as
+      RunningWorkflowStateEntry | undefined
 );
 const stopWorkflow = () => {
+  if (!running.value) return;
   RendererWorkflowService.stopWorkflowExecution(running.value.id);
   emit('close');
 };
@@ -101,7 +122,10 @@ watch(
   running,
   async () => {
     if (!running.value && props.logId) {
-      const log = await dbLogs.items.where('id').equals(props.logId).first();
+      const log = await dbLogs.items
+        .where('id')
+        .equals(props.logId as unknown as number)
+        .first();
       let path = '/logs';
       if (log) {
         path = `/logs/${props.logId}`;

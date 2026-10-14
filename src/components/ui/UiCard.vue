@@ -8,21 +8,17 @@
     <slot></slot>
   </component>
 </template>
-<script>
-export default {
-  props: {
-    hover: {
-      type: Boolean,
-      default: false,
-    },
-    padding: {
-      type: String,
-      default: 'p-4',
-    },
-    tag: {
-      type: String,
-      default: 'div',
-    },
-  },
-};
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    hover?: boolean;
+    padding?: string;
+    tag?: string;
+  }>(),
+  {
+    hover: false,
+    padding: 'p-4',
+    tag: 'div',
+  }
+);
 </script>

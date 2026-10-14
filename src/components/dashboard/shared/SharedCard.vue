@@ -64,34 +64,48 @@
     </div>
   </ui-card>
 </template>
-<script setup>
+<script setup lang="ts">
 import { shallowReactive } from 'vue';
 import dayjs from '@/lib/dayjs';
 
-const props = defineProps({
-  disabled: Boolean,
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-  icon: {
-    type: String,
-    default: 'riGlobalLine',
-  },
-  showDetails: {
-    type: Boolean,
-    default: true,
-  },
-  menu: {
-    type: Array,
-    default: () => [],
-  },
-});
+interface SharedCardMenuItem {
+  id: string;
+  name: string;
+  icon?: string;
+  attrs?: Record<string, unknown>;
+}
+interface SharedCardData extends Record<string, unknown> {
+  icon?: string;
+  isDisabled?: boolean;
+  name?: string;
+  description?: string;
+  createdAt?: number;
+}
 
-defineEmits(['execute', 'click', 'menuSelected']);
+const props = withDefaults(
+  defineProps<{
+    disabled?: boolean;
+    data?: SharedCardData;
+    icon?: string;
+    showDetails?: boolean;
+    menu?: SharedCardMenuItem[];
+  }>(),
+  {
+    data: () => ({}),
+    icon: 'riGlobalLine',
+    showDetails: true,
+    menu: () => [],
+  }
+);
+
+defineEmits<{
+  execute: [data: SharedCardData];
+  click: [data: SharedCardData];
+  menuSelected: [payload: { id: string; data: SharedCardData }];
+}>();
 
 const state = shallowReactive({
-  triggerText: null,
+  triggerText: null as string | null,
   date: dayjs(props.data.createdAt).fromNow(),
 });
 </script>

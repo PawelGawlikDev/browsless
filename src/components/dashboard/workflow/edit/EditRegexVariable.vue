@@ -94,7 +94,7 @@ type RegexFlag = {
 const props = defineProps({
   data: {
     type: Object as () => RegexVariableData,
-    default: () => ({ flag: [] }),
+    default: (): RegexVariableData => ({ flag: [] }),
   },
 });
 const emit = defineEmits<{

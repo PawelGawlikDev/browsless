@@ -28,6 +28,7 @@ export interface RecordingFlow {
   isClickLink?: boolean;
   data: Record<string, unknown> & {
     url?: string;
+    description?: string;
     matchPattern?: string;
     createIfNoMatch?: boolean;
     updatePrevTab?: boolean;

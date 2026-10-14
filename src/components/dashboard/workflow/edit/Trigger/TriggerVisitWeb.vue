@@ -22,16 +22,19 @@
     </ui-checkbox>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerFormData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 
 defineProps({
   data: {
-    type: Object,
+    type: Object as () => TriggerFormData,
     default: () => ({}),
   },
 });
-defineEmits(['update']);
+defineEmits<{
+  update: [data: Partial<TriggerFormData>];
+}>();
 
 const { t } = useI18n();
 </script>

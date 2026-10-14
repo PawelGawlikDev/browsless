@@ -59,16 +59,20 @@
     </ui-button>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => { name?: string; icon?: string; description?: string },
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update', 'add', 'cancel']);
+const emit = defineEmits<{
+  update: [data: { name: string; icon: string; description: string }];
+  add: [];
+  cancel: [];
+}>();
 const icons = [
   'mdiPackageVariantClosed',
   'riGlobalLine',
@@ -90,7 +94,7 @@ const state = reactive({
   icon: '',
   description: '',
 });
-const updatePackageIcon = (value) => {
+const updatePackageIcon = (value: string) => {
   if (!value.startsWith('http')) return;
   state.icon = value.slice(0, 1024);
 };

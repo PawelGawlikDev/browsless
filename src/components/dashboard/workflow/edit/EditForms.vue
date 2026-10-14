@@ -95,14 +95,15 @@
     </template>
   </edit-interaction-base>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { FormsData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import InsertWorkflowData from './InsertWorkflowData.vue';
 import EditInteractionBase from './EditInteractionBase.vue';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => FormsData,
     default: () => ({}),
   },
   hideBase: {
@@ -110,10 +111,10 @@ const props = defineProps({
     default: false,
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: FormsData] }>();
 const { t } = useI18n();
 const forms = ['text-field', 'select', 'checkbox', 'radio'];
-const updateData = (value) => {
+const updateData = (value: Partial<FormsData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

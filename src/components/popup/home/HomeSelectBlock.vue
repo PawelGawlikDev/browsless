@@ -31,18 +31,33 @@
     </ui-button>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { onMounted, onBeforeUnmount, shallowReactive } from 'vue';
 import { useI18n } from 'vue-i18n';
+import type { VueFlowStore } from '@vue-flow/core';
 import convertWorkflowData from '@/utils/convertWorkflowData';
 import WorkflowEditor from '@/components/dashboard/workflow/WorkflowEditor.vue';
-const props = defineProps({
-  workflow: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-const emit = defineEmits(['goBack', 'record', 'update']);
+import type { Workflow } from '@/types/models';
+
+const props = withDefaults(
+  defineProps<{
+    workflow?: Workflow;
+  }>(),
+  {
+    workflow: () => ({}) as Workflow,
+  }
+);
+const emit = defineEmits<{
+  goBack: [];
+  record: [
+    options: {
+      name?: string;
+      workflowId?: string;
+      connectFrom: { id: string | null; output: string | null };
+    },
+  ];
+  update: [data: Record<string, unknown>];
+}>();
 const { t } = useI18n();
 const editorOptions = {
   disabled: true,
@@ -51,12 +66,16 @@ const editorOptions = {
   edgesUpdatable: false,
   nodesConnectable: false,
 };
-const state = shallowReactive({
+const state = shallowReactive<{
+  retrieved: boolean;
+  activeBlock: string | null;
+  blockOutput: string | null;
+}>({
   retrieved: false,
   activeBlock: null,
   blockOutput: null,
 });
-const onEditorInit = (editor) => {
+const onEditorInit = (editor: VueFlowStore) => {
   const convertedData = convertWorkflowData(props.workflow);
   emit('update', { drawflow: convertedData.drawflow });
   editor.setNodes(convertedData.drawflow.nodes);
@@ -67,27 +86,27 @@ const clearSelectedHandle = () => {
     el.classList.remove('selected-handle');
   });
 };
-const onClick = ({ target }) => {
-  let selectedHandle = null;
-  const handleEl = target.closest('.vue-flow__handle.source');
+const onClick = ({ target }: MouseEvent) => {
+  let selectedHandle: Element | null = null;
+  const handleEl = (target as HTMLElement).closest('.vue-flow__handle.source');
   if (handleEl) {
     clearSelectedHandle();
     handleEl.classList.add('selected-handle');
     selectedHandle = handleEl;
   }
   if (!handleEl) {
-    const nodeEl = target.closest('.vue-flow__node');
+    const nodeEl = (target as HTMLElement).closest('.vue-flow__node');
     if (nodeEl) {
       clearSelectedHandle();
       const handle = nodeEl.querySelector('.vue-flow__handle.source');
-      handle.classList.add('selected-handle');
+      handle?.classList.add('selected-handle');
       selectedHandle = handle;
     }
   }
   if (!selectedHandle) return;
-  const { handleid, nodeid } = selectedHandle.dataset;
-  state.activeBlock = nodeid;
-  state.blockOutput = handleid;
+  const { handleid, nodeid } = (selectedHandle as HTMLElement).dataset;
+  state.activeBlock = nodeid ?? null;
+  state.blockOutput = handleid ?? null;
 };
 const startRecording = () => {
   const options = {

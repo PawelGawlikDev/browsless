@@ -16,135 +16,119 @@
     </div>
   </div>
 </template>
-<script>
+<script setup lang="ts">
 import { ref, onMounted, watch, shallowRef, onUnmounted } from 'vue';
+import type { Instance, Props as TippyProps } from 'tippy.js';
 import createTippy from '@/lib/tippy';
 
-export default {
-  props: {
-    placement: {
-      type: String,
-      default: 'bottom',
-    },
-    trigger: {
-      type: String,
-      default: 'click',
-    },
-    padding: {
-      type: String,
-      default: 'p-4',
-    },
-    to: {
-      type: [String, Object, HTMLElement],
-      default: '',
-    },
-    options: {
-      type: Object,
-      default: () => ({}),
-    },
-    disabled: {
-      type: Boolean,
-      default: false,
-    },
-    triggerWidth: {
-      type: Boolean,
-      default: false,
-    },
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    triggerClass: {
-      type: String,
-      default: null,
-    },
+const props = withDefaults(
+  defineProps<{
+    placement?: string;
+    trigger?: string;
+    padding?: string;
+    to?: string | Element | HTMLElement;
+    options?: Partial<TippyProps>;
+    disabled?: boolean;
+    triggerWidth?: boolean;
+    modelValue?: boolean;
+    triggerClass?: string | null;
+  }>(),
+  {
+    placement: 'bottom',
+    trigger: 'click',
+    padding: 'p-4',
+    to: '',
+    options: () => ({}),
+    disabled: false,
+    triggerWidth: false,
+    modelValue: false,
+    triggerClass: null,
+  }
+);
+const emit = defineEmits<{
+  show: [event: unknown];
+  trigger: [];
+  close: [];
+  'update:modelValue': [value: boolean];
+}>();
+
+const targetEl = ref<HTMLElement | null>(null);
+const content = ref<HTMLElement | null>(null);
+const isShow = ref(false);
+const instance = shallowRef<Instance | null>(null);
+
+watch(
+  () => props.options,
+  (value) => {
+    instance.value?.setProps(value ?? {});
   },
-  emits: ['show', 'trigger', 'close', 'update:modelValue'],
-  setup(props, { emit }) {
-    const targetEl = ref(null);
-    const content = ref(null);
-    const isShow = ref(false);
-    const instance = shallowRef(null);
+  { deep: true }
+);
+watch(
+  () => props.disabled,
+  (value) => {
+    if (value) {
+      instance.value?.hide();
+      instance.value?.disable();
+    } else {
+      instance.value?.enable();
+    }
+  }
+);
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (value === isShow.value) return;
 
-    watch(
-      () => props.options,
-      (value) => {
-        instance.value.setProps(value);
-      },
-      { deep: true }
-    );
-    watch(
-      () => props.disabled,
-      (value) => {
-        if (value) {
-          instance.value.hide();
-          instance.value.disable();
-        } else {
-          instance.value.enable();
-        }
+    isShow.value = value;
+
+    value ? instance.value?.show() : instance.value?.hide();
+  }
+);
+
+onMounted(() => {
+  const target =
+    (props.to
+      ? typeof props.to === 'string'
+        ? document.querySelector(props.to)
+        : props.to
+      : targetEl.value) ?? undefined;
+
+  instance.value = createTippy(target, {
+    role: 'popover',
+    theme: null,
+    content: content.value ?? undefined,
+    placement: props.placement as TippyProps['placement'],
+    trigger: props.trigger,
+    interactive: true,
+    appendTo: () => document.body,
+    onShow: (tippyInstance) => {
+      if (props.triggerWidth) {
+        tippyInstance.popper.style.width = `${
+          tippyInstance.reference.getBoundingClientRect().width
+        }px`;
       }
-    );
-    watch(
-      () => props.modelValue,
-      (value) => {
-        if (value === isShow.value) return;
 
-        isShow.value = value;
+      emit('show', tippyInstance);
+      isShow.value = true;
+    },
+    onHide: () => {
+      emit('close');
+      emit('update:modelValue', false);
+      isShow.value = false;
+    },
+    onTrigger: () => emit('trigger'),
+    ...props.options,
+  });
 
-        value ? instance.value.show() : instance.value.hide();
-      }
-    );
-
-    onMounted(() => {
-      const target = props.to
-        ? typeof to === 'string'
-          ? document.querySelector(props.to)
-          : props.to
-        : targetEl.value;
-
-      instance.value = createTippy(target, {
-        role: 'popover',
-        theme: null,
-        content: content.value,
-        placement: props.placement,
-        trigger: props.trigger,
-        interactive: true,
-        appendTo: () => document.body,
-        onShow: (event) => {
-          if (props.triggerWidth) {
-            event.popper.style.width = `${
-              event.reference.getBoundingClientRect().width
-            }px`;
-          }
-
-          emit('show', event);
-          isShow.value = true;
-        },
-        onHide: () => {
-          emit('close');
-          emit('update:modelValue', false);
-          isShow.value = false;
-        },
-        onTrigger: () => emit('trigger'),
-        ...props.options,
-      });
-
-      if (props.disabled) {
-        instance.value.hide();
-        instance.value.disable();
-      }
-    });
-    onUnmounted(() => {
-      instance.value.destroy();
-    });
-
-    return {
-      isShow,
-      content,
-      targetEl,
-    };
-  },
-};
+  if (props.disabled) {
+    instance.value.hide();
+    instance.value.disable();
+  }
+});
+onUnmounted(() => {
+  instance.value?.destroy();
+});
 </script>
 <style>
 .ui-popover.content-full .ui-popover__trigger {

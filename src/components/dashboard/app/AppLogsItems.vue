@@ -14,8 +14,8 @@
       :sorts="sortsBuilder"
       :filters="filtersBuilder"
       @clear="clearLogs"
-      @updateSorts="sortsBuilder[$event.key] = $event.value"
-      @updateFilters="filtersBuilder[$event.key] = $event.value"
+      @updateSorts="Object.assign(sortsBuilder, { [$event.key]: $event.value })"
+      @updateFilters="Object.assign(filtersBuilder, { [$event.key]: $event.value })"
     >
       <ui-popover padding="" @click="filtersBuilder.workflowQuery = ''">
         <template #trigger>
@@ -125,7 +125,7 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import {
   getExtensionStorageValue,
   setExtensionStorageValue,
@@ -134,39 +134,53 @@ import { shallowReactive, ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDialog } from '@/composable/dialog';
 import dbLogs from '@/db/logs';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import { useLiveQuery } from '@/composable/liveQuery';
 import LogsFilters from '@/components/dashboard/logs/LogsFilters.vue';
 import LogsDataViewer from '@/components/dashboard/logs/LogsDataViewer.vue';
 import SharedLogsTable from '@/components/dashboard/shared/SharedLogsTable.vue';
-const props = defineProps({
-  workflowId: {
-    type: String,
-    default: '',
-  },
-});
-defineEmits(['select', 'close']);
+import type { DbLogItem } from '@/types/db';
+
+const props = withDefaults(
+  defineProps<{
+    workflowId?: string;
+  }>(),
+  {
+    workflowId: '',
+  }
+);
+defineEmits<{
+  select: [payload: { type: 'running' | 'log'; id: string | number }];
+  close: [];
+}>();
 const { t } = useI18n();
 const dialog = useDialog();
-const workflowStore = useWorkflowStore();
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 const storedlogs = useLiveQuery(() => dbLogs.items.toArray());
-const selectedLogs = ref([]);
+const selectedLogs = ref<number[]>([]);
 const pagination = shallowReactive({
   perPage: 10,
   currentPage: 1,
 });
-const filtersBuilder = shallowReactive({
+const filtersBuilder = shallowReactive<{
+  query: string;
+  byDate: number;
+  byStatus: string;
+  workflowQuery: string;
+  workflowId: string;
+}>({
   query: '',
   byDate: 0,
   byStatus: 'all',
   workflowQuery: '',
   workflowId: props.workflowId,
 });
-const sortsBuilder = shallowReactive({
+type LogSortField = 'endedAt' | 'startedAt' | 'name' | 'status';
+const sortsBuilder = shallowReactive<{ order: 'asc' | 'desc'; by: LogSortField }>({
   order: 'desc',
   by: 'endedAt',
 });
-const exportDataModal = shallowReactive({
+const exportDataModal = shallowReactive<{ show: boolean; log: Partial<DbLogItem> }>({
   show: false,
   log: {},
 });
@@ -227,14 +241,14 @@ const logs = computed(() =>
     pagination.currentPage * pagination.perPage
   )
 );
-const deleteLog = (id) => {
+const deleteLog = (id: number) => {
   dbLogs.items.delete(id).then(() => {
     dbLogs.ctxData.where('logId').equals(id).delete();
     dbLogs.histories.where('logId').equals(id).delete();
     dbLogs.logsData.where('logId').equals(id).delete();
   });
 };
-const toggleSelectedLog = (selected, logId) => {
+const toggleSelectedLog = (selected: boolean, logId: number) => {
   if (selected) {
     selectedLogs.value.push(logId);
     return;
@@ -272,7 +286,7 @@ const selectAllLogs = () => {
     selectedLogs.value = [];
     return;
   }
-  const logIds = logs?.value.map(({ id }) => id);
+  const logIds = logs.value.map(({ id }) => id as number);
   selectedLogs.value = logIds;
 };
 watch(
@@ -283,7 +297,12 @@ watch(
   { deep: true }
 );
 onMounted(async () => {
-  const savedSorts = (await getExtensionStorageValue('local', 'logs-sorts', {})) || {};
+  const savedSorts =
+    (await getExtensionStorageValue<{ order?: 'asc' | 'desc'; by?: LogSortField }>(
+      'local',
+      'logs-sorts',
+      {}
+    )) || {};
   sortsBuilder.order = savedSorts.order || 'desc';
   sortsBuilder.by = savedSorts.by || 'endedAt';
 });

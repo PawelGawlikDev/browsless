@@ -1,11 +1,7 @@
 /// <reference types="chrome" />
 
 declare module 'pinia' {
-  export interface DefineStoreOptions<_Id, _S, _G, _A> {
-    storageMap?: Record<string, string>;
-  }
-
-  export interface DefineStoreOptionsBase<_S, _Store> {
+  export interface DefineStoreOptionsBase<S, Store> {
     storageMap?: Record<string, string>;
   }
 
@@ -19,6 +15,9 @@ declare global {
     _browslessShortcuts?: string[];
     isBrowslessInjected?: boolean;
     initPaletteParams?: (params: unknown) => void;
+    stopRecording?: (() => void) | null;
+    fromBackground?: boolean;
+    isDataChanged?: boolean;
   }
 }
 

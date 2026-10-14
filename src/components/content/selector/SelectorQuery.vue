@@ -35,7 +35,7 @@
         :model-value="selector"
         placeholder="Element selector"
         class="element-selector h-full flex-1 leading-normal"
-        @change="$emit('selector', $event)"
+        @change="$emit('selector', $event as string)"
       >
         <template #prepend>
           <button class="absolute left-0 ml-2" @click.stop.prevent="copySelector">
@@ -58,41 +58,38 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { inject } from 'vue';
 import UiInput from '@/components/ui/UiInput.vue';
-const props = defineProps({
-  selector: {
-    type: String,
-    default: '',
-  },
-  selectedCount: {
-    type: Number,
-    default: 0,
-  },
-  selectorType: {
-    type: String,
-    default: '',
-  },
-  selectList: {
-    type: Boolean,
-    default: false,
-  },
-  settingsActive: Boolean,
-});
-defineEmits([
-  'change',
-  'list',
-  'parent',
-  'child',
-  'selector',
-  'settings',
-  'update:selectorType',
-  'update:selectList',
-]);
-const rootElement = inject('rootElement');
+
+const props = withDefaults(
+  defineProps<{
+    selector?: string;
+    selectedCount?: number;
+    selectorType?: string;
+    selectList?: boolean;
+    settingsActive?: boolean;
+  }>(),
+  {
+    selector: '',
+    selectedCount: 0,
+    selectorType: '',
+    selectList: false,
+  }
+);
+defineEmits<{
+  change: [];
+  list: [];
+  parent: [];
+  child: [];
+  selector: [value: string];
+  settings: [value: boolean];
+  'update:selectorType': [value: string];
+  'update:selectList': [value: boolean];
+}>();
+const rootElement = inject<HTMLElement>('rootElement');
 const copySelector = () => {
-  rootElement.shadowRoot.querySelector('input')?.select();
+  rootElement?.shadowRoot?.querySelector('input')?.select();
   navigator.clipboard.writeText(props.selector).catch((error) => {
     document.execCommand('copy');
     console.error(error);

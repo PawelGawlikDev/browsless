@@ -35,10 +35,10 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in filteredItems" :key="item[itemKey]">
+        <tr v-for="item in filteredItems" :key="itemRowKey(item)">
           <slot name="item-prepend" :item="item" />
           <td
-            v-for="header in headers"
+            v-for="header in table.headers"
             v-bind="header.rowAttrs"
             :key="header.value"
             :align="header.align"
@@ -77,43 +77,59 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { isObject, arraySorter } from '@/utils/helper';
-const props = defineProps({
-  headers: {
-    type: Array,
-    default: () => [],
-  },
-  items: {
-    type: Array,
-    default: () => [],
-  },
-  itemKey: {
-    type: String,
-    default: '',
-    required: true,
-  },
-  search: {
-    type: String,
-    default: '',
-  },
-  customFilter: {
-    type: Function,
-    default: null,
-  },
-  withPagination: {
-    type: Boolean,
-    default: false,
-  },
-});
+
+type TableItem = Record<string, unknown>;
+type TableCellAlign = 'left' | 'center' | 'right' | 'justify' | 'char';
+
+interface TableHeaderInput {
+  text?: string;
+  value: string;
+  align?: TableCellAlign;
+  sortable?: boolean;
+  filterable?: boolean;
+  attrs?: Record<string, unknown>;
+  rowAttrs?: Record<string, unknown>;
+  rowEvents?: Record<string, unknown>;
+}
+
+interface TableHeader extends TableHeaderInput {
+  attrs: Record<string, unknown>;
+  rowAttrs: Record<string, unknown>;
+  align: TableCellAlign;
+  text: string;
+  value: string;
+  sortable: boolean;
+  filterable: boolean;
+}
+
+const props = withDefaults(
+  defineProps<{
+    headers?: (string | TableHeaderInput)[];
+    items?: TableItem[];
+    itemKey: string;
+    search?: string;
+    customFilter?: ((search: string, item: TableItem, index: number) => boolean) | null;
+    withPagination?: boolean;
+  }>(),
+  {
+    headers: () => [],
+    items: () => [],
+    itemKey: '',
+    search: '',
+    customFilter: null,
+    withPagination: false,
+  }
+);
 const { t } = useI18n();
-const table = reactive({
+const table = reactive<{ headers: TableHeader[]; filterKeys: string[] }>({
   headers: [],
   filterKeys: [],
 });
-const sortState = reactive({
+const sortState = reactive<{ id: string; order: 'asc' | 'desc' }>({
   id: '',
   order: 'asc',
 });
@@ -121,6 +137,7 @@ const pagination = reactive({
   perPage: 10,
   currentPage: 1,
 });
+const itemRowKey = (item: TableItem) => item[props.itemKey] as string | number;
 const sortedItems = computed(() => {
   const sortedRows = sortState.id
     ? arraySorter({
@@ -139,7 +156,7 @@ const filteredItems = computed(() => {
   if (!props.search) return sortedItems.value;
   const filterFunc =
     props.customFilter ||
-    ((search, item) => {
+    ((search: string, item: TableItem) => {
       return table.filterKeys.some((key) => {
         const value = item[key];
         if (typeof value === 'string') return value.toLocaleLowerCase().includes(search);
@@ -149,7 +166,7 @@ const filteredItems = computed(() => {
   const search = props.search.toLocaleLowerCase();
   return sortedItems.value.filter((item, index) => filterFunc(search, item, index));
 });
-const updateSort = ({ sortable, value }) => {
+const updateSort = ({ sortable, value }: Pick<TableHeader, 'sortable' | 'value'>) => {
   if (!sortable) return;
   if (sortState.id !== value) {
     sortState.id = value;
@@ -165,18 +182,18 @@ const updateSort = ({ sortable, value }) => {
 watch(
   () => props.headers,
   (newHeaders) => {
-    const filterKeys = new Set();
+    const filterKeys = new Set<string>();
     table.headers = newHeaders.map((header) => {
-      const headerObj = {
+      const headerObj: TableHeader = {
         attrs: {},
         rowAttrs: {},
         align: 'left',
-        text: header,
-        value: header,
+        text: typeof header === 'string' ? header : (header.text ?? header.value),
+        value: typeof header === 'string' ? header : header.value,
         sortable: true,
         filterable: false,
       };
-      if (isObject(header)) Object.assign(headerObj, header);
+      if (isObject<TableHeaderInput>(header)) Object.assign(headerObj, header);
       if (headerObj.filterable) filterKeys.add(headerObj.value);
       return headerObj;
     });

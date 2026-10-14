@@ -9,17 +9,20 @@
     {{ paramData.placeholder || paramData.name }}
   </ui-checkbox>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowParameter } from '@/types/block-editor';
 defineProps({
   modelValue: {
     type: Boolean,
     default: false,
   },
   paramData: {
-    type: Object,
+    type: Object as () => Partial<WorkflowParameter>,
     default: () => ({}),
   },
   editor: Boolean,
 });
-defineEmits(['update:modelValue']);
+defineEmits<{
+  'update:modelValue': [value: boolean];
+}>();
 </script>

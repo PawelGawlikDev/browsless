@@ -84,25 +84,32 @@
     </ui-list>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { extensionStorage } from '@/lib/extensionStorage';
 import { ref, reactive, computed, onBeforeUnmount, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'vue-toastification';
-import { mapShortcuts, getReadableShortcut } from '@/composable/shortcut';
+import {
+  mapShortcuts,
+  getReadableShortcut,
+  type ShortcutDefinition,
+} from '@/composable/shortcut';
 import { recordShortcut } from '@/utils/recordKeys';
+
+type ShortcutListItem = ShortcutDefinition & { name: string; keys: string[] };
+
 const { t } = useI18n();
 const toast = useToast();
 const shortcuts = ref(mapShortcuts);
 const browslessShortcut = ref(getReadableShortcut('mod+shift+e'));
-const recording = reactive({
+const recording = reactive<{ id: string; keys: string[]; isChanged: boolean }>({
   id: '',
   keys: [],
   isChanged: false,
 });
 const shortcutsCats = computed(() => {
   const arr = Object.values(shortcuts.value);
-  const result = {};
+  const result: Record<string, ShortcutListItem[]> = {};
   arr.forEach((item) => {
     const [category, shortcutName] = item.id.split(':');
     const readableKey = getReadableShortcut(item.combo);
@@ -115,7 +122,7 @@ const shortcutsCats = computed(() => {
   });
   return result;
 });
-const keydownListener = (event) => {
+const keydownListener = (event: KeyboardEvent) => {
   event.preventDefault();
   event.stopPropagation();
   if (!recording.id) {
@@ -131,14 +138,14 @@ const cleanUp = () => {
   recording.keys = [];
   document.removeEventListener('keydown', keydownListener, true);
 };
-const startRecording = ({ id }) => {
+const startRecording = ({ id }: { id: string }) => {
   if (!recording.id) {
     document.addEventListener('keydown', keydownListener, true);
   }
   recording.keys = [];
   recording.id = id;
 };
-const removeShortcut = (shortcutId) => {
+const removeShortcut = (shortcutId: string) => {
   if (shortcutId !== 'browsless:shortcut') return;
   extensionStorage.local.set({ browslessShortcut: [] });
   browslessShortcut.value = '';
@@ -169,7 +176,7 @@ const stopRecording = () => {
 onMounted(() => {
   extensionStorage.local.get('browslessShortcut').then((storage) => {
     if (!storage.browslessShortcut) return;
-    browslessShortcut.value = getReadableShortcut(storage.browslessShortcut);
+    browslessShortcut.value = getReadableShortcut(storage.browslessShortcut as string);
   });
 });
 onBeforeUnmount(() => {

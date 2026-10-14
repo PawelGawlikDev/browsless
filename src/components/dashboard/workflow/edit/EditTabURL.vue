@@ -40,19 +40,20 @@
     <insert-workflow-data :data="data" variables @update="updateData" />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TabURLData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import InsertWorkflowData from './InsertWorkflowData.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => TabURLData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: TabURLData] }>();
 const types = ['active-tab', 'all'];
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<TabURLData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

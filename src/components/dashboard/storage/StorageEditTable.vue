@@ -39,7 +39,7 @@
                 :model-value="column.name"
                 :placeholder="t('workflow.table.column.name')"
                 class="flex-1"
-                @blur="updateColumnName(index, $event.target)"
+                @blur="updateColumnName(index, $event.target as HTMLInputElement)"
               />
               <ui-select
                 v-model="column.type"
@@ -72,45 +72,60 @@
     </ui-card>
   </ui-modal>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive, toRaw, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid';
 import draggable from 'vuedraggable';
 import cloneDeep from 'lodash.clonedeep';
 import { dataTypes } from '@/utils/constants/table';
-const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    default: false,
-  },
-  name: {
-    type: String,
-    default: '',
-  },
-  title: {
-    type: String,
-    default: '',
-  },
-  columns: {
-    type: Array,
-    default: () => [],
-  },
-});
-const emit = defineEmits(['update:modelValue', 'save']);
+import type { WorkflowDataColumn } from '@/types/models';
+
+interface ColumnChange {
+  type: 'rename' | 'add' | 'delete';
+  id: string;
+  name?: string;
+  oldValue?: string;
+  newValue?: string;
+}
+
+const props = withDefaults(
+  defineProps<{
+    modelValue?: boolean;
+    name?: string;
+    title?: string;
+    columns?: WorkflowDataColumn[];
+  }>(),
+  {
+    modelValue: false,
+    name: '',
+    title: '',
+    columns: () => [],
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean];
+  save: [
+    payload: {
+      name: string;
+      columns: WorkflowDataColumn[];
+      changes: Record<string, ColumnChange>;
+    },
+  ];
+}>();
 const { t } = useI18n();
-let changes = {};
-const state = reactive({
+let changes: Record<string, ColumnChange> = {};
+const state = reactive<{ name: string; columns: WorkflowDataColumn[] }>({
   name: '',
   columns: [],
 });
-const getColumnName = (name) => {
+const getColumnName = (name: string) => {
   const columnName = name.replace(/[\s@[\]]/g, '');
   const isColumnExists = state.columns.some((column) => column.name === columnName);
   if (isColumnExists || columnName.trim() === '') return '';
   return columnName;
 };
-const updateColumnName = (index, target) => {
+const updateColumnName = (index: number, target: HTMLInputElement) => {
   const columnName = getColumnName(target.value);
   const { id, name } = state.columns[index];
   if (!columnName) {
@@ -123,7 +138,7 @@ const updateColumnName = (index, target) => {
 const saveTable = () => {
   const rawState = {
     ...toRaw(state),
-    columns: state.columns.map(toRaw),
+    columns: state.columns.map((column) => toRaw(column)),
   };
   emit('save', { ...rawState, changes });
 };
@@ -149,7 +164,7 @@ const clearTempTables = (close = false) => {
     emit('update:modelValue', false);
   }
 };
-const deleteColumn = (index) => {
+const deleteColumn = (index: number) => {
   const column = state.columns[index];
   changes[column.id] = { type: 'delete', id: column.id, name: column.name };
   state.columns.splice(index, 1);

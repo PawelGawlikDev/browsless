@@ -34,22 +34,23 @@
     </ui-select>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WaitConnectionsData } from '@/types/block-editor';
 import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => WaitConnectionsData,
     default: () => ({}),
   },
   connections: {
-    type: Array,
-    default: () => [],
+    type: Array as () => { id: string; name: string }[],
+    default: (): { id: string; name: string }[] => [],
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: WaitConnectionsData] }>();
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<WaitConnectionsData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 onMounted(() => {

@@ -1,29 +1,22 @@
 import dbLogs, { defaultLogItem } from '@/db/logs';
-import type { DbLogItem } from '@/types/db';
+import type { DbLogAuxRecord, DbLogItem } from '@/types/db';
 
 type WorkflowLoggerPayload = {
   detail: Partial<DbLogItem>;
-  history: Record<string, unknown>;
-  ctxData: Record<string, unknown>;
-  data: Record<string, unknown>;
+  history: DbLogAuxRecord;
+  ctxData: DbLogAuxRecord;
+  data: DbLogAuxRecord;
 };
 
 class WorkflowLogger {
   async add({ detail, history, ctxData, data }: WorkflowLoggerPayload) {
     const logDetail = { ...defaultLogItem, ...detail };
 
-    const logsDb = dbLogs as typeof dbLogs & {
-      logsData: { add: (value: Record<string, unknown>) => Promise<unknown> };
-      ctxData: { add: (value: Record<string, unknown>) => Promise<unknown> };
-      items: { add: (value: DbLogItem) => Promise<unknown> };
-      histories: { add: (value: Record<string, unknown>) => Promise<unknown> };
-    };
-
     await Promise.all([
-      logsDb.logsData.add(data),
-      logsDb.ctxData.add(ctxData),
-      logsDb.items.add(logDetail),
-      logsDb.histories.add(history),
+      dbLogs.logsData.add(data),
+      dbLogs.ctxData.add(ctxData),
+      dbLogs.items.add(logDetail),
+      dbLogs.histories.add(history),
     ]);
   }
 }

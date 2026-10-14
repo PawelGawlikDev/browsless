@@ -90,14 +90,15 @@
     <slot></slot>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { InteractionBaseData } from '@/types/block-editor';
 import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SharedElSelectorActions from '@/components/dashboard/shared/SharedElSelectorActions.vue';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => InteractionBaseData,
     default: () => ({}),
   },
   hide: {
@@ -121,7 +122,7 @@ const props = defineProps({
 const emit = defineEmits(['update:data', 'change']);
 const { t } = useI18n();
 const selectorTypes = ['cssSelector', 'xpath'];
-const updateData = (value) => {
+const updateData = (value: Partial<InteractionBaseData>) => {
   const payload = { ...props.data, ...value };
   emit('update:data', payload);
   emit('change', payload);

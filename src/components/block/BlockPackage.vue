@@ -79,34 +79,42 @@
     </div>
   </block-base>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useComponentId } from '@/composable/componentId';
 import { useEditorBlock } from '@/composable/editorBlock';
-import { usePackageStore } from '@/stores/package';
-import { Handle, Position } from '@vue-flow/core';
+import { usePackageStore, type PackageStoreInstance } from '@/stores/package';
+import { Handle, Position, type VueFlowStore } from '@vue-flow/core';
 import cloneDeep from 'lodash.clonedeep';
 import { onMounted, shallowReactive } from 'vue';
 import BlockBase from './BlockBase.vue';
-const props = defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-  editor: {
-    type: Object,
-    default: null,
-  },
-});
-const emit = defineEmits(['update', 'delete', 'settings']);
-const packageStore = usePackageStore();
+import type { BlockNodeData } from '@/types/editor';
+import type { PackageIoItem } from '@/types/models';
+
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: BlockNodeData & {
+      icon: string;
+      name?: string;
+      inputs?: PackageIoItem[];
+      outputs?: PackageIoItem[];
+    };
+    editor?: VueFlowStore | null;
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({ icon: '' }),
+    editor: null,
+  }
+);
+const emit = defineEmits<{
+  update: [payload: Record<string, unknown>];
+  delete: [id: string];
+  settings: [payload: unknown];
+}>();
+const packageStore = usePackageStore() as PackageStoreInstance;
 const block = useEditorBlock(props.label);
 const componentId = useComponentId('block-package');
 const state = shallowReactive({
@@ -117,35 +125,39 @@ const installPackage = () => {
     state.isInstalled = true;
   });
 };
-const removeConnections = (type, old, newEdges) => {
-  const removedEdges = [];
+const removeConnections = (
+  type: 'inputs' | 'outputs',
+  old: PackageIoItem[],
+  newEdges: PackageIoItem[]
+) => {
+  const removedEdges: string[] = [];
   old.forEach((edge) => {
     const isNotDeleted = newEdges.find((item) => item.id === edge.id);
     if (isNotDeleted) return;
     const handleType = type.slice(0, -1);
     removedEdges.push(`${props.id}-${handleType}-${edge.id}`);
   });
-  const edgesToRemove = props.editor.getEdges.value.filter(
+  const edgesToRemove = (props.editor?.getEdges.value ?? []).filter(
     ({ sourceHandle, targetHandle }) => {
       if (type === 'outputs') {
-        return removedEdges.includes(sourceHandle);
+        return removedEdges.includes(sourceHandle ?? '');
       }
-      return removedEdges.includes(targetHandle);
+      return removedEdges.includes(targetHandle ?? '');
     }
   );
-  props.editor.removeEdges(edgesToRemove);
+  props.editor?.removeEdges(edgesToRemove);
 };
 const updatePackage = () => {
-  const pkg = packageStore.getById(props.data.id);
+  const pkg = packageStore.getById(props.data.id as string);
   if (!pkg) return;
-  const currentInputs = [...props.data.inputs];
-  const currentOutputs = [...props.data.outputs];
+  const currentInputs = [...(props.data.inputs ?? [])];
+  const currentOutputs = [...(props.data.outputs ?? [])];
   removeConnections('inputs', currentInputs, pkg.inputs);
   removeConnections('outputs', currentOutputs, pkg.outputs);
   emit('update', cloneDeep(pkg));
 };
 onMounted(() => {
-  state.isInstalled = packageStore.getById(props.data.id);
+  state.isInstalled = Boolean(packageStore.getById(props.data.id as string));
 });
 </script>
 <style>

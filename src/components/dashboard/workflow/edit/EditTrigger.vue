@@ -35,7 +35,8 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerData } from '@/types/block-editor';
 import { onMounted, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid/non-secure';
@@ -43,21 +44,21 @@ import SharedWorkflowTriggers from '@/components/dashboard/shared/SharedWorkflow
 import EditWorkflowParameters from './EditWorkflowParameters.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => TriggerData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: TriggerData] }>();
 const { t } = useI18n();
 const state = reactive({
   showParamModal: false,
   showTriggersModal: false,
   triggers: [...(props.data?.triggers || [])],
 });
-const updateData = (value) => {
+const updateData = (value: Partial<TriggerData>) => {
   emit('update:data', { ...props.data, ...value });
 };
-const updateWorkflow = (triggers) => {
+const updateWorkflow = (triggers: import('@/types/runtime').WorkflowTriggerEntry[]) => {
   state.triggers = triggers;
   updateData({ triggers });
 };

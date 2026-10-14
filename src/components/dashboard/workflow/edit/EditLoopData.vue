@@ -89,7 +89,8 @@
         type="number"
         @change="
           updateData({
-            fromNumber: +$event >= data.toNumber ? data.toNumber - 1 : +$event,
+            fromNumber:
+              +$event >= Number(data.toNumber) ? Number(data.toNumber) - 1 : +$event,
           })
         "
       />
@@ -99,7 +100,8 @@
         type="number"
         @change="
           updateData({
-            toNumber: +$event <= data.fromNumber ? data.fromNumber + 1 : +$event,
+            toNumber:
+              +$event <= Number(data.fromNumber) ? Number(data.fromNumber) + 1 : +$event,
           })
         "
       />
@@ -170,7 +172,8 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { LoopDataData } from '@/types/block-editor';
 import { onMounted, shallowReactive, defineAsyncComponent } from 'vue';
 import { nanoid } from 'nanoid';
 import { useI18n } from 'vue-i18n';
@@ -188,11 +191,11 @@ const props = defineProps({
     default: '',
   },
   data: {
-    type: Object,
+    type: Object as () => LoopDataData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: LoopDataData] }>();
 const { t } = useI18n();
 const toast = useToast();
 const maxFileSize = 1024 * 1024;
@@ -217,16 +220,16 @@ const file = shallowReactive({
   name: '',
   type: '',
 });
-const updateData = (value) => {
+const updateData = (value: Partial<LoopDataData>) => {
   emit('update:data', { ...props.data, ...value });
 };
-const updateLoopData = (value) => {
+const updateLoopData = (value: string) => {
   if (value.length > maxFileSize) {
     toast.error(t('message.maxSizeExceeded'));
   }
   updateData({ loopData: value.slice(0, maxFileSize) });
 };
-const updateLoopID = (id) => {
+const updateLoopID = (id: string) => {
   let loopId = id.replace(/\s/g, '');
   if (!loopId) {
     loopId = nanoid(6);
@@ -244,13 +247,15 @@ const importFile = () => {
       file.type = fileObj.type;
       const csvTypes = ['text/csv', 'application/vnd.ms-excel'];
       const reader = new FileReader();
-      reader.onload = ({ target }) => {
-        let loopData;
+      reader.onload = () => {
+        const resultText = reader.result;
+        if (typeof resultText !== 'string') return;
+        let loopData: unknown;
         if (fileObj.type === 'application/json') {
-          const result = JSON.parse(target.result);
+          const result: unknown = JSON.parse(resultText);
           loopData = Array.isArray(result) ? result : [result];
         } else if (csvTypes.includes(fileObj.type)) {
-          loopData = Papa.parse(target.result, options).data;
+          loopData = Papa.parse(resultText, options).data;
         }
         if (Array.isArray(loopData)) {
           const loopDataStr = JSON.stringify(loopData, null, 2);

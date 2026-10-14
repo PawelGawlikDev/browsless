@@ -1430,7 +1430,7 @@ export const dataExportTypes = [
   { name: 'JSON', id: 'json' },
   { name: 'CSV', id: 'csv' },
   { name: 'Plain text', id: 'plain-text' },
-];
+] as const;
 
 export const workflowCategories = {
   scrape: 'Scraping',

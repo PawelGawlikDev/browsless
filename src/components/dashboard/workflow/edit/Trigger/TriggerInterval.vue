@@ -31,17 +31,23 @@
     {{ t('workflow.blocks.trigger.fixedDelay') }}
   </ui-checkbox>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerFormData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 defineProps({
   data: {
-    type: Object,
+    type: Object as () => TriggerFormData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: Partial<TriggerFormData>];
+}>();
 const { t } = useI18n();
-const updateIntervalInput = (value, { key, min, max }) => {
+const updateIntervalInput = (
+  value: string | number,
+  { key, min, max }: { key: string; min: number; max: number }
+) => {
   let num = +value;
   if (num < min) num = min;
   else if (num > max) num = max;

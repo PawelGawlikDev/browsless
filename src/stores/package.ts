@@ -85,3 +85,19 @@ export const usePackageStore = defineStore('packages', {
     },
   },
 });
+
+// `usePackageStore`'s options-store generics don't infer under this
+// project's TypeScript/Pinia combo (see @/utils/workflowData.ts) —
+// consumers should cast: `usePackageStore() as PackageStoreInstance`.
+export type PackageStoreInstance = ReturnType<typeof usePackageStore> & {
+  packages: SavedPackage[];
+  retrieved: boolean;
+  getById: (pkgId: string) => SavedPackage | undefined;
+  insert: (data: Partial<SavedPackage>, newId?: boolean) => Promise<SavedPackage>;
+  update: (options: {
+    id: string;
+    data: Partial<SavedPackage>;
+  }) => Promise<SavedPackage | null>;
+  delete: (id: string) => Promise<SavedPackage | null>;
+  loadData: (force?: boolean) => Promise<SavedPackage[]>;
+};

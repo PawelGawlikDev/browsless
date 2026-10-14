@@ -114,7 +114,9 @@
     </div>
   </ui-card>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { VueFlowStore } from '@vue-flow/core';
+import type { RunningWorkflowEntry } from '@/types/editor';
 import { defineAsyncComponent, computed, watch, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dayjs from '@/lib/dayjs';
@@ -126,16 +128,18 @@ const SharedCodemirror = defineAsyncComponent(
 );
 const props = defineProps({
   states: {
-    type: Array,
-    default: () => [],
+    type: Array as () => RunningWorkflowEntry[],
+    default: (): RunningWorkflowEntry[] => [],
   },
   editor: {
-    type: Object,
+    type: Object as () => VueFlowStore,
     default: () => ({}),
   },
 });
-defineEmits(['goToBlock']);
-let currentRunningEls = [];
+defineEmits<{
+  goToBlock: [blockId: string];
+}>();
+let currentRunningEls: Element[] = [];
 const { t, te } = useI18n();
 const activeTab = shallowRef('workflow-data');
 const workflowState = computed(() => props.states[0]);
@@ -153,9 +157,9 @@ const workflowData = computed(() => {
     },
   };
 });
-const getBlockName = (blockId) => {
+const getBlockName = (blockId: string) => {
   const key = `workflow.blocks.${blockId}.name`;
-  return te(key) ? t(key) : tasks[blockId].name;
+  return te(key) ? t(key) : tasks[blockId as keyof typeof tasks]?.name || blockId;
 };
 const toggleExecution = () => {
   if (!workflowState.value) return;
@@ -187,7 +191,7 @@ watch(
       .map((block) => `.vue-flow [data-block-id="${block.id}"]`)
       .join(',');
     const elements = document.querySelectorAll(selectors);
-    currentRunningEls = elements;
+    currentRunningEls = Array.from(elements);
     elements.forEach((el) => {
       el.classList.add('current-running');
     });

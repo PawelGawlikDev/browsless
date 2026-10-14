@@ -54,28 +54,36 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 
-defineProps({
-  filters: {
-    type: Object,
-    default: () => ({}),
-  },
-  sorts: {
-    type: Object,
-    default: () => ({}),
-  },
-});
+withDefaults(
+  defineProps<{
+    filters?: {
+      query?: string;
+      byStatus?: string;
+      byDate?: number;
+    };
+    sorts?: { by?: string; order?: string };
+  }>(),
+  {
+    filters: () => ({}),
+    sorts: () => ({}),
+  }
+);
 
-const emit = defineEmits(['clear', 'updateFilters', 'updateSorts']);
+const emit = defineEmits<{
+  clear: [];
+  updateFilters: [payload: { key: string; value: unknown }];
+  updateSorts: [payload: { key: string; value: unknown }];
+}>();
 const { t } = useI18n();
 
-const emitFilter = (key, value) => {
+const emitFilter = (key: string, value: unknown) => {
   emit('updateFilters', { key, value });
 };
 
-const emitSort = (key, value) => {
+const emitSort = (key: string, value: unknown) => {
   emit('updateSorts', { key, value });
 };
 </script>

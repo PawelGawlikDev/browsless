@@ -33,24 +33,29 @@
     </shared-wysiwyg>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive } from 'vue';
 import { debounce } from '@/utils/helper';
 import SharedWysiwyg from '@/components/dashboard/shared/SharedWysiwyg.vue';
+import type { SavedPackage } from '@/types/models';
 
-defineProps({
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-const emit = defineEmits(['update']);
+withDefaults(
+  defineProps<{
+    data?: Partial<SavedPackage>;
+  }>(),
+  {
+    data: () => ({}),
+  }
+);
+const emit = defineEmits<{
+  update: [data: Record<string, unknown>];
+}>();
 
 const state = reactive({
   contentLength: 0,
 });
 
-const updatePackage = debounce((data) => {
+const updatePackage = debounce((data: Record<string, unknown>) => {
   emit('update', data);
 }, 400);
 </script>

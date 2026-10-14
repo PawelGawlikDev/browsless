@@ -20,7 +20,7 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { getExtensionManifest } from '@/utils/extensionManifest';
 
 const extensionVersion = getExtensionManifest().version;

@@ -25,20 +25,21 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { ParameterPromptData } from '@/types/block-editor';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import EditWorkflowParameters from './EditWorkflowParameters.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => ParameterPromptData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: ParameterPromptData] }>();
 const { t } = useI18n();
 const showModal = ref(false);
-const updateData = (value) => {
+const updateData = (value: Partial<ParameterPromptData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

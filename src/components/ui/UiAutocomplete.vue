@@ -31,53 +31,46 @@
     </ui-list>
   </ui-popover>
 </template>
-<script setup>
+<script setup lang="ts" generic="T extends string | Record<string, unknown>">
 import { computed, onMounted, onBeforeUnmount, shallowReactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useComponentId } from '@/composable/componentId';
 import { debounce } from '@/utils/helper';
-const props = defineProps({
-  modelValue: {
-    type: String,
-    default: '',
-  },
-  items: {
-    type: [Array, Object],
-    default: () => [],
-  },
-  itemKey: {
-    type: String,
-    default: '',
-  },
-  itemLabel: {
-    type: String,
-    default: '',
-  },
-  triggerChar: {
-    type: Array,
-    default: () => [],
-  },
-  customFilter: {
-    type: Function,
-    default: null,
-  },
-  replaceAfter: {
-    type: [String, Array],
-    default: null,
-  },
-  block: Boolean,
-  disabled: Boolean,
-  hideEmpty: Boolean,
-});
-const emit = defineEmits([
-  'update:modelValue',
-  'change',
-  'search',
-  'select',
-  'cancel',
-  'selected',
-]);
-let input = null;
+interface ItemSelection {
+  index: number;
+  item: T;
+}
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string;
+    items?: T[];
+    itemKey?: string;
+    itemLabel?: string;
+    triggerChar?: string[];
+    customFilter?: (data: { item: T; index: number; text: string }) => boolean;
+    replaceAfter?: string | string[];
+    block?: boolean;
+    disabled?: boolean;
+    hideEmpty?: boolean;
+  }>(),
+  {
+    modelValue: '',
+    items: () => [],
+    itemKey: '',
+    itemLabel: '',
+    triggerChar: () => [],
+    replaceAfter: null,
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: string];
+  change: [value: string];
+  search: [value: string | null];
+  select: [value: ItemSelection];
+  cancel: [];
+  selected: [value: ItemSelection];
+}>();
+let input: HTMLInputElement | HTMLTextAreaElement | null = null;
 const { t } = useI18n();
 const componentId = useComponentId('autocomplete');
 const state = shallowReactive({
@@ -87,14 +80,18 @@ const state = shallowReactive({
   showPopover: false,
   inputChanged: false,
 });
-const getItem = (item, key) => item[key ? props.itemKey : props.itemLabel] || item;
+const getItem = (item: T, key = false): string => {
+  if (typeof item === 'string') return item;
+  const value = item[key ? props.itemKey : props.itemLabel];
+  return value == null ? '' : String(value);
+};
 const filteredItems = computed(() => {
   if (!state.showPopover) return [];
   const triggerChar = props.triggerChar.length > 0;
   const searchText = (
     triggerChar ? state.searchText : props.modelValue
   ).toLocaleLowerCase();
-  const defaultFilter = ({ item, text }) => {
+  const defaultFilter = ({ item, text }: { item: T; text: string }) => {
     return getItem(item)?.toLocaleLowerCase().includes(text);
   };
   const filterFunction = props.customFilter || defaultFilter;
@@ -103,18 +100,18 @@ const filteredItems = computed(() => {
       !state.inputChanged || filterFunction({ item, index, text: searchText })
   );
 });
-const getLastKeyBeforeCaret = (caretIndex) => {
-  const getPosition = (val, index) => ({
+const getLastKeyBeforeCaret = (caretIndex: number) => {
+  const getPosition = (val: string, index: number) => ({
     index,
     charIndex: input.value.lastIndexOf(val, caretIndex - 1),
   });
   const [charData] = props.triggerChar
     .map(getPosition)
     .sort((a, b) => b.charIndex - a.charIndex);
-  if (charData.index > 0) return -1;
+  if (!charData || charData.index > 0) return -1;
   return charData.charIndex;
 };
-const getSearchText = (caretIndex, charIndex) => {
+const getSearchText = (caretIndex: number, charIndex: number) => {
   if (charIndex !== -1) {
     const closeTrigger = (props.triggerChar ?? [])[1];
     const searchRgxp = new RegExp(`\\s${closeTrigger ? `|${closeTrigger}` : ''}`);
@@ -154,7 +151,7 @@ const showPopover = () => {
   state.searchText = '';
   state.showPopover = false;
 };
-const checkInView = (container, element, partial = false) => {
+const checkInView = (container: HTMLElement, element: HTMLElement, partial = false) => {
   const cTop = container.scrollTop;
   const cBottom = cTop + container.clientHeight;
   const eTop = element.offsetTop;
@@ -164,17 +161,17 @@ const checkInView = (container, element, partial = false) => {
     partial && ((eTop < cTop && eBottom > cTop) || (eBottom > cBottom && eTop < cBottom));
   return isTotal || isPartial;
 };
-const updateValue = (value) => {
+const updateValue = (value: string) => {
   state.inputChanged = true;
   emit('change', value);
   emit('update:modelValue', value);
   input.value = value;
   input.dispatchEvent(new Event('input'));
 };
-const selectItem = (itemIndex, selected) => {
-  let selectedItem = filteredItems.value[itemIndex];
-  if (!selectedItem) return;
-  selectedItem = getItem(selectedItem);
+const selectItem = (itemIndex: number, selected: boolean) => {
+  const item = filteredItems.value[itemIndex];
+  if (!item || !input) return;
+  let selectedItem = getItem(item);
   let caretPosition;
   const isTriggerChar = state.charIndex >= 0 && state.searchText;
   if (isTriggerChar) {
@@ -217,7 +214,7 @@ const selectItem = (itemIndex, selected) => {
     }
   }
 };
-const handleKeydown = (event) => {
+const handleKeydown = (event: KeyboardEvent) => {
   if (!state.showPopover) {
     return;
   }
@@ -266,19 +263,17 @@ const detachEvents = () => {
 };
 watch(
   () => state.activeIndex,
-  debounce((activeIndex) => {
-    const container = document.querySelector(`.${componentId}`);
-    const element = container.querySelector(`#list-item-${activeIndex}`);
-    if (element && !checkInView(container, element)) {
+  debounce((activeIndex: number) => {
+    const container = document.querySelector<HTMLElement>(`.${componentId}`);
+    const element = container?.querySelector<HTMLElement>(`#list-item-${activeIndex}`);
+    if (container && element && !checkInView(container, element)) {
       element.scrollIntoView({
         block: 'nearest',
         behavior: 'smooth',
       });
     }
-    emit('select', {
-      index: activeIndex,
-      item: filteredItems.value[activeIndex],
-    });
+    const item = filteredItems.value[activeIndex];
+    if (item !== undefined) emit('select', { index: activeIndex, item });
   }, 100)
 );
 watch(
@@ -303,7 +298,9 @@ onMounted(() => {
     );
     if (activeIndex !== -1) state.activeIndex = activeIndex;
   }
-  input = document.querySelector(`#${componentId} input, #${componentId} textarea`);
+  input = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+    `#${componentId} input, #${componentId} textarea`
+  );
   attachEvents();
 });
 onBeforeUnmount(() => {

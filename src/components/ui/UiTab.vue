@@ -19,22 +19,23 @@
     <slot></slot>
   </button>
 </template>
-<script setup>
+<script setup lang="ts">
 import { inject } from 'vue';
+import type { UiTabsContext } from './UiTabs.vue';
 
 /* eslint-disable-next-line */
-const props = defineProps({
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
-  value: {
-    type: [String, Number],
-    default: '',
-  },
-});
+const props = withDefaults(
+  defineProps<{
+    disabled?: boolean;
+    value?: string | number;
+  }>(),
+  {
+    disabled: false,
+    value: '',
+  }
+);
 
-const uiTabs = inject('ui-tabs', {});
+const uiTabs = inject('ui-tabs') as UiTabsContext;
 </script>
 <style scoped>
 @reference "../../assets/css/tailwind.css";

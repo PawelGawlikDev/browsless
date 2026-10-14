@@ -26,7 +26,8 @@
     </p>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { Workflow } from '@/types/models';
 import { shallowReactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid';
@@ -35,11 +36,14 @@ import hmacSHA256 from 'crypto-js/hmac-sha256';
 import getPassKey from '@/utils/getPassKey';
 const props = defineProps({
   workflow: {
-    type: Object,
+    type: Object as () => Workflow,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update', 'close']);
+const emit = defineEmits<{
+  update: [data: { isProtected: boolean; pass: string; drawflow: string }];
+  close: [];
+}>();
 const { t } = useI18n();
 const state = shallowReactive({
   password: '',

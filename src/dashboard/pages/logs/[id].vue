@@ -6,7 +6,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppLogsItem from '@/components/dashboard/app/AppLogsItem.vue';
@@ -27,7 +27,7 @@ const goToLogs = () => {
   router.push('/logs');
 };
 
-const onSelectLog = ({ id, type }) => {
+const onSelectLog = ({ id, type }: { id: string | number; type?: 'running' | 'log' }) => {
   router.push(type === 'running' ? `/logs/${id}/running` : `/logs/${id}`);
 };
 </script>

@@ -45,80 +45,66 @@
     </teleport>
   </div>
 </template>
-<script>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
-export default {
-  props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    teleportTo: {
-      type: String,
-      default: 'body',
-    },
-    contentClass: {
-      type: String,
-      default: 'max-w-lg',
-    },
-    title: {
-      type: String,
-      default: '',
-    },
-    padding: {
-      type: String,
-      default: 'p-4',
-    },
-    contentPosition: {
-      type: String,
-      default: 'center',
-    },
-    customContent: Boolean,
-    persist: Boolean,
-    blur: Boolean,
-    disabledTeleport: Boolean,
-  },
-  emits: ['close', 'update:modelValue'],
-  setup(props, { emit }) {
-    const positions = {
-      center: 'items-center',
-      start: 'items-start',
-    };
-    const show = ref(false);
-    const modalContent = ref(null);
-    const toggleBodyOverflow = (value) => {
-      document.body.classList.toggle('overflow-hidden', value);
-    };
-    const closeModal = () => {
-      if (props.persist) return;
-      show.value = false;
-      emit('close', false);
-      emit('update:modelValue', false);
-      toggleBodyOverflow(false);
-    };
-    const keyupHandler = ({ code }) => {
-      if (code === 'Escape') closeModal();
-    };
-    watch(
-      () => props.modelValue,
-      (value) => {
-        show.value = value;
-      },
-      { immediate: true }
-    );
-    watch(show, (value) => {
-      if (value) window.addEventListener('keyup', keyupHandler);
-      else window.removeEventListener('keyup', keyupHandler);
-      toggleBodyOverflow(value);
-    });
-    return {
-      show,
-      positions,
-      closeModal,
-      modalContent,
-    };
-  },
+
+const props = withDefaults(
+  defineProps<{
+    modelValue?: boolean;
+    teleportTo?: string;
+    contentClass?: string;
+    title?: string;
+    padding?: string;
+    contentPosition?: 'center' | 'start';
+    customContent?: boolean;
+    persist?: boolean;
+    blur?: boolean;
+    disabledTeleport?: boolean;
+  }>(),
+  {
+    modelValue: false,
+    teleportTo: 'body',
+    contentClass: 'max-w-lg',
+    title: '',
+    padding: 'p-4',
+    contentPosition: 'center',
+  }
+);
+const emit = defineEmits<{
+  close: [value: boolean];
+  'update:modelValue': [value: boolean];
+}>();
+
+const positions = {
+  center: 'items-center',
+  start: 'items-start',
 };
+const show = ref(false);
+const toggleBodyOverflow = (value: boolean) => {
+  document.body.classList.toggle('overflow-hidden', value);
+};
+const closeModal = () => {
+  if (props.persist) return;
+  show.value = false;
+  emit('close', false);
+  emit('update:modelValue', false);
+  toggleBodyOverflow(false);
+};
+const keyupHandler = ({ code }: KeyboardEvent) => {
+  if (code === 'Escape') closeModal();
+};
+watch(
+  () => props.modelValue,
+  (value) => {
+    show.value = value;
+  },
+  { immediate: true }
+);
+watch(show, (value) => {
+  if (value) window.addEventListener('keyup', keyupHandler);
+  else window.removeEventListener('keyup', keyupHandler);
+  toggleBodyOverflow(value);
+});
 </script>
 <style>
 .modal-enter-active,

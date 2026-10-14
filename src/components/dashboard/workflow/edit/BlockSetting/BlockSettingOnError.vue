@@ -154,20 +154,22 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { BlockErrorSettings } from '@/types/block-editor';
+import type { WorkflowInjectionContext } from '@/types/editor';
 import { reactive, watch, onMounted, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => BlockErrorSettings,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['change']);
+const emit = defineEmits<{ change: [settings: BlockErrorSettings] }>();
 const toDoTypes = ['error', 'continue', 'fallback'];
 const { t } = useI18n();
-const state = reactive({});
-const workflow = inject('workflow', {});
+const state = reactive<BlockErrorSettings>({});
+const workflow = inject<WorkflowInjectionContext>('workflow');
 const addDataToInsert = () => {
   if (!state.dataToInsert) state.dataToInsert = [];
   state.dataToInsert.push({

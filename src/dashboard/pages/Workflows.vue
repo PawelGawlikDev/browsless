@@ -50,7 +50,7 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import {
   getExtensionStorageValue,
   setExtensionStorageValue,
@@ -59,15 +59,21 @@ import { nanoid } from 'nanoid/non-secure';
 import { onMounted, reactive, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
-let tabTitleTimeout = null;
+import type { WorkspaceTab } from '@/types/models';
+
+let tabTitleTimeout: ReturnType<typeof setTimeout> | undefined;
 const route = useRoute();
 const router = useRouter();
-const state = reactive({
+const state = reactive<{
+  tabs: WorkspaceTab[];
+  activeTab: string;
+  tabChanging: boolean;
+}>({
   tabs: [],
   activeTab: '',
   tabChanging: false,
 });
-const addTab = (detail = {}) => {
+const addTab = (detail: Partial<WorkspaceTab> = {}) => {
   const workflowsTab = state.tabs.find(
     (tab) => tab.path === '/' || tab.path === '/workflows'
   );
@@ -84,7 +90,7 @@ const addTab = (detail = {}) => {
   });
   state.activeTab = tabId;
 };
-const closeTab = (index, tab) => {
+const closeTab = (index: number, tab: WorkspaceTab) => {
   if (state.tabs.length === 1) {
     state.tabs[0] = {
       path: '/',
@@ -146,10 +152,10 @@ watch(
   { deep: true }
 );
 onMounted(async () => {
-  const tabs = await getExtensionStorageValue('local', 'tabs', null);
+  const tabs = await getExtensionStorageValue<WorkspaceTab[]>('local', 'tabs', null);
   if (tabs) {
     state.tabs = Array.isArray(tabs) ? tabs : [];
-    const activeTab = await getExtensionStorageValue('local', 'activeTab');
+    const activeTab = await getExtensionStorageValue<string>('local', 'activeTab');
     state.activeTab = activeTab || state.tabs[0]?.id || '';
   }
   if (state.tabs.length !== 0) {

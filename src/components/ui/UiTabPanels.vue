@@ -3,19 +3,24 @@
     <slot></slot>
   </div>
 </template>
-<script setup>
-import { toRefs, provide } from 'vue';
+<script setup lang="ts">
+import { toRefs, provide, type Ref } from 'vue';
 
-const props = defineProps({
-  modelValue: {
-    type: [String, Number],
-    default: '',
-  },
-  cache: {
-    type: Boolean,
-    default: false,
-  },
-});
+export interface UiTabPanelsContext {
+  modelValue: Ref<string | number>;
+  cache: Ref<boolean>;
+}
 
-provide('ui-tab-panels', toRefs(props));
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string | number;
+    cache?: boolean;
+  }>(),
+  {
+    modelValue: '',
+    cache: false,
+  }
+);
+
+provide<UiTabPanelsContext>('ui-tab-panels', toRefs(props));
 </script>

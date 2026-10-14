@@ -138,7 +138,8 @@
     </template>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { CookieData } from '@/types/block-editor';
 import { computed, defineAsyncComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { autocompletion } from '@codemirror/autocomplete';
@@ -150,11 +151,11 @@ const SharedCodemirror = defineAsyncComponent(
 );
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => CookieData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: CookieData] }>();
 const { t } = useI18n();
 const permission = useHasPermissions(['cookies']);
 const types = ['get', 'set', 'remove'];
@@ -171,12 +172,14 @@ const methodProps = {
 const isGetOrSet = computed(
   () => (props.data.type === 'get' && props.data.getAll) || props.data.type === 'set'
 );
-const cookieOptionsAutocomplete = (context) => {
+const cookieOptionsAutocomplete = (
+  context: import('@codemirror/autocomplete').CompletionContext
+) => {
   const word = context.matchBefore(/\w*/);
   const nodeBefore = syntaxTree(context.state).resolveInner(context.pos, -1);
   if (nodeBefore.name !== 'PropertyName' || (word.from === word.to && !context.explicit))
     return null;
-  let options = [];
+  let options: import('@codemirror/autocomplete').Completion[] = [];
   if (props.data.type === 'get') {
     if (props.data.getAll) {
       options = [
@@ -199,7 +202,7 @@ const cookieOptionsAutocomplete = (context) => {
     from: word.from,
   };
 };
-const updateData = (value) => {
+const updateData = (value: Partial<CookieData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 const codemirrorExts = [

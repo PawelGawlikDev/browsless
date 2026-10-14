@@ -30,7 +30,7 @@
           <p class="text-overflow">
             {{
               state.selectType === 'nodes'
-                ? getBlockName(item, state.selectType)
+                ? getBlockName(item as GraphNode)
                 : `${type} ${index + 1}`
             }}
           </p>
@@ -40,71 +40,75 @@
     </div>
   </ui-popover>
 </template>
-<script setup>
-/* eslint-disable */
+<script setup lang="ts">
 import { reactive, computed, onMounted } from 'vue';
 import { getBlocks } from '@/utils/getSharedData';
-const props = defineProps({
-  nodes: {
-    type: Array,
-    default: () => [],
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-  type: {
-    type: String,
-    default: 'inputs',
-  },
-});
-const emit = defineEmits(['update']);
+import type { GraphNode, HandleElement } from '@vue-flow/core';
+import type { PackageIoItem } from '@/types/models';
+
+const props = withDefaults(
+  defineProps<{
+    nodes?: GraphNode[];
+    data?: Partial<PackageIoItem>;
+    type?: 'inputs' | 'outputs';
+  }>(),
+  {
+    nodes: () => [],
+    data: () => ({}),
+    type: 'inputs',
+  }
+);
+const emit = defineEmits<{
+  update: [payload: Partial<PackageIoItem>];
+}>();
 const blocks = getBlocks();
 const handleType = props.type === 'inputs' ? 'target' : 'source';
-const state = reactive({
+const state = reactive<{ query: string; selectType: 'nodes' | 'handle' }>({
   query: '',
   selectType: 'nodes',
 });
-const includeQuery = (str) =>
+const includeQuery = (str: string) =>
   str.toLocaleLowerCase().includes(state.query.toLocaleLowerCase());
 const selectedNode = computed(() =>
   props.nodes.find((node) => node.id === props.data.blockId)
 );
-const items = computed(() => {
-  const query = state.query.toLocaleLowerCase();
+const items = computed((): (GraphNode | HandleElement)[] => {
   if (state.selectType === 'nodes') {
     return props.nodes.filter(({ data, label }) => {
       let additionalKey = false;
       if (data.name) additionalKey = includeQuery(data.name);
       else if (data.description) additionalKey = includeQuery(data.description);
-      return includeQuery(blocks[label]?.name || '') || additionalKey;
+      return (
+        includeQuery((blocks[label as string]?.name as string) || '') || additionalKey
+      );
     });
   }
-  return selectedNode.value.handleBounds[handleType];
+  return (selectedNode.value?.handleBounds?.[handleType] as HandleElement[]) ?? [];
 });
-const updateData = (data) => {
+const updateData = (data: Partial<PackageIoItem>) => {
   emit('update', data);
 };
-const selectItem = (item) => {
+const selectItem = (item: GraphNode | HandleElement) => {
   if (state.selectType === 'nodes') {
-    const payload = { blockId: item.id };
+    const payload: Partial<PackageIoItem> = { blockId: item.id as string };
     if (props.data.blockId && props.data.blockId !== item.id) {
       payload.handleId = '';
     }
     updateData(payload);
     state.selectType = 'handle';
   } else {
-    updateData({ handleId: item.id });
+    updateData({ handleId: item.id as string });
   }
 };
-const getBlockName = (item, type) => {
+const getBlockName = (item: GraphNode) => {
   const { label, data } = item;
-  let name = blocks[label]?.name || '';
+  const labelStr = label as string | undefined;
+  let name = (labelStr && blocks[labelStr]?.name) || '';
   if (data.name) name += ` (${data.name})`;
   else if (data.description) name += ` (${data.description})`;
   return name;
 };
-const isActive = (item) => {
+const isActive = (item: GraphNode | HandleElement) => {
   if (state.selectType === 'nodes') {
     return item.id === props.data.blockId;
   }

@@ -84,27 +84,33 @@
     </ui-list>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDialog } from '@/composable/dialog';
 import { parseJSON } from '@/utils/helper';
-import { useFolderStore } from '@/stores/folder';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useFolderStore, type FolderStoreInstance } from '@/stores/folder';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import { exportWorkflow } from '@/utils/workflowData';
-defineProps({
-  modelValue: {
-    type: String,
-    default: '',
-  },
-});
-const emit = defineEmits(['update:modelValue']);
+import type { Folder } from '@/types/models';
+
+withDefaults(
+  defineProps<{
+    modelValue?: string;
+  }>(),
+  {
+    modelValue: '',
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: string];
+}>();
 const { t } = useI18n();
 const dialog = useDialog();
-const folderStore = useFolderStore();
-const workflowStore = useWorkflowStore();
+const folderStore = useFolderStore() as FolderStoreInstance;
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 const folders = computed(() => folderStore.items);
-const exportFolderWorkflows = (folderId) => {
+const exportFolderWorkflows = (folderId: string) => {
   const workflows = workflowStore.getWorkflows.filter(
     (item) => item.folderId === folderId
   );
@@ -112,8 +118,8 @@ const exportFolderWorkflows = (folderId) => {
     exportWorkflow(workflow);
   });
 };
-const onDragover = (event, toggle) => {
-  const parent = event.target.closest('.ui-list-item');
+const onDragover = (event: DragEvent, toggle: boolean) => {
+  const parent = (event.target as HTMLElement).closest('.ui-list-item');
   if (!parent) return;
   event.preventDefault();
   parent.classList.toggle('ring-2', toggle);
@@ -123,14 +129,14 @@ const newFolder = () => {
     title: t('workflows.folder.new'),
     placeholder: t('workflows.folder.name'),
     okText: t('common.add'),
-    onConfirm(value) {
+    onConfirm(value: string) {
       if (!value || !value.trim()) return false;
       folderStore.addFolder(value);
       return true;
     },
   });
 };
-const deleteFolder = ({ name, id }) => {
+const deleteFolder = ({ name, id }: Folder) => {
   dialog.confirm({
     title: t('workflows.folder.delete'),
     body: t('message.delete', { name }),
@@ -142,21 +148,24 @@ const deleteFolder = ({ name, id }) => {
     },
   });
 };
-const renameFolder = ({ id, name }) => {
+const renameFolder = ({ id, name }: Folder) => {
   dialog.prompt({
     inputValue: name,
     okText: t('common.rename'),
     title: t('workflows.folder.rename'),
     placeholder: t('workflows.folder.name'),
-    onConfirm(newName) {
+    onConfirm(newName: string) {
       if (!newName || !newName.trim()) return false;
       folderStore.updateFolder(id, { name: newName });
       return true;
     },
   });
 };
-const onWorkflowsDrop = async ({ dataTransfer }, folderId) => {
-  const ids = parseJSON(dataTransfer.getData('workflows'), null);
+const onWorkflowsDrop = async ({ dataTransfer }: DragEvent, folderId: string) => {
+  const ids = parseJSON<string[] | null>(
+    dataTransfer?.getData('workflows') as string,
+    null
+  );
   if (!ids || !Array.isArray(ids)) return;
   try {
     for (const id of ids) {

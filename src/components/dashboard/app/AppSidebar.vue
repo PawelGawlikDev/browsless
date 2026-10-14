@@ -57,25 +57,33 @@
     <div class="grow"></div>
   </aside>
 </template>
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { browser } from 'wxt/browser';
 import { getExtensionManifest } from '@/utils/extensionManifest';
-import { useWorkflowStore } from '@/stores/workflow';
-import { useShortcut, getShortcut } from '@/composable/shortcut';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
+import { useShortcut, getShortcut, type ShortcutDefinition } from '@/composable/shortcut';
 import { useGroupTooltip } from '@/composable/groupTooltip';
 import { initElementSelector } from '@/dashboard/utils/elementSelector';
 import emitter from '@/lib/mitt';
+
+interface SidebarTab {
+  id: string;
+  icon: string;
+  path: string;
+  shortcut?: ShortcutDefinition;
+}
+
 useGroupTooltip();
 const { t } = useI18n();
 const toast = useToast();
 const router = useRouter();
-const workflowStore = useWorkflowStore();
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 const extensionVersion = getExtensionManifest().version;
-const tabs = [
+const tabs: SidebarTab[] = [
   {
     id: 'workflow',
     icon: 'riFlowChart',
@@ -117,18 +125,18 @@ const tabs = [
     shortcut: getShortcut('page:settings', '/settings'),
   },
 ];
-const hoverIndicator = ref(null);
+const hoverIndicator = ref<HTMLElement | null>(null);
 const showHoverIndicator = ref(false);
 const runningWorkflowsLen = computed(() => workflowStore.getAllStates.length);
 useShortcut(
-  tabs.reduce((acc, { shortcut }) => {
+  tabs.reduce<ShortcutDefinition[]>((acc, { shortcut }) => {
     if (shortcut) {
       acc.push(shortcut);
     }
     return acc;
   }, []),
   ({ data }) => {
-    if (!data) return;
+    if (!data || typeof data !== 'string') return;
     if (data.includes('/logs')) {
       emitter.emit('ui:logs', { show: true });
       return;
@@ -136,7 +144,7 @@ useShortcut(
     router.push(data);
   }
 );
-const navigateLink = (event, navigateFn, tab) => {
+const navigateLink = (event: Event, navigateFn: () => void, tab: SidebarTab) => {
   event.preventDefault();
   if (tab.id === 'log') {
     emitter.emit('ui:logs', { show: true });
@@ -144,9 +152,11 @@ const navigateLink = (event, navigateFn, tab) => {
     navigateFn();
   }
 };
-const hoverHandler = ({ target }) => {
+const hoverHandler = ({ target }: MouseEvent) => {
   showHoverIndicator.value = true;
-  hoverIndicator.value.style.transform = `translate(-50%, ${target.offsetTop}px)`;
+  if (hoverIndicator.value) {
+    hoverIndicator.value.style.transform = `translate(-50%, ${(target as HTMLElement).offsetTop}px)`;
+  }
 };
 const injectElementSelector = async () => {
   try {

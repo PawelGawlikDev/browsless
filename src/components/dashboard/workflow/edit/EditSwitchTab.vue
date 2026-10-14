@@ -81,16 +81,17 @@
     </ui-checkbox>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { SwitchTabData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => SwitchTabData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: SwitchTabData] }>();
 const { t } = useI18n();
 const types = [
   { id: 'match-patterns', name: 'Match patterns' },
@@ -99,7 +100,7 @@ const types = [
   { id: 'prev-tab', name: 'Previous tab' },
   { id: 'tab-index', name: 'Tab index' },
 ];
-const updateData = (value) => {
+const updateData = (value: Partial<SwitchTabData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

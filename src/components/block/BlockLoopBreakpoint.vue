@@ -44,32 +44,36 @@
     <Handle :id="`${id}-output-1`" type="source" :position="Position.Right" />
   </block-base>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { Handle, Position } from '@vue-flow/core';
 import { useComponentId } from '@/composable/componentId';
 import { useEditorBlock } from '@/composable/editorBlock';
 import BlockBase from './BlockBase.vue';
-const props = defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-const emit = defineEmits(['delete', 'update', 'settings']);
+import type { BlockNodeData } from '@/types/editor';
+
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: BlockNodeData & { loopId?: string; clearLoop?: boolean };
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({}),
+  }
+);
+const emit = defineEmits<{
+  delete: [id: string];
+  update: [payload: Record<string, unknown>];
+  settings: [payload: unknown];
+}>();
 const { t } = useI18n();
 const block = useEditorBlock(props.label);
 const componentId = useComponentId('block-delay');
-const handleInput = ({ target }) => {
-  const loopId = target.value.replace(/\s/g, '');
+const handleInput = (event: Event) => {
+  const loopId = (event.target as HTMLInputElement).value.replace(/\s/g, '');
   emit('update', { loopId });
 };
 </script>

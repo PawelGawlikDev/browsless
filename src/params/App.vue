@@ -117,7 +117,33 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { Component } from 'vue';
+import type { Workflow, WorkflowMap } from '@/types/models';
+import type { WorkflowParameter } from '@/types/block-editor';
+import { sendMessage } from '@/utils/message';
+
+type ParameterValue = string | number | boolean;
+interface InputParameter extends WorkflowParameter {
+  value?: ParameterValue;
+  inputType?: string;
+}
+interface PromptData {
+  promptId: string;
+  timeout: number;
+  timeoutMs: number;
+  name: string;
+  icon?: string;
+  description?: string;
+}
+type PendingWorkflow = {
+  params: InputParameter[];
+  addedDate: number;
+} & ({ type: 'workflow'; data: Workflow } | { type: 'block'; data: PromptData });
+type ParamsMessage =
+  | { name: 'workflow:params'; data: string | Workflow }
+  | { name: 'workflow:params-block'; data: PromptData & { params: InputParameter[] } };
+
 import { extensionStorage } from '@/lib/extensionStorage';
 import { onMounted, ref, computed } from 'vue';
 import { browser } from 'wxt/browser';
@@ -127,7 +153,10 @@ import { parseJSON } from '@/utils/helper';
 import ParameterInputValue from '@/components/dashboard/workflow/edit/Parameter/ParameterInputValue.vue';
 import ParameterJsonValue from '@/components/dashboard/workflow/edit/Parameter/ParameterJsonValue.vue';
 import ParameterCheckboxValue from '@/components/dashboard/workflow/edit/Parameter/ParameterCheckboxValue.vue';
-const paramsList = {
+const paramsList: Record<
+  string,
+  { id: string; name: string; valueComp: Component; data?: { required: boolean } }
+> = {
   string: {
     id: 'string',
     name: 'Input (string)',
@@ -150,36 +179,42 @@ const paramsList = {
 const theme = useTheme();
 theme.init();
 const retrieved = ref(false);
-const workflows = ref([]);
+const workflows = ref<PendingWorkflow[]>([]);
 const sortedWorkflows = computed(() =>
   workflows.value.slice().sort((a, b) => b.addedDate - a.addedDate)
 );
-const findWorkflow = async (workflowId) => {
+const findWorkflow = async (workflowId: string): Promise<Workflow | null> => {
   if (!workflowId) return null;
   const { workflows: localWorkflows } = await extensionStorage.local.get(['workflows']);
-  let workflow = Array.isArray(localWorkflows)
-    ? localWorkflows.find(({ id }) => id === workflowId)
-    : localWorkflows[workflowId];
-  return workflow;
+  const saved = localWorkflows as WorkflowMap | Workflow[] | undefined;
+  const workflow = Array.isArray(saved)
+    ? saved.find(({ id }) => id === workflowId)
+    : saved?.[workflowId];
+  return workflow || null;
 };
-const deleteWorkflow = (index) => {
-  workflows.value.splice(index, 1);
+const deleteWorkflow = (index: number) => {
+  const target = sortedWorkflows.value[index];
+  if (!target) return;
+  workflows.value.splice(workflows.value.indexOf(target), 1);
   if (workflows.value.length === 0) {
     window.close();
   }
 };
-const addWorkflow = async (workflowId) => {
+const addWorkflow = async (workflowId: string | Workflow) => {
   try {
     const workflow =
       typeof workflowId === 'string' ? await findWorkflow(workflowId) : workflowId;
+    if (!workflow) return;
     const triggerBlock = workflow.drawflow.nodes.find((node) => node.label === 'trigger');
     if (!triggerBlock) return;
-    const params = triggerBlock.data.parameters.map((param) => ({
+    const parameters = triggerBlock.data.parameters as WorkflowParameter[] | undefined;
+    const params = (parameters || []).map((param) => ({
       ...param,
       value: param.defaultValue,
       inputType: param.type === 'string' ? 'text' : 'number',
     }));
     workflows.value.push({
+      type: 'workflow',
       params,
       data: workflow,
       addedDate: Date.now(),
@@ -188,37 +223,34 @@ const addWorkflow = async (workflowId) => {
     console.error(error);
   }
 };
-const getParamsValues = (params) => {
-  const getParamVal = {
+const getParamsValues = (params: InputParameter[]) => {
+  const getParamVal: Record<string, (value: ParameterValue) => unknown> = {
     string: (str) => str,
     number: (num) => (Number.isNaN(+num) ? 0 : +num),
     json: (value) => parseJSON(value, null),
     default: (value) => value,
   };
-  return params.reduce((acc, param) => {
-    const valueFunc =
-      getParamVal[param.type] || paramsList[param.type]?.getValue || getParamVal.default;
-    const value = valueFunc(param.value || param.defaultValue);
+  return params.reduce<Record<string, unknown>>((acc, param) => {
+    const valueFunc = getParamVal[param.type] || getParamVal.default;
+    const value = valueFunc(param.value ?? param.defaultValue ?? '');
     acc[param.name] = value;
     return acc;
   }, {});
 };
-const runWorkflow = (index, { data, params }) => {
+const runWorkflow = (index: number, workflow: PendingWorkflow) => {
+  if (workflow.type !== 'workflow') return;
+  const { data, params } = workflow;
   const isParamsValid = isValidParams(params);
   if (!isParamsValid) return;
   const variables = getParamsValues(params);
-  const payload = {
-    name: 'background--workflow:execute',
-    data: {
+  sendMessage(
+    'workflow:execute',
+    {
       ...data,
-      options: {
-        checkParams: false,
-        data: { variables },
-      },
+      options: { checkParams: false, data: { variables } },
     },
-  };
-  browser.runtime
-    .sendMessage(payload)
+    'background'
+  )
     .then(() => {
       deleteWorkflow(index);
     })
@@ -226,7 +258,9 @@ const runWorkflow = (index, { data, params }) => {
       console.error(error);
     });
 };
-const cancelParamBlock = (index, { data }, message) => {
+const cancelParamBlock = (index: number, workflow: PendingWorkflow, message: string) => {
+  if (workflow.type !== 'block') return;
+  const { data } = workflow;
   extensionStorage.local
     .set({
       [data.promptId]: {
@@ -238,7 +272,9 @@ const cancelParamBlock = (index, { data }, message) => {
       deleteWorkflow(index);
     });
 };
-const continueWorkflow = (index, { data, params }) => {
+const continueWorkflow = (index: number, workflow: PendingWorkflow) => {
+  if (workflow.type !== 'block') return;
+  const { data, params } = workflow;
   const isParamsValid = isValidParams(params);
   if (!isParamsValid) return;
   const timeout = data.timeoutMs > 0 ? Date.now() > data.timeout : false;
@@ -250,20 +286,19 @@ const continueWorkflow = (index, { data, params }) => {
       deleteWorkflow(index);
     });
 };
-const isValidParams = (params) => {
+const isValidParams = (params: InputParameter[]) => {
   const isValid = params.every((param) => {
     if (!param.data?.required) return true;
     return param.value;
   });
   return isValid;
 };
-let checkTimeout = null;
-browser.runtime.onMessage.addListener(({ name, data }) => {
-  if (name === 'workflow:params') {
-    addWorkflow(data);
-  } else if (name === 'workflow:params-block') {
-    const params = [...data.params];
-    delete data.params;
+let checkTimeout: ReturnType<typeof setInterval> | null = null;
+browser.runtime.onMessage.addListener((message: ParamsMessage) => {
+  if (message.name === 'workflow:params') {
+    addWorkflow(message.data);
+  } else if (message.name === 'workflow:params-block') {
+    const { params, ...data } = message.data;
     workflows.value.push({
       data,
       params,
@@ -272,7 +307,7 @@ browser.runtime.onMessage.addListener(({ name, data }) => {
     });
     if (!checkTimeout) {
       checkTimeout = setInterval(() => {
-        workflows.value.forEach((workflow, index) => {
+        sortedWorkflows.value.forEach((workflow, index) => {
           if (
             workflow.type !== 'block' ||
             Date.now() < workflow.data.timeout ||

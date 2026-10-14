@@ -32,7 +32,7 @@
         type="text"
         class="w-full bg-transparent focus:ring-0"
         @keydown.stop
-        @input="$emit('update', { name: $event.target.value })"
+        @input="handleNameInput"
       />
     </div>
     <draggable
@@ -52,13 +52,17 @@
           @dragstart="onDragStart(element, $event)"
           @dragend="onDragEnd(element.itemId)"
         >
-          <v-remixicon :name="tasks[element.id].icon" size="20" class="shrink-0" />
+          <v-remixicon
+            :name="tasks[element.id as keyof typeof tasks].icon"
+            size="20"
+            class="shrink-0"
+          />
           <div class="flex-1 overflow-hidden leading-tight">
             <p class="text-overflow">
               {{
                 getTranslation(
                   `workflow.blocks.${element.id}.name`,
-                  tasks[element.id].name
+                  tasks[element.id as keyof typeof tasks].name
                 )
               }}
             </p>
@@ -113,7 +117,7 @@
     <Handle :id="`${id}-output-1`" type="source" :position="Position.Right" />
   </block-base>
 </template>
-<script setup>
+<script setup lang="ts">
 import { inject, computed, shallowReactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid';
@@ -124,38 +128,50 @@ import { tasks, excludeGroupBlocks } from '@/utils/shared';
 import { useComponentId } from '@/composable/componentId';
 import { useEditorBlock } from '@/composable/editorBlock';
 import BlockBase from './BlockBase.vue';
-const props = defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-  editor: {
-    type: Object,
-    default: () => ({}),
-  },
-  events: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-const emit = defineEmits(['update', 'delete', 'edit', 'settings']);
+import type { BlockNodeData, WorkflowInjectionContext } from '@/types/editor';
+
+interface GroupBlockItem {
+  id: string;
+  itemId: string;
+  data: BlockNodeData;
+}
+
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: BlockNodeData & { blocks?: GroupBlockItem[] | Record<string, GroupBlockItem> };
+    editor?: Record<string, unknown>;
+    events?: Record<string, unknown>;
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({}),
+    editor: () => ({}),
+    events: () => ({}),
+  }
+);
+const emit = defineEmits<{
+  update: [payload: Record<string, unknown>];
+  delete: [id: string];
+  edit: [payload?: GroupBlockItem];
+  settings: [payload: unknown];
+}>();
 const { t, te } = useI18n();
 const toast = useToast();
 const componentId = useComponentId('blocks-group');
 const block = useEditorBlock(props.label);
-const workflow = inject('workflow', {});
-const blocks = computed(() =>
-  Array.isArray(props.data.blocks) ? props.data.blocks : Object.values(props.data.blocks)
+const workflow = inject('workflow', {}) as WorkflowInjectionContext;
+const blocks = computed<GroupBlockItem[]>(() =>
+  Array.isArray(props.data.blocks)
+    ? props.data.blocks
+    : Object.values(props.data.blocks ?? {})
 );
-const editItemSettings = (element) => {
+const handleNameInput = (event: Event) => {
+  emit('update', { name: (event.target as HTMLInputElement).value });
+};
+const editItemSettings = (element: GroupBlockItem) => {
   emit('settings', {
     blockId: props.id,
     data: element.data,
@@ -163,44 +179,48 @@ const editItemSettings = (element) => {
     details: { id: element.id },
   });
 };
-const onDragStart = (item, event) => {
-  event.dataTransfer.setData(
+const onDragStart = (item: GroupBlockItem, event: DragEvent) => {
+  event.dataTransfer?.setData(
     'block',
-    JSON.stringify({ ...tasks[item.id], ...item, fromGroup: true })
+    JSON.stringify({
+      ...((tasks as Record<string, unknown>)[item.id] as Record<string, unknown>),
+      ...item,
+      fromGroup: true,
+    })
   );
 };
-const onDragEnd = (itemId) => {
+const onDragEnd = (itemId: string) => {
   setTimeout(() => {
     const blockEl = document.querySelector(`[group-item-id="${itemId}"]`);
     if (blockEl) {
       const blockIndex = blocks.value.findIndex((item) => item.itemId === itemId);
       if (blockIndex !== -1) {
-        const copyBlocks = [...props.data.blocks];
+        const copyBlocks = [...(props.data.blocks as GroupBlockItem[])];
         copyBlocks.splice(blockIndex, 1);
         emit('update', { blocks: copyBlocks });
       }
     }
   }, 200);
 };
-const editBlock = (payload) => {
+const editBlock = (payload: GroupBlockItem) => {
   emit('edit', payload);
 };
-const deleteItem = (index, itemId) => {
-  const copyBlocks = [...props.data.blocks];
-  if (workflow.editState.blockData.itemId === itemId) {
+const deleteItem = (index: number, itemId: string) => {
+  const copyBlocks = [...(props.data.blocks as GroupBlockItem[])];
+  if (workflow.editState?.blockData && workflow.editState.blockData.itemId === itemId) {
     workflow.editState.editing = false;
     workflow.editState.blockData = false;
   }
   copyBlocks.splice(index, 1);
   emit('update', { blocks: copyBlocks });
 };
-const getTranslation = (key, defText = '') => {
+const getTranslation = (key: string, defText = '') => {
   return te(key) ? t(key) : defText;
 };
-const handleDrop = (event) => {
+const handleDrop = (event: DragEvent) => {
   event.preventDefault();
   event.stopPropagation();
-  const droppedBlock = JSON.parse(event.dataTransfer.getData('block') || null);
+  const droppedBlock = JSON.parse(event.dataTransfer?.getData('block') || 'null');
   if (!droppedBlock || droppedBlock.fromGroup) return;
   const { id, data, blockId } = droppedBlock;
   if (excludeGroupBlocks.includes(id)) {
@@ -215,13 +235,13 @@ const handleDrop = (event) => {
     emit('delete', blockId);
   }
   const copyBlocks = [
-    ...props.data.blocks,
+    ...(props.data.blocks as GroupBlockItem[]),
     shallowReactive({ id, data, itemId: nanoid(5) }),
   ];
   emit('update', { blocks: copyBlocks });
 };
-const toggleBreakpoint = (item, index) => {
-  const copyBlocks = [...props.data.blocks];
+const toggleBreakpoint = (item: GroupBlockItem, index: number) => {
+  const copyBlocks = [...(props.data.blocks as GroupBlockItem[])];
   copyBlocks[index].data = {
     ...copyBlocks[index].data,
     $breakpoint: !item.data.$breakpoint,

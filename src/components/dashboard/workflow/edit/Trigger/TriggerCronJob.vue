@@ -13,7 +13,8 @@
     {{ state.nextSchedule }}
   </p>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerFormData } from '@/types/block-editor';
 import { shallowReactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import cronParser from 'cron-parser';
@@ -23,11 +24,13 @@ import dayjs from '@/lib/dayjs';
 
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => TriggerFormData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: Partial<TriggerFormData>];
+}>();
 
 const { t } = useI18n();
 
@@ -37,14 +40,14 @@ const state = shallowReactive({
   nextSchedule: '',
 });
 
-const updateCronExpression = debounce((expression, update = false) => {
+const updateCronExpression = debounce((expression: string, update = false) => {
   try {
-    const cronExpression = cronParser.parseExpression(expression);
+    const cronExpression = cronParser.parse(expression);
 
     state.isError = false;
     state.nextSchedule = `${readableCron(expression)} - ${t(
       'scheduledWorkflow.nextRun'
-    )}: ${dayjs(cronExpression.next()).format('DD MMM YYYY, HH:mm:ss')}`;
+    )}: ${dayjs(cronExpression.next().toDate()).format('DD MMM YYYY, HH:mm:ss')}`;
 
     if (update) emit('update', { expression });
   } catch (error) {

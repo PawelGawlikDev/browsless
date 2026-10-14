@@ -18,7 +18,8 @@
     </template>
   </shared-logs-table>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { RunningWorkflowEntry } from '@/types/editor';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dbLogs from '@/db/logs';
@@ -30,8 +31,8 @@ const props = defineProps({
     default: '',
   },
   workflowStates: {
-    type: Array,
-    default: () => [],
+    type: Array as () => RunningWorkflowEntry[],
+    default: (): RunningWorkflowEntry[] => [],
   },
 });
 const { t } = useI18n();
@@ -41,7 +42,7 @@ const logsArr = useLiveQuery(() =>
 const logs = computed(() =>
   (logsArr.value || []).sort((a, b) => b.endedAt - a.endedAt).slice(0, 14)
 );
-const deleteLog = (logId) => {
+const deleteLog = (logId: number) => {
   dbLogs.items.delete(logId).then(() => {
     dbLogs.ctxData.where('logId').equals(logId).delete();
     dbLogs.histories.where('logId').equals(logId).delete();

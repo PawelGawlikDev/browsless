@@ -17,8 +17,8 @@
         min="0"
         class="bg-input w-10 appearance-none rounded-lg p-2 text-center transition"
         type="number"
-        @click="$event.target.select()"
-        @input="updatePage(+$event.target.value, $event.target)"
+        @click="selectInput"
+        @input="inputHandler"
       />
       {{ t('components.pagination.of', { page: maxPage }) }}
     </div>
@@ -32,38 +32,46 @@
     </ui-button>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-const props = defineProps({
-  modelValue: {
-    type: Number,
-    default: 1,
-  },
-  records: {
-    type: Number,
-    default: 10,
-  },
-  perPage: {
-    type: Number,
-    default: 10,
-  },
-});
-const emit = defineEmits(['update:modelValue', 'paginate']);
+const props = withDefaults(
+  defineProps<{
+    modelValue?: number;
+    records?: number;
+    perPage?: number;
+  }>(),
+  {
+    modelValue: 1,
+    records: 10,
+    perPage: 10,
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [page: number];
+  paginate: [page: number];
+}>();
 const { t } = useI18n();
-const inputEl = ref(null);
+const inputEl = ref<HTMLInputElement | null>(null);
 const maxPage = computed(() => Math.ceil(props.records / props.perPage));
-const emitEvent = (page) => {
+const emitEvent = (page: number) => {
   emit('update:modelValue', page);
   emit('paginate', page);
 };
-const updatePage = (page, element) => {
+const updatePage = (page: number, element?: HTMLElement) => {
   let currentPage = page;
   if (currentPage > maxPage.value || currentPage < 1) {
     if (!element) return;
     currentPage = currentPage > maxPage.value ? maxPage.value : 1;
   }
   emitEvent(currentPage);
+};
+const selectInput = (event: Event) => {
+  (event.target as HTMLInputElement).select();
+};
+const inputHandler = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  updatePage(+target.value, target);
 };
 watch(
   () => [props.perPage, props.records],

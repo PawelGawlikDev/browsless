@@ -92,7 +92,7 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid';
@@ -100,21 +100,40 @@ import Draggable from 'vuedraggable';
 import cloneDeep from 'lodash.clonedeep';
 import { conditionBuilder } from '@/utils/shared';
 import ConditionBuilderInputs from './ConditionBuilderInputs.vue';
-const props = defineProps({
-  modelValue: {
-    type: Array,
-    default: () => [],
-  },
-  autocomplete: {
-    type: Array,
-    default: () => [],
-  },
-});
-const emit = defineEmits(['update:modelValue', 'change']);
+
+interface ConditionInputItem {
+  id: string;
+  category: 'value' | 'compare';
+  type: string;
+  data?: Record<string, unknown>;
+}
+interface ConditionAndGroup {
+  id: string;
+  items: ConditionInputItem[];
+}
+interface ConditionOrGroup {
+  id: string;
+  conditions: ConditionAndGroup[];
+}
+
+const props = withDefaults(
+  defineProps<{
+    modelValue?: ConditionOrGroup[];
+    autocomplete?: unknown[];
+  }>(),
+  {
+    modelValue: () => [],
+    autocomplete: () => [],
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: ConditionOrGroup[]];
+  change: [value: ConditionOrGroup[]];
+}>();
 const { t } = useI18n();
-const conditions = ref(cloneDeep(props.modelValue));
-const getDefaultValues = (items = ['value', 'compare', 'value']) => {
-  const defaultValues = {
+const conditions = ref<ConditionOrGroup[]>(cloneDeep(props.modelValue));
+const getDefaultValues = (items: string | string[] = ['value', 'compare', 'value']) => {
+  const defaultValues: Record<string, Partial<ConditionInputItem>> = {
     value: {
       type: 'value',
       category: 'value',
@@ -122,49 +141,50 @@ const getDefaultValues = (items = ['value', 'compare', 'value']) => {
     },
     compare: { category: 'compare', type: 'eq' },
   };
-  const selectValue = (type) =>
+  const selectValue = (type: string): ConditionInputItem =>
     cloneDeep({
       ...defaultValues[type],
       id: nanoid(),
-    });
+    }) as ConditionInputItem;
   if (typeof items === 'string') {
     return selectValue(items);
   }
   return items.map((item) => selectValue(item));
 };
-const getConditionText = ({ category, type, data }) => {
+const getConditionText = ({ category, type, data }: ConditionInputItem) => {
   if (category === 'compare') {
-    return conditionBuilder.compareTypes.find(({ id }) => id === type).name;
+    return conditionBuilder.compareTypes.find(({ id }) => id === type)?.name;
   }
-  let text = '';
+  let text: string = '';
+  const conditionData = data ?? {};
   if (type === 'value') {
-    text = data.value || 'Empty';
+    text = (conditionData.value as string) || 'Empty';
   } else if (type.startsWith('code')) {
     text = 'JS Code';
   } else if (type.startsWith('element')) {
     text = type;
-    const textDetail = data.attrName || data.selector;
+    const textDetail = conditionData.attrName || conditionData.selector;
     if (textDetail) text += `(${textDetail})`;
   } else if (type.startsWith('data')) {
-    text = `Data exists (${data.dataPath})`;
+    text = `Data exists (${conditionData.dataPath})`;
   }
   return text;
 };
 const addOrCondition = () => {
-  const newOrCondition = getDefaultValues();
+  const newOrCondition = getDefaultValues() as ConditionInputItem[];
   conditions.value.push({
     id: nanoid(),
     conditions: [{ id: nanoid(), items: newOrCondition }],
   });
 };
-const addAndCondition = (index) => {
-  const newAndCondition = getDefaultValues();
+const addAndCondition = (index: number) => {
+  const newAndCondition = getDefaultValues() as ConditionInputItem[];
   conditions.value[index].conditions.push({
     id: nanoid(),
     items: newAndCondition,
   });
 };
-const deleteCondition = (index, itemIndex) => {
+const deleteCondition = (index: number, itemIndex: number) => {
   const condition = conditions.value[index].conditions;
   condition.splice(itemIndex, 1);
   if (condition.length === 0) conditions.value.splice(index, 1);

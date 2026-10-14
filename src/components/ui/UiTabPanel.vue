@@ -1,23 +1,24 @@
 <template>
   <render />
 </template>
-<script setup>
+<script setup lang="ts">
 import { inject, h, useSlots } from 'vue';
+import type { UiTabPanelsContext } from './UiTabPanels.vue';
 
-const props = defineProps({
-  value: {
-    type: [String, Number],
-    default: '',
-  },
-  activeClass: {
-    type: String,
-    default: 'ui-tab-panel--active',
-  },
-  cache: Boolean,
-});
+const props = withDefaults(
+  defineProps<{
+    value?: string | number;
+    activeClass?: string;
+    cache?: boolean;
+  }>(),
+  {
+    value: '',
+    activeClass: 'ui-tab-panel--active',
+  }
+);
 
 const slots = useSlots();
-const uiTabPanels = inject('ui-tab-panels', {});
+const uiTabPanels = inject('ui-tab-panels') as UiTabPanelsContext;
 
 const render = () => {
   const isActive = props.value === uiTabPanels.modelValue.value;

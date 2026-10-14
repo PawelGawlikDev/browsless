@@ -50,20 +50,23 @@
     </template>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { ParameterOptions } from '@/types/block-editor';
 import { reactive, watch, onMounted } from 'vue';
 import cloneDeep from 'lodash.clonedeep';
 const props = defineProps({
   modelValue: {
-    type: [Object, String],
+    type: Object as () => ParameterOptions,
     default: () => ({}),
   },
   defaultValue: {
-    type: Object,
+    type: Object as () => ParameterOptions,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits<{
+  'update:modelValue': [value: ParameterOptions];
+}>();
 const maskInfo = `
 Add mask to the input field
 <p class="mt-2">Supported patterns</p>
@@ -101,7 +104,7 @@ Add mask to the input field
 </table>
 `;
 const cloneData = cloneDeep(props.modelValue || {});
-const options = reactive({
+const options = reactive<ParameterOptions>({
   ...(props.defaultValue || {}),
   ...cloneData,
 });

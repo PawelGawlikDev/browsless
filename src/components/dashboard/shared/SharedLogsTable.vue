@@ -109,41 +109,54 @@
     </table>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { countDuration } from '@/utils/helper';
 import dayjs from '@/lib/dayjs';
 import RendererWorkflowService from '@/service/renderer/RendererWorkflowService';
-defineProps({
-  logs: {
-    type: Array,
-    default: () => [],
-  },
-  running: {
-    type: Array,
-    default: () => [],
-  },
-  modal: Boolean,
-  hideSelect: Boolean,
-});
-defineEmits(['select']);
+import type { DbLogItem } from '@/types/db';
+
+interface RunningWorkflowState {
+  id: string;
+  state: {
+    name: string;
+    startedTimestamp: number;
+    currentBlock: { name: string }[];
+  };
+}
+
+withDefaults(
+  defineProps<{
+    logs?: DbLogItem[];
+    running?: RunningWorkflowState[];
+    modal?: boolean;
+    hideSelect?: boolean;
+  }>(),
+  {
+    logs: () => [],
+    running: () => [],
+  }
+);
+defineEmits<{
+  select: [payload: { type: 'running' | 'log'; id: string | number }];
+}>();
 const { t, te } = useI18n();
-const statusColors = {
+const statusColors: Record<string, string> = {
   error: 'bg-red-200 dark:bg-red-300',
   success: 'bg-green-200 dark:bg-green-300',
   stopped: 'bg-yellow-200 dark:bg-yellow-300',
 };
-const state = reactive({
+const state = reactive<{ selected: (string | number)[] }>({
   selected: [],
 });
-const getTranslation = (key, defText = '') => {
+const getTranslation = (key: string, defText = '') => {
   return te(key) ? t(key) : defText;
 };
-const stopWorkflow = (stateId) => {
+const stopWorkflow = (stateId: string) => {
   RendererWorkflowService.stopWorkflowExecution(stateId);
 };
-const toggleSelectedLog = (selected, id) => {
+const toggleSelectedLog = (selected: boolean, id: string | number) => {
   if (selected) {
     state.selected.push(id);
     return;
@@ -151,11 +164,11 @@ const toggleSelectedLog = (selected, id) => {
   const index = state.selected.indexOf(id);
   if (index !== -1) state.selected.splice(index, 1);
 };
-const formatDate = (date, format) => {
+const formatDate = (date: number, format: string) => {
   if (format === 'relative') return dayjs(date).fromNow();
   return dayjs(date).format(format);
 };
-const getErrorMessage = ({ message }) => {
+const getErrorMessage = ({ message }: DbLogItem) => {
   const messagePath = `log.messages.${message}`;
   if (message && te(messagePath)) {
     return t(messagePath);
@@ -164,7 +177,7 @@ const getErrorMessage = ({ message }) => {
 };
 const stopSelectedWorkflow = () => {
   state.selected.forEach((id) => {
-    stopWorkflow(id);
+    stopWorkflow(id as string);
   });
   state.selected = [];
 };

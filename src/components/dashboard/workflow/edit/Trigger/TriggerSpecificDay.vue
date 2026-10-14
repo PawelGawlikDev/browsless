@@ -26,7 +26,7 @@
         <ui-checkbox
           v-for="(day, id) in days"
           :key="id"
-          :model-value="data.days?.includes(id)"
+          :model-value="tempDate.days.includes(Number(id))"
           @change="onSelectDayChange($event, id)"
         >
           {{ t(`workflow.blocks.trigger.days.${id}`) }}
@@ -79,19 +79,21 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerFormData } from '@/types/block-editor';
 import { reactive, computed, ref, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'vue-toastification';
 import dayjs from '@/lib/dayjs';
-import { isObject } from '@/utils/helper';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => TriggerFormData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: Partial<TriggerFormData>];
+}>();
 const days = {
   0: 'Sunday',
   1: 'Monday',
@@ -103,28 +105,28 @@ const days = {
 };
 const { t } = useI18n();
 const toast = useToast();
-const daysArr = ref(null);
+const daysArr = ref<{ id: number; times: string[] }[]>([]);
 const tempDate = reactive({
-  days: [],
+  days: [] as number[],
   time: '00:00',
 });
 const sortedDaysArr = computed(() =>
   daysArr.value ? daysArr.value.slice().sort((a, b) => a.id - b.id) : []
 );
-const formatTime = (time) => {
+const formatTime = (time: string) => {
   const [hour, minute, seconds] = time.split(':');
   return dayjs()
-    .hour(hour)
-    .minute(minute)
-    .second(seconds || 0)
+    .hour(Number(hour))
+    .minute(Number(minute))
+    .second(Number(seconds || 0))
     .format('hh:mm:ss A');
 };
-const removeDay = (dayId) => {
+const removeDay = (dayId: number) => {
   const dayIndex = daysArr.value.findIndex((day) => day.id === dayId);
   if (dayIndex === -1) return;
   daysArr.value.splice(dayIndex, 1);
 };
-const removeDayTime = (dayId, timeIndex) => {
+const removeDayTime = (dayId: number, timeIndex: number) => {
   const dayIndex = daysArr.value.findIndex((day) => day.id === dayId);
   if (dayIndex === -1) return;
   daysArr.value[dayIndex].times.splice(timeIndex, 1);
@@ -154,11 +156,11 @@ const addTime = () => {
     }
   });
 };
-const onSelectDayChange = (value, id) => {
+const onSelectDayChange = (value: boolean, id: string | number) => {
   if (value) tempDate.days.push(+id);
   else tempDate.days.splice(tempDate.days.indexOf(+id), 1);
 };
-const getDaysText = (dayIds) => {
+const getDaysText = (dayIds: number[]) => {
   return dayIds.map((day) => t(`workflow.blocks.trigger.days.${day}`)).join(', ');
 };
 watch(
@@ -170,9 +172,8 @@ watch(
   { deep: true }
 );
 onMounted(() => {
-  const isStringDay = props.data.days.length > 0 && !isObject(props.data.days[0]);
-  daysArr.value = isStringDay
-    ? props.data.days.map((day) => ({ id: day, times: [props.data.time] }))
-    : props.data.days;
+  daysArr.value = (props.data.days || []).map((day) =>
+    typeof day === 'number' ? { id: day, times: [props.data.time || '00:00'] } : day
+  );
 });
 </script>

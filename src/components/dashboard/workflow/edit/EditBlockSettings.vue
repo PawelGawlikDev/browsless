@@ -25,7 +25,12 @@
     </ui-tab-panel>
   </ui-tab-panels>
 </template>
-<script setup>
+<script setup lang="ts">
+import type {
+  BlockSettingsPayload,
+  BlockErrorSettings,
+  BlockGeneralSettings,
+} from '@/types/block-editor';
 import { reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import defu from 'defu';
@@ -35,7 +40,7 @@ import BlockSettingOnError from './BlockSetting/BlockSettingOnError.vue';
 import BlockSettingGeneral from './BlockSetting/BlockSettingGeneral.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => BlockSettingsPayload,
     default: () => ({}),
   },
   onErrorLabel: {
@@ -44,7 +49,10 @@ const props = defineProps({
   },
   show: Boolean,
 });
-const emit = defineEmits(['change', 'close']);
+const emit = defineEmits<{
+  change: [data: { onError?: BlockErrorSettings; settings?: BlockGeneralSettings }];
+  close: [];
+}>();
 const { t } = useI18n();
 const currActiveTab = 'general';
 const isOnErrorSupported = !excludeOnError.includes(props.data.id);
@@ -72,7 +80,7 @@ const defaultSettings = {
     toDo: 'error',
     errorMessage: '',
     insertData: false,
-    dataToInsert: [],
+    dataToInsert: [] as import('@/types/block-editor').InsertDataItem[],
   },
   general: {
     debugMode: false,
@@ -81,12 +89,15 @@ const defaultSettings = {
 const state = reactive({
   retrieved: false,
   activeTab: currActiveTab,
-  onError: defaultSettings.onError,
-  settings: defaultSettings.general,
+  onError: defaultSettings.onError as BlockErrorSettings,
+  settings: defaultSettings.general as BlockGeneralSettings,
 });
-const onDataChange = (key, data) => {
+const onDataChange = (
+  key: 'onError' | 'settings',
+  data: BlockErrorSettings | BlockGeneralSettings
+) => {
   if (!state.retrieved) return;
-  state[key] = data;
+  Object.assign(state, { [key]: data });
   emit('change', { [key]: data });
 };
 onMounted(() => {

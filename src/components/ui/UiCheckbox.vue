@@ -29,36 +29,30 @@
     </span>
   </label>
 </template>
-<script>
-export default {
-  props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    indeterminate: {
-      type: Boolean,
-      default: false,
-    },
-    disabled: {
-      type: Boolean,
-      default: null,
-    },
-    block: {
-      type: Boolean,
-      default: null,
-    },
-  },
-  emits: ['update:modelValue', 'change'],
-  setup(props, { emit }) {
-    const changeHandler = ({ target: { checked } }) => {
-      emit('update:modelValue', checked);
-      emit('change', checked);
-    };
-    return {
-      changeHandler,
-    };
-  },
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    modelValue?: boolean;
+    indeterminate?: boolean;
+    disabled?: boolean;
+    block?: boolean;
+  }>(),
+  {
+    modelValue: false,
+    indeterminate: false,
+    disabled: undefined,
+    block: undefined,
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean];
+  change: [value: boolean];
+}>();
+
+const changeHandler = (event: Event) => {
+  const { checked } = event.target as HTMLInputElement;
+  emit('update:modelValue', checked);
+  emit('change', checked);
 };
 </script>
 <style scoped>

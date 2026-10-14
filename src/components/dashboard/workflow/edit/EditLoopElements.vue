@@ -91,7 +91,8 @@
     </div>
   </edit-interaction-base>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { LoopElementsData } from '@/types/block-editor';
 import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid/non-secure';
@@ -100,17 +101,17 @@ import EditAutocomplete from './EditAutocomplete.vue';
 import EditInteractionBase from './EditInteractionBase.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => LoopElementsData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: LoopElementsData] }>();
 const actions = ['none', 'click-element', 'click-link', 'scroll', 'scroll-up'];
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<LoopElementsData>) => {
   emit('update:data', { ...props.data, ...value });
 };
-const updateLoopId = (id) => {
+const updateLoopId = (id: string) => {
   let loopId = id.replace(/\s/g, '');
   if (!loopId) {
     loopId = nanoid(6);

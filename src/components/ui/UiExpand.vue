@@ -22,37 +22,31 @@
     </transition-expand>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { watch, ref } from 'vue';
-const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    default: true,
-  },
-  panelClass: {
-    type: String,
-    default: '',
-  },
-  headerClass: {
-    type: String,
-    default: 'px-4 py-2 w-full flex items-center h-full',
-  },
-  headerActiveClass: {
-    type: String,
-    default: '',
-  },
-  activeClass: {
-    type: String,
-    default: '',
-  },
-  hideHeaderIcon: {
-    type: Boolean,
-    default: false,
-  },
-  disabled: Boolean,
-  appendIcon: Boolean,
-});
-const emit = defineEmits(['update:modelValue']);
+const props = withDefaults(
+  defineProps<{
+    modelValue?: boolean;
+    panelClass?: string;
+    headerClass?: string;
+    headerActiveClass?: string;
+    activeClass?: string;
+    hideHeaderIcon?: boolean;
+    disabled?: boolean;
+    appendIcon?: boolean;
+  }>(),
+  {
+    modelValue: true,
+    panelClass: '',
+    headerClass: 'px-4 py-2 w-full flex items-center h-full',
+    headerActiveClass: '',
+    activeClass: '',
+    hideHeaderIcon: false,
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean];
+}>();
 const show = ref(false);
 const toggleExpand = () => {
   if (props.disabled) return;

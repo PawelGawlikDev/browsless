@@ -32,7 +32,7 @@
     <ui-spinner color="text-accent" size="28" />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import iconChrome from '@/assets/logo.svg';
 import AppLogs from '@/components/dashboard/app/AppLogs.vue';
 import AppSidebar from '@/components/dashboard/app/AppSidebar.vue';
@@ -48,10 +48,10 @@ import {
 } from '@/lib/extensionStorage';
 import emitter from '@/lib/mitt';
 import { loadLocaleMessages, setI18nLanguage } from '@/lib/vueI18n';
-import { useFolderStore } from '@/stores/folder';
-import { useStore } from '@/stores/main';
-import { usePackageStore } from '@/stores/package';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useFolderStore, type FolderStoreInstance } from '@/stores/folder';
+import { useStore, type MainStoreInstance } from '@/stores/main';
+import { usePackageStore, type PackageStoreInstance } from '@/stores/package';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import dataMigration from '@/utils/dataMigration';
 import { MessageListener } from '@/utils/message';
 import { getWorkflowPermissions } from '@/utils/workflowData';
@@ -62,6 +62,16 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { browser } from 'wxt/browser';
 import { getExtensionManifest } from '@/utils/extensionManifest';
+import type { Workflow, WorkflowStateEntry } from '@/types/models';
+
+interface OpenLogsMessage {
+  logId?: string;
+}
+interface WorkflowAddedMessage {
+  workflowId?: string;
+  workflowData?: Workflow;
+}
+
 const iconElement = document.createElement('link');
 iconElement.rel = 'icon';
 iconElement.href = iconChrome;
@@ -69,17 +79,17 @@ document.head.appendChild(iconElement);
 window.fromBackground = window.location.href.includes('?fromBackground=true');
 const { t } = useI18n();
 const route = useRoute();
-const store = useStore();
+const store = useStore() as MainStoreInstance;
 const theme = useTheme();
 const router = useRouter();
-const folderStore = useFolderStore();
-const packageStore = usePackageStore();
-const workflowStore = useWorkflowStore();
+const folderStore = useFolderStore() as FolderStoreInstance;
+const packageStore = usePackageStore() as PackageStoreInstance;
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 theme.init();
 const retrieved = ref(false);
 const isUpdated = ref(false);
-const permissionState = reactive({
-  permissions: [],
+const permissionState = reactive<{ items: string[]; showModal: boolean }>({
+  items: [],
   showModal: false,
 });
 const currentVersion = getExtensionManifest().version;
@@ -87,7 +97,7 @@ const autoDeleteLogs = async () => {
   const deleteAfter = store.settings.deleteLogAfter;
   if (deleteAfter === 'never') return;
   const lastCheck =
-    +(await getExtensionStorageValue('local', 'checkDeleteLogs', 0)) ||
+    +((await getExtensionStorageValue<number>('local', 'checkDeleteLogs', 0)) ?? 0) ||
     Date.now() - 8.64e7;
   const dayDiff = dayjs().diff(dayjs(lastCheck), 'day');
   if (dayDiff < 1) return;
@@ -98,7 +108,7 @@ const autoDeleteLogs = async () => {
     .below(maxLogAge)
     .toArray()
     .then((values) => {
-      const ids = values.map(({ id }) => id);
+      const ids = values.map(({ id }) => id as number);
       dbLogs.items.bulkDelete(ids);
       dbLogs.ctxData.where('logId').anyOf(ids).delete();
       dbLogs.logsData.where('logId').anyOf(ids).delete();
@@ -110,23 +120,27 @@ const stopRecording = () => {
   if (!window.stopRecording) return;
   window.stopRecording();
 };
-const messageEvents = {
-  'refresh-packages': function () {
+const messageEvents: Record<string, (data: unknown) => void> = {
+  'refresh-packages': () => {
     packageStore.loadData(true);
   },
-  'open-logs': function (data) {
+  'open-logs': (data) => {
+    const payload = data as OpenLogsMessage;
     emitter.emit('ui:logs', {
       show: true,
-      logId: data.logId,
+      logId: payload.logId,
     });
   },
-  'workflow:added': function (data) {
-    if (data.workflowData) {
+  'workflow:added': (data) => {
+    const payload = data as WorkflowAddedMessage;
+    if (payload.workflowData) {
       workflowStore
-        .insert(data.workflowData, { duplicateId: true })
+        .insert(payload.workflowData, { duplicateId: true })
         .then(async () => {
           try {
-            const permissions = await getWorkflowPermissions(data.workflowData);
+            const permissions = await getWorkflowPermissions(
+              payload.workflowData!.drawflow
+            );
             if (permissions.length === 0) return;
             permissionState.items = permissions;
             permissionState.showModal = true;
@@ -142,14 +156,20 @@ const messageEvents = {
   'recording:stop': stopRecording,
   'background--recording:stop': stopRecording,
 };
-browser.runtime.onMessage.addListener(({ type, data }) => {
-  if (!type || !messageEvents[type]) return;
-  messageEvents[type](data);
-});
-watchExtensionStorageValue('local', 'workflowStates', (newValue) => {
-  const states = Object.values(newValue || {});
-  workflowStore.states = states;
-});
+browser.runtime.onMessage.addListener(
+  ({ type, data }: { type?: string; data?: unknown }) => {
+    if (!type || !messageEvents[type]) return;
+    messageEvents[type](data);
+  }
+);
+watchExtensionStorageValue<Record<string, WorkflowStateEntry>>(
+  'local',
+  'workflowStates',
+  (newValue) => {
+    const states = Object.values(newValue || {});
+    workflowStore.states = states;
+  }
+);
 useHead(() => {
   const runningWorkflows = workflowStore.popupStates.length;
   return {
@@ -166,11 +186,11 @@ window.onbeforeunload = () => {
     return t('message.notSaved');
   }
 };
-window.addEventListener('message', ({ data }) => {
+window.addEventListener('message', ({ data }: MessageEvent) => {
   if (data?.type !== 'browsless-fetch') return;
-  const sendResponse = (result) => {
-    const sandbox = document.getElementById('sandbox');
-    sandbox.contentWindow.postMessage(
+  const sendResponse = (result: unknown) => {
+    const sandbox = document.getElementById('sandbox') as HTMLIFrameElement | null;
+    sandbox?.contentWindow?.postMessage(
       {
         type: 'fetchResponse',
         data: result,
@@ -180,10 +200,10 @@ window.addEventListener('message', ({ data }) => {
     );
   };
   MessageListener.sendMessage('fetch', data.data, 'background')
-    .then((result) => {
+    .then((result: unknown) => {
       sendResponse({ isError: false, result });
     })
-    .catch((error) => {
+    .catch((error: Error) => {
       sendResponse({ isError: true, result: error.message });
     });
 });
@@ -202,22 +222,27 @@ watch(
 (async () => {
   try {
     const prevVersion =
-      (await getExtensionStorageValue('local', 'ext-version', '0.0.0')) || '0.0.0';
+      (await getExtensionStorageValue<string>('local', 'ext-version', '0.0.0')) ||
+      '0.0.0';
     const { workflowStates } = await extensionStorage.local.get('workflowStates');
-    workflowStore.states = Object.values(workflowStates || {});
+    workflowStore.states = Object.values(
+      (workflowStates as Record<string, WorkflowStateEntry>) || {}
+    );
     const tabs = await browser.tabs.query({
       url: browser.runtime.getURL('/dashboard.html'),
     });
     const currentWindow = await browser.windows.getCurrent();
     if (currentWindow.type !== 'popup') {
-      await browser.tabs.remove([tabs[0].id]);
+      await browser.tabs.remove([tabs[0].id as number]);
       return;
     }
     if (tabs.length > 1) {
       const firstTab = tabs.shift();
-      await browser.windows.update(firstTab.windowId, { focused: true });
-      await browser.tabs.update(firstTab.id, { active: true });
-      await browser.tabs.remove(tabs.map((tab) => tab.id));
+      if (firstTab) {
+        await browser.windows.update(firstTab.windowId as number, { focused: true });
+        await browser.tabs.update(firstTab.id as number, { active: true });
+      }
+      await browser.tabs.remove(tabs.map((tab) => tab.id as number));
       return;
     }
     const { isFirstTime } = await extensionStorage.local.get('isFirstTime');

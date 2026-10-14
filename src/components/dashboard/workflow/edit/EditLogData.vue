@@ -26,21 +26,22 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { LogDataData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import { useWorkflowStore } from '@/stores/workflow';
 import InsertWorkflowData from './InsertWorkflowData.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => LogDataData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: LogDataData] }>();
 const { t } = useI18n();
 const workflowStore = useWorkflowStore();
 const workflows = workflowStore.getWorkflows.sort((a, b) => (a.name > b.name ? 1 : -1));
-const updateData = (value) => {
+const updateData = (value: Partial<LogDataData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

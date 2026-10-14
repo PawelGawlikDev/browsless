@@ -42,19 +42,20 @@
     </edit-autocomplete>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { SwitchToData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import SharedElSelectorActions from '@/components/dashboard/shared/SharedElSelectorActions.vue';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => SwitchToData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: SwitchToData] }>();
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<SwitchToData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

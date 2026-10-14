@@ -120,7 +120,8 @@
     </ui-checkbox>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowParameter, ParameterOptions } from '@/types/block-editor';
 import cloneDeep from 'lodash.clonedeep';
 import { nanoid } from 'nanoid/non-secure';
 import { reactive, watch } from 'vue';
@@ -131,14 +132,26 @@ import ParameterInputValue from './Parameter/ParameterInputValue.vue';
 import ParameterJsonValue from './Parameter/ParameterJsonValue.vue';
 const props = defineProps({
   data: {
-    type: Array,
-    default: () => [],
+    type: Array as () => WorkflowParameter[],
+    default: (): WorkflowParameter[] => [],
   },
   preferTab: Boolean,
   hidePreferTab: Boolean,
 });
-const emit = defineEmits(['update', 'update:preferTab']);
-const paramTypes = {
+const emit = defineEmits<{
+  update: [parameters: WorkflowParameter[]];
+  'update:preferTab': [preferTab: boolean];
+}>();
+const paramTypes: Record<
+  string,
+  {
+    id: string;
+    name: string;
+    options?: import('vue').Component;
+    valueComp?: import('vue').Component;
+    data: ParameterOptions;
+  }
+> = {
   string: {
     id: 'string',
     name: 'Input (string)',
@@ -194,10 +207,10 @@ const addParameter = () => {
     data: paramTypes.string.data,
   });
 };
-const updateParam = (index, value) => {
+const updateParam = (index: number, value: string) => {
   state.parameters[index].name = value.replace(/\s/g, '_');
 };
-const updateParamType = (index, type) => {
+const updateParamType = (index: number, type: string) => {
   const param = state.parameters[index];
   param.type = type;
   param.data = paramTypes[type].data || {};

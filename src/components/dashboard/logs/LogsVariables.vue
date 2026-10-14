@@ -11,19 +11,21 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
 
 const SharedCodemirror = defineAsyncComponent(
   () => import('@/components/dashboard/shared/SharedCodemirror.vue')
 );
 
-const props = defineProps({
-  currentLog: {
-    type: Object,
-    default: () => ({}),
-  },
-});
+const props = withDefaults(
+  defineProps<{
+    currentLog?: { data?: { variables?: Record<string, unknown> } };
+  }>(),
+  {
+    currentLog: () => ({}),
+  }
+);
 
 const variables = computed(() => {
   try {

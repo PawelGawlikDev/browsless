@@ -69,13 +69,14 @@
       :key="catId"
       :model-value="true"
       :blocks="items"
-      :category="categories[catId]"
+      :category="categories[catId as keyof typeof categories]"
       :pinned="pinnedBlocks"
       @pin="pinBlock"
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowOrPackage } from '@/types/editor';
 import { extensionStorage } from '@/lib/extensionStorage';
 import { computed, ref, onMounted, watch, toRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -85,7 +86,7 @@ import { getBlocks } from '@/utils/getSharedData';
 import WorkflowBlockList from './WorkflowBlockList.vue';
 defineProps({
   workflow: {
-    type: Object,
+    type: Object as () => WorkflowOrPackage,
     default: () => ({}),
   },
   dataChanged: {
@@ -93,10 +94,12 @@ defineProps({
     default: false,
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: Partial<WorkflowOrPackage>];
+}>();
 const { t, te } = useI18n();
 const shortcut = useShortcut('action:search', () => {
-  const searchInput = document.querySelector('#search-input input');
+  const searchInput = document.querySelector<HTMLInputElement>('#search-input input');
   searchInput?.focus();
 });
 const pinnedCategory = {
@@ -130,9 +133,9 @@ const blocksArr = Object.entries(copyBlocks).map(([key, block]) => {
 });
 const descriptionCollapsed = ref(true);
 const query = ref('');
-const pinnedBlocks = ref([]);
+const pinnedBlocks = ref<string[]>([]);
 const blocks = computed(() =>
-  blocksArr.reduce((arr, block) => {
+  blocksArr.reduce<Record<string, typeof blocksArr>>((arr, block) => {
     if (block.name.toLocaleLowerCase().includes(query.value.toLocaleLowerCase())) {
       (arr[block.category] = arr[block.category] || []).push(block);
     }
@@ -153,12 +156,12 @@ const pinnedBlocksList = computed(() =>
       name.toLocaleLowerCase().includes(query.value.toLocaleLowerCase())
     )
 );
-const updateWorkflowIcon = (value) => {
+const updateWorkflowIcon = (value: string) => {
   if (!value.startsWith('http')) return;
   const iconUrl = value.slice(0, 1024);
   emit('update', { icon: iconUrl });
 };
-const pinBlock = ({ id }) => {
+const pinBlock = ({ id }: { id: string }) => {
   const index = pinnedBlocks.value.indexOf(id);
   if (index !== -1) pinnedBlocks.value.splice(index, 1);
   else pinnedBlocks.value.push(id);

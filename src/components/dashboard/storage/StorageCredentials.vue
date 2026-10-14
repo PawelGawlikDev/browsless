@@ -47,7 +47,7 @@
     </div>
   </ui-modal>
 </template>
-<script setup>
+<script setup lang="ts">
 import { shallowReactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'vue-toastification';
@@ -55,6 +55,7 @@ import dayjs from 'dayjs';
 import credentialUtil from '@/utils/credentialUtil';
 import { useLiveQuery } from '@/composable/liveQuery';
 import dbStorage from '@/db/storage';
+import type { DbStorageCredential } from '@/types/db';
 const { t } = useI18n();
 const toast = useToast();
 const credentials = useLiveQuery(() => dbStorage.credentials.toArray());
@@ -89,7 +90,7 @@ const tableHeaders = [
   },
 ];
 const state = shallowReactive({
-  id: '',
+  id: undefined as number | undefined,
   query: '',
 });
 const addState = shallowReactive({
@@ -98,13 +99,13 @@ const addState = shallowReactive({
   value: '',
   show: false,
 });
-const deleteCredential = ({ id }) => {
-  dbStorage.credentials.delete(id);
+const deleteCredential = ({ id }: DbStorageCredential) => {
+  dbStorage.credentials.delete(id as number);
 };
 const saveCredential = () => {
   if (!addState.name) return;
   const trimmedName = addState.name.trim();
-  const duplicateName = credentials.value.some(
+  const duplicateName = credentials.value?.some(
     ({ name, id }) => name.trim() === trimmedName && id !== state.id
   );
   if (duplicateName) {
@@ -124,9 +125,9 @@ const saveCredential = () => {
 };
 watch(
   () => addState.show,
-  (value) => {
+  (value: boolean) => {
     if (value) return;
-    state.id = '';
+    state.id = undefined;
     Object.assign(addState, {
       name: '',
       type: '',

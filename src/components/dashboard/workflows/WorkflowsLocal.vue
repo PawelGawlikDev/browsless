@@ -100,7 +100,7 @@
     </div>
   </ui-modal>
 </template>
-<script setup>
+<script setup lang="ts">
 import { shallowReactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SelectionArea from '@viselect/vanilla';
@@ -108,36 +108,39 @@ import cloneDeep from 'lodash.clonedeep';
 import { extensionStorage } from '@/lib/extensionStorage';
 import { arraySorter } from '@/utils/helper';
 import { useDialog } from '@/composable/dialog';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import { exportWorkflow } from '@/utils/workflowData';
 import RendererWorkflowService from '@/service/renderer/RendererWorkflowService';
 import WorkflowsLocalCard from './WorkflowsLocalCard.vue';
-const props = defineProps({
-  search: {
-    type: String,
-    default: '',
-  },
-  folderId: {
-    type: String,
-    default: '',
-  },
-  sort: {
-    type: Object,
-    default: () => ({
+import type { Workflow } from '@/types/models';
+
+const props = withDefaults(
+  defineProps<{
+    search?: string;
+    folderId?: string;
+    sort?: { by?: string; order?: 'asc' | 'desc' };
+    perPage?: number;
+  }>(),
+  {
+    search: '',
+    folderId: '',
+    sort: () => ({
       by: '',
-      order: '',
+      order: 'asc',
     }),
-  },
-  perPage: {
-    type: Number,
-    default: 18,
-  },
-});
-const emit = defineEmits(['update:perPage']);
+    perPage: 18,
+  }
+);
+const emit = defineEmits<{
+  'update:perPage': [value: number];
+}>();
 const { t } = useI18n();
 const dialog = useDialog();
-const workflowStore = useWorkflowStore();
-const state = shallowReactive({
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
+const state = shallowReactive<{
+  pinnedWorkflows: string[];
+  selectedWorkflows: string[];
+}>({
   pinnedWorkflows: [],
   selectedWorkflows: [],
 });
@@ -153,7 +156,7 @@ const pagination = shallowReactive({
 });
 const selection = new SelectionArea({
   container: '.workflows-list',
-  startareas: ['.workflows-list'],
+  startAreas: ['.workflows-list'],
   boundaries: ['.workflows-list'],
   selectables: ['.local-workflow'],
   behaviour: {
@@ -162,7 +165,8 @@ const selection = new SelectionArea({
 });
 selection
   .on('beforestart', ({ event }) => {
-    return event.target.tagName !== 'INPUT' && !event.target.closest('.local-workflow');
+    const target = event.target as HTMLElement;
+    return target.tagName !== 'INPUT' && !target.closest('.local-workflow');
   })
   .on('start', () => {
     clearSelectedWorkflows();
@@ -177,7 +181,9 @@ selection
     });
   })
   .on('stop', (event) => {
-    state.selectedWorkflows = event.store.selected.map((el) => el.dataset?.workflow);
+    state.selectedWorkflows = event.store.selected
+      .map((el) => (el as HTMLElement).dataset?.workflow)
+      .filter((id): id is string => Boolean(id));
     document.body.style.userSelect = '';
   });
 const filteredWorkflows = computed(() => {
@@ -188,7 +194,7 @@ const filteredWorkflows = computed(() => {
   );
   return arraySorter({
     data: filtered,
-    key: props.sort.by,
+    key: (props.sort.by || 'createdAt') as keyof Workflow,
     order: props.sort.order,
   });
 });
@@ -199,7 +205,7 @@ const workflows = computed(() =>
   )
 );
 const pinnedWorkflows = computed(() => {
-  const list = [];
+  const list: Workflow[] = [];
   state.pinnedWorkflows.forEach((workflowId) => {
     const workflow = workflowStore.getById(workflowId);
     if (
@@ -211,16 +217,16 @@ const pinnedWorkflows = computed(() => {
   });
   return arraySorter({
     data: list,
-    key: props.sort.by,
+    key: (props.sort.by || 'createdAt') as keyof Workflow,
     order: props.sort.order,
   });
 });
-const onPerPageChange = (event) => {
-  const { value } = event.target;
+const onPerPageChange = (event: Event) => {
+  const { value } = event.target as HTMLSelectElement;
   pagination.perPage = +value;
   emit('update:perPage', +value);
 };
-const toggleDisableWorkflow = ({ id, isDisabled }) => {
+const toggleDisableWorkflow = ({ id, isDisabled }: Workflow) => {
   workflowStore.update({
     id,
     data: {
@@ -236,7 +242,7 @@ const clearRenameModal = () => {
     description: '',
   });
 };
-const initRenameWorkflow = ({ name, description, id }) => {
+const initRenameWorkflow = ({ name, description, id }: Workflow) => {
   Object.assign(renameState, {
     id,
     name,
@@ -254,7 +260,7 @@ const renameWorkflow = () => {
   });
   clearRenameModal();
 };
-const deleteWorkflow = ({ name, id }) => {
+const deleteWorkflow = ({ name, id }: Workflow) => {
   dialog.confirm({
     title: t('workflow.delete'),
     okVariant: 'danger',
@@ -264,10 +270,10 @@ const deleteWorkflow = ({ name, id }) => {
     },
   });
 };
-const deleteSelectedWorkflows = ({ target, key }) => {
+const deleteSelectedWorkflows = ({ target, key }: KeyboardEvent) => {
   const excludeTags = ['INPUT', 'TEXTAREA', 'SELECT'];
   if (
-    excludeTags.includes(target.tagName) ||
+    excludeTags.includes((target as HTMLElement).tagName) ||
     key !== 'Delete' ||
     state.selectedWorkflows.length === 0
   )
@@ -275,7 +281,7 @@ const deleteSelectedWorkflows = ({ target, key }) => {
   if (state.selectedWorkflows.length === 1) {
     const [workflowId] = state.selectedWorkflows;
     const workflow = workflowStore.getById(workflowId);
-    deleteWorkflow(workflow);
+    if (workflow) deleteWorkflow(workflow);
   } else {
     dialog.confirm({
       title: t('workflow.delete'),
@@ -289,21 +295,21 @@ const deleteSelectedWorkflows = ({ target, key }) => {
     });
   }
 };
-const duplicateWorkflow = (workflow) => {
-  const clonedWorkflow = cloneDeep(workflow);
+const duplicateWorkflow = (workflow: Workflow) => {
+  const clonedWorkflow = cloneDeep(workflow) as Record<string, unknown>;
   const delKeys = ['$id', 'data', 'id', 'isDisabled'];
   delKeys.forEach((key) => {
     delete clonedWorkflow[key];
   });
   clonedWorkflow.createdAt = Date.now();
-  clonedWorkflow.name += ' - copy';
-  workflowStore.insert(clonedWorkflow);
+  clonedWorkflow.name = `${clonedWorkflow.name} - copy`;
+  workflowStore.insert(clonedWorkflow as Partial<Workflow>);
 };
-const onDragStart = ({ dataTransfer, target }) => {
+const onDragStart = ({ dataTransfer, target }: DragEvent) => {
   const payload = [...state.selectedWorkflows];
-  const targetId = target.dataset?.workflow;
+  const targetId = (target as HTMLElement).dataset?.workflow;
   if (targetId && !payload.includes(targetId)) payload.push(targetId);
-  dataTransfer.setData('workflows', JSON.stringify(payload));
+  dataTransfer?.setData('workflows', JSON.stringify(payload));
 };
 const clearSelectedWorkflows = () => {
   state.selectedWorkflows = [];
@@ -312,7 +318,7 @@ const clearSelectedWorkflows = () => {
   });
   selection.clearSelection();
 };
-const togglePinWorkflow = (workflow) => {
+const togglePinWorkflow = (workflow: Workflow) => {
   const index = state.pinnedWorkflows.indexOf(workflow.id);
   const copyData = [...state.pinnedWorkflows];
   if (index === -1) {
@@ -330,7 +336,7 @@ const menu = [
     id: 'copy-id',
     name: 'Copy workflow id',
     icon: 'riFileCopyLine',
-    action: (workflow) => {
+    action: (workflow: Workflow) => {
       navigator.clipboard.writeText(workflow.id).catch((error) => {
         console.error(error);
         const textarea = document.createElement('textarea');

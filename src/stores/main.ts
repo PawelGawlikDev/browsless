@@ -32,7 +32,7 @@ export const useStore = defineStore('main', {
     } as EditorClipboardState,
     settings: defaultSettings as MainSettings,
     retrieved: true,
-    connectedSheets: [],
+    connectedSheets: [] as unknown[],
     connectedSheetsRetrieved: false,
   }),
   actions: {
@@ -51,3 +51,18 @@ export const useStore = defineStore('main', {
     },
   },
 });
+
+// `useStore`'s options-store generics don't infer under this project's
+// TypeScript/Pinia combo (see @/utils/workflowData.ts for the original
+// workaround) — this is the shape consumers should cast to:
+// `useStore() as MainStoreInstance`.
+export type MainStoreInstance = ReturnType<typeof useStore> & {
+  tabs: WorkspaceTab[];
+  copiedEls: EditorClipboardState;
+  settings: MainSettings;
+  retrieved: boolean;
+  connectedSheets: unknown[];
+  connectedSheetsRetrieved: boolean;
+  loadSettings: () => Promise<void>;
+  updateSettings: (settings?: Partial<MainSettings>) => Promise<void>;
+};

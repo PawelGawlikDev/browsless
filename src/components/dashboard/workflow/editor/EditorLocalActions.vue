@@ -162,7 +162,9 @@
     </div>
   </ui-modal>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { VueFlowStore } from '@vue-flow/core';
+import type { Workflow } from '@/types/models';
 import { useDialog } from '@/composable/dialog';
 import { useGroupTooltip } from '@/composable/groupTooltip';
 import { getShortcut, useShortcut } from '@/composable/shortcut';
@@ -185,15 +187,15 @@ const props = defineProps({
     default: false,
   },
   workflow: {
-    type: Object,
+    type: Object as () => import('@/types/editor').WorkflowOrPackage,
     default: () => ({}),
   },
   editor: {
-    type: Object,
+    type: Object as () => VueFlowStore,
     default: () => ({}),
   },
   changedData: {
-    type: Object,
+    type: Object as () => Partial<Workflow>,
     default: () => ({}),
   },
   canEdit: {
@@ -202,7 +204,12 @@ const props = defineProps({
   },
   isPackage: Boolean,
 });
-const emit = defineEmits(['modal', 'change', 'update', 'permission']);
+const emit = defineEmits<{
+  modal: [name: string];
+  change: [data: { drawflow: unknown }];
+  update: [data: { data: Partial<Workflow>; changedIndicator: boolean }];
+  permission: [permissions: string[]];
+}>();
 useGroupTooltip();
 const { t } = useI18n();
 const toast = useToast();
@@ -255,8 +262,8 @@ async function saveWorkflow() {
   try {
     const flow = props.editor.toObject();
     flow.edges = flow.edges.map((edge) => {
-      delete edge.sourceNode;
-      delete edge.targetNode;
+      if ('sourceNode' in edge) delete edge.sourceNode;
+      if ('targetNode' in edge) delete edge.targetNode;
       return edge;
     });
     const triggerBlock = flow.nodes.find((node) => node.label === 'trigger');
@@ -272,7 +279,11 @@ async function saveWorkflow() {
       },
       false
     );
-    await registerWorkflowTrigger(props.workflow.id, triggerBlock);
+    await registerWorkflowTrigger(props.workflow.id, {
+      ...triggerBlock,
+      label: String(triggerBlock.label),
+      data: triggerBlock.data || {},
+    });
     emit('change', { drawflow: flow });
   } catch (error) {
     console.error(error);
@@ -333,7 +344,7 @@ const retrieveTriggerText = async () => {
   state.triggerText = await getTriggerText(
     triggerBlock.data,
     t,
-    router.currentRoute.value.params.id,
+    String(router.currentRoute.value.params.id),
     true
   );
 };
@@ -360,7 +371,7 @@ const moreActions = [
     id: 'export',
     icon: 'riDownloadLine',
     name: t('common.export'),
-    action: () => exportWorkflow(props.workflow),
+    action: () => exportWorkflow(props.workflow as Workflow),
     hasAccess: true,
   },
   {

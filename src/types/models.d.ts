@@ -1,3 +1,4 @@
+import type { RunningWorkflowEntry } from './editor';
 export type Dictionary<T = unknown> = Record<string, T>;
 
 export interface Position {
@@ -36,6 +37,8 @@ export interface DrawflowData {
 export interface WorkflowSettings {
   publicId: string;
   aipowerToken: string;
+  events?: import('./block-editor').WorkflowEvent[];
+  tabLoadTimeout?: number;
   blockDelay: number;
   saveLog: boolean;
   debugMode: boolean;
@@ -81,7 +84,7 @@ export interface Workflow {
 
 export type WorkflowMap = Record<string, Workflow>;
 
-export interface WorkflowStateEntry {
+export interface WorkflowStateEntry extends RunningWorkflowEntry {
   workflowId?: string;
   [key: string]: unknown;
 }

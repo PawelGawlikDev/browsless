@@ -78,7 +78,7 @@
               title="Option value"
               class="text-overflow w-full bg-transparent focus:ring-0"
               readonly
-              @click="$event.target.select()"
+              @click="($event.target as HTMLInputElement).select()"
             />
           </div>
         </template>
@@ -94,39 +94,49 @@
     </ui-tab-panel>
   </ui-tab-panels>
 </template>
-<script setup>
+<script setup lang="ts">
 import { inject } from 'vue';
+import type { SelectedElementRect } from '@/content/elementSelector/types';
 import SelectorBlocks from './SelectorBlocks.vue';
 import SelectorElementList from './SelectorElementList.vue';
-const props = defineProps({
-  activeTab: {
-    type: String,
-    default: '',
-  },
-  selectElements: {
-    type: Array,
-    default: () => [],
-  },
-  selectedElements: {
-    type: Array,
-    default: () => [],
-  },
-  elSelector: {
-    type: String,
-    default: '',
-  },
-  hideBlocks: Boolean,
-});
-defineEmits(['update:activeTab', 'execute', 'highlight', 'update']);
-const rootElement = inject('rootElement');
-const copySelector = (name, value) => {
-  rootElement.shadowRoot.querySelector(`[data-testid="${name}"] input`)?.select();
-  const type = rootElement.shadowRoot.querySelector(`select#select--1`)?.value;
+
+const props = withDefaults(
+  defineProps<{
+    activeTab?: string;
+    selectElements?: SelectedElementRect[];
+    selectedElements?: SelectedElementRect[];
+    elSelector?: string;
+    hideBlocks?: boolean;
+  }>(),
+  {
+    activeTab: '',
+    selectElements: () => [],
+    selectedElements: () => [],
+    elSelector: '',
+  }
+);
+defineEmits<{
+  'update:activeTab': [value: string];
+  execute: [running: boolean];
+  highlight: [payload: { highlight: boolean; index: number }];
+  update: [];
+}>();
+const rootElement = inject<HTMLElement>('rootElement');
+const copySelector = (name: string, value: unknown) => {
+  (
+    rootElement?.shadowRoot?.querySelector(
+      `[data-testid="${name}"] input`
+    ) as HTMLInputElement | null
+  )?.select();
+  const type = (
+    rootElement?.shadowRoot?.querySelector(`select#select--1`) as HTMLSelectElement | null
+  )?.value;
+  const tagName = props.selectedElements[0]?.tagName?.toLowerCase();
   navigator.clipboard
     .writeText(
       type === 'css'
-        ? `${props.selectedElements[0].tagName.toLowerCase()}[${name}="${value}"]`
-        : `//${props.selectedElements[0].tagName.toLowerCase()}[@${name}='${value}']`
+        ? `${tagName}[${name}="${value}"]`
+        : `//${tagName}[@${name}='${value}']`
     )
     .catch((error) => {
       document.execCommand('copy');

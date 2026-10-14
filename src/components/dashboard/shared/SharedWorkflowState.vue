@@ -50,25 +50,46 @@
     </div>
   </ui-card>
 </template>
-<script setup>
+<script setup lang="ts">
 import { browser } from 'wxt/browser';
 import { useI18n } from 'vue-i18n';
 import { getBlocks } from '@/utils/getSharedData';
 import RendererWorkflowService from '@/service/renderer/RendererWorkflowService';
 import dayjs from '@/lib/dayjs';
-const props = defineProps({
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-});
+
+interface WorkflowRunningState {
+  id: string;
+  state: {
+    name: string;
+    startedTimestamp: number;
+    tabId?: number;
+    currentBlock: { id?: string; name: string }[];
+  };
+  parentState?: {
+    name: string;
+    isCollection?: boolean;
+  };
+}
+
+const props = withDefaults(
+  defineProps<{
+    data?: WorkflowRunningState;
+  }>(),
+  {
+    data: () => ({
+      id: '',
+      state: { name: '', startedTimestamp: 0, currentBlock: [] },
+    }),
+  }
+);
 const blocks = getBlocks();
 const { t } = useI18n();
-const formatDate = (date, format) => {
+const formatDate = (date: number, format: string) => {
   if (format === 'relative') return dayjs(date).fromNow();
   return dayjs(date).format(format);
 };
 const openTab = () => {
+  if (!props.data.state.tabId) return;
   browser.tabs.update(props.data.state.tabId, { active: true });
 };
 const stopWorkflow = () => {

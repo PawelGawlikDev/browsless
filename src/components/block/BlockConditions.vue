@@ -63,7 +63,7 @@
       </p>
     </ul>
     <Handle
-      v-if="data.conditions.length > 0"
+      v-if="data.conditions && data.conditions.length > 0"
       :id="`${id}-output-fallback`"
       :position="Position.Right"
       type="source"
@@ -71,28 +71,40 @@
     />
   </block-base>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { Handle, Position } from '@vue-flow/core';
 import { useComponentId } from '@/composable/componentId';
 import { useEditorBlock } from '@/composable/editorBlock';
 import BlockBase from './BlockBase.vue';
+import type { BlockNodeData } from '@/types/editor';
 
-const props = defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-defineEmits(['delete', 'settings', 'edit', 'update']);
+interface BlockCondition {
+  id: string;
+  name?: string;
+  compareValue?: string;
+  type?: string;
+  value?: string;
+}
+
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: BlockNodeData & { conditions?: BlockCondition[] };
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({}),
+  }
+);
+defineEmits<{
+  delete: [id: string];
+  settings: [payload: unknown];
+  edit: [payload?: { editCondition: string }];
+  update: [payload: Record<string, unknown>];
+}>();
 
 const { t } = useI18n();
 const componentId = useComponentId('block-conditions');

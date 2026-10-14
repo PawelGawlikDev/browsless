@@ -7,7 +7,7 @@
         :value="data.regex"
         placeholder="Regex"
         class="w-11/12 bg-transparent p-2 focus:ring-0"
-        @input="updateData({ regex: $event.target.value })"
+        @input="updateData({ regex: ($event.target as HTMLInputElement).value })"
       />
       <ui-popover>
         <template #trigger>
@@ -68,7 +68,8 @@
     <insert-workflow-data :data="data" variables extra-row @update="updateData" />
   </edit-interaction-base>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { GetTextData } from '@/types/block-editor';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import InsertWorkflowData from './InsertWorkflowData.vue';
@@ -76,25 +77,25 @@ import EditInteractionBase from './EditInteractionBase.vue';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => GetTextData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: GetTextData] }>();
 const { t } = useI18n();
 const regexData = Array.isArray(props.data.regexExp)
   ? props.data.regexExp
-  : Object.values(props.data.regexExp);
+  : (Object.values(props.data.regexExp || {}) as string[]);
 const regexExp = ref([...new Set(regexData)]);
 const exps = [
   { id: 'g', name: 'global' },
   { id: 'i', name: 'ignore case' },
   { id: 'm', name: 'multiline' },
 ];
-const updateData = (value) => {
+const updateData = (value: Partial<GetTextData>) => {
   emit('update:data', { ...props.data, ...value });
 };
-const handleExpCheckbox = (id, value) => {
+const handleExpCheckbox = (id: string, value: boolean) => {
   if (value) {
     regexExp.value.push(id);
   } else {

@@ -40,7 +40,7 @@
     ></div>
   </teleport>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive, watch, onBeforeUnmount, toRaw } from 'vue';
 import { finder } from '@medv/finder';
 import { debounce } from '@/utils/helper';
@@ -48,38 +48,55 @@ import getSelectorOptions from '@/content/elementSelector/getSelectorOptions';
 import { generateXPath, getElementPath, getElementRect } from '@/content/utils';
 import findElementList from '@/content/elementSelector/listSelector';
 import generateElementsSelector from '@/content/elementSelector/generateElementsSelector';
+import type {
+  ElementSelectorMode,
+  IframeElementRectPayload,
+  SelectedElementRect,
+} from '@/content/elementSelector/types';
+import type { ContentSelectorSettings } from '@/types/content';
 import SharedElementHighlighter from './SharedElementHighlighter.vue';
-const props = defineProps({
-  selectorType: {
-    type: String,
-    default: 'css',
-  },
-  selectedEls: {
-    type: Array,
-    default: () => [],
-  },
-  selectorSettings: {
-    type: Object,
-    default: () => ({}),
-  },
-  list: Boolean,
-  hide: Boolean,
-  pause: Boolean,
-  disabled: Boolean,
-  onlyInList: Boolean,
-  withAttributes: Boolean,
-});
-const emit = defineEmits(['selected']);
-let frameElement = null;
-let frameElementRect = null;
+
+const props = withDefaults(
+  defineProps<{
+    selectorType?: ElementSelectorMode;
+    selectedEls?: SelectedElementRect[];
+    selectorSettings?: ContentSelectorSettings;
+    list?: boolean;
+    hide?: boolean;
+    pause?: boolean;
+    disabled?: boolean;
+    onlyInList?: boolean;
+    withAttributes?: boolean;
+  }>(),
+  {
+    selectorType: 'css',
+    selectedEls: () => [],
+    selectorSettings: () => ({}),
+  }
+);
+const emit = defineEmits<{
+  selected: [
+    payload: {
+      selector?: string;
+      selectElements?: SelectedElementRect[];
+      elements?: SelectedElementRect[];
+      path?: Node[];
+    },
+  ];
+}>();
+let frameElement: HTMLIFrameElement | null = null;
+let frameElementRect: DOMRect | null = null;
 let lastScrollPosY = window.scrollY;
 let lastScrollPosX = window.scrollX;
 const mousePosition = {
   x: 0,
   y: 0,
 };
-let hoveredElements = [];
-const elementsState = reactive({
+let hoveredElements: Element[] = [];
+const elementsState = reactive<{
+  hovered: SelectedElementRect[];
+  selected: SelectedElementRect[];
+}>({
   hovered: [],
   selected: [],
 });
@@ -96,11 +113,17 @@ const onScroll = debounce(() => {
   lastScrollPosX = window.scrollX;
   lastScrollPosY = window.scrollY;
 }, 100);
-const getElementRectWithOffset = (element, { withAttribute, withElOptions } = {}) => {
-  const rect = getElementRect(element, withAttribute);
+const getElementRectWithOffset = (
+  element: Element,
+  {
+    withAttribute,
+    withElOptions,
+  }: { withAttribute?: boolean; withElOptions?: boolean } = {}
+): SelectedElementRect => {
+  const rect: SelectedElementRect = getElementRect(element, withAttribute);
   if (frameElementRect) {
-    rect.y += frameElementRect.top;
-    rect.x += frameElementRect.left;
+    rect.y = (rect.y ?? 0) + frameElementRect.top;
+    rect.x = (rect.x ?? 0) + frameElementRect.left;
   }
   if (withElOptions && element.tagName === 'SELECT') {
     rect.options = Array.from(element.querySelectorAll('option')).map((el) => ({
@@ -116,10 +139,10 @@ const removeElementsList = () => {
     el.removeAttribute('browsless-el-list');
   });
 };
-const resetFramesElements = (options = {}) => {
+const resetFramesElements = (options: Record<string, unknown> = {}) => {
   const elements = document.querySelectorAll('iframe, frame');
   elements.forEach((element) => {
-    element.contentWindow.postMessage(
+    (element as HTMLIFrameElement).contentWindow?.postMessage(
       {
         ...options,
         type: 'browsless:reset-element-selector',
@@ -128,27 +151,36 @@ const resetFramesElements = (options = {}) => {
     );
   });
 };
-const retrieveElementsRect = ({ clientX, clientY, target: eventTarget }, type) => {
-  const isBrowslessContainer = eventTarget.classList.contains(
+const retrieveElementsRect = (
+  {
+    clientX,
+    clientY,
+    target: eventTarget,
+  }: { clientX: number; clientY: number; target: EventTarget | null },
+  type: 'hovered' | 'selected'
+) => {
+  const isBrowslessContainer = (eventTarget as Element)?.classList?.contains(
     'browsless-element-selector'
   );
   if (props.disabled || isBrowslessContainer) return;
   const isSelectList = props.list && props.selectorType === 'css';
   let { 1: target } = document.elementsFromPoint(clientX, clientY);
   if (!target) return;
-  const onlyInList = props.onlyInList && elementsState.selected.length > 0;
+  const onlyInList = Boolean(props.onlyInList) && elementsState.selected.length > 0;
   const framesEl = ['IFRAME', 'FRAME'];
   if (framesEl.includes(target.tagName)) {
+    const frameTarget = target as HTMLIFrameElement;
     if (type === 'selected') removeElementsList();
-    if (target.contentDocument) {
-      frameElement = target;
-      frameElementRect = target.getBoundingClientRect();
+    if (frameTarget.contentDocument) {
+      frameElement = frameTarget;
+      frameElementRect = frameTarget.getBoundingClientRect();
       const yPos = clientY - frameElementRect.top;
       const xPos = clientX - frameElementRect.left;
-      target = target.contentDocument.elementFromPoint(xPos, yPos);
+      target = frameTarget.contentDocument.elementFromPoint(xPos, yPos) as Element;
+      if (!target) return;
     } else {
-      const { top, left } = target.getBoundingClientRect();
-      const payload = {
+      const { top, left } = frameTarget.getBoundingClientRect();
+      const payload: Record<string, unknown> = {
         top,
         left,
         clientX,
@@ -165,18 +197,18 @@ const retrieveElementsRect = ({ clientX, clientY, target: eventTarget }, type) =
           selectorSettings: toRaw(props.selectorSettings),
         });
       }
-      target.contentWindow.postMessage(payload, '*');
-      frameElement = target;
-      frameElementRect = target.getBoundingClientRect();
+      frameTarget.contentWindow?.postMessage(payload, '*');
+      frameElement = frameTarget;
+      frameElementRect = frameTarget.getBoundingClientRect();
       return;
     }
   } else {
     frameElement = null;
     frameElementRect = null;
   }
-  let elementsRect = [];
+  let elementsRect: SelectedElementRect[] = [];
   const withElOptions = type === 'selected';
-  const withAttribute = props.withAttributes && type === 'selected';
+  const withAttribute = Boolean(props.withAttributes) && type === 'selected';
   if (isSelectList) {
     const elements =
       findElementList(target, {
@@ -194,7 +226,7 @@ const retrieveElementsRect = ({ clientX, clientY, target: eventTarget }, type) =
   elementsState[type] = elementsRect;
   if (type === 'selected') {
     if (!frameElement) resetFramesElements();
-    const selectorOptions = getSelectorOptions(props.selectorSettings);
+    const selectorOptions = getSelectorOptions(props.selectorSettings ?? {});
     let selector = generateElementsSelector({
       target,
       frameElement,
@@ -207,11 +239,14 @@ const retrieveElementsRect = ({ clientX, clientY, target: eventTarget }, type) =
       const frameSelector = finder(frameElement, selectorOptions);
       selector = `${frameSelector} |> ${selector}`;
     }
-    const selectElements = elementsRect.reduce((acc, rect, index) => {
-      if (rect.tagName !== 'SELECT') return acc;
-      acc.push({ ...rect, elIndex: index });
-      return acc;
-    }, []);
+    const selectElements = elementsRect.reduce<SelectedElementRect[]>(
+      (acc, rect, index) => {
+        if (rect.tagName !== 'SELECT') return acc;
+        acc.push({ ...rect, elIndex: index });
+        return acc;
+      },
+      []
+    );
     emit('selected', {
       selector,
       selectElements,
@@ -220,19 +255,19 @@ const retrieveElementsRect = ({ clientX, clientY, target: eventTarget }, type) =
     });
   }
 };
-const onMousemove = (event) => {
+const onMousemove = (event: MouseEvent) => {
   if (props.pause) return;
   mousePosition.x = event.clientX;
   mousePosition.y = event.clientY;
   retrieveElementsRect(event, 'hovered');
 };
-const onKeydown = (event) => {
+const onKeydown = (event: KeyboardEvent) => {
   if (props.pause || event.repeat || event.code !== 'Space') return;
   const { 1: selectedElement } = document.elementsFromPoint(
     mousePosition.x,
     mousePosition.y
   );
-  if (selectedElement.id === 'browsless-selector-overlay') return;
+  if (!selectedElement || selectedElement.id === 'browsless-selector-overlay') return;
   event.preventDefault();
   event.stopPropagation();
   retrieveElementsRect(
@@ -244,19 +279,19 @@ const onKeydown = (event) => {
     'selected'
   );
 };
-const onMousedown = (event) => {
-  if (event.target.id === 'browsless-selector-overlay') {
+const onMousedown = (event: MouseEvent) => {
+  if ((event.target as Element)?.id === 'browsless-selector-overlay') {
     event.preventDefault();
     event.stopPropagation();
   }
   retrieveElementsRect(event, 'selected');
 };
-const onMessage = ({ data }) => {
+const onMessage = ({ data }: MessageEvent<Partial<IframeElementRectPayload>>) => {
   if (data.type !== 'browsless:iframe-element-rect') return;
   if (data.click) {
     const frameSelector =
       props.selectorType === 'css'
-        ? finder(frameElement, { tagName: () => true })
+        ? finder(frameElement as Element, { tagName: () => true })
         : generateXPath(frameElement);
     emit('selected', {
       elements: data.elements,
@@ -264,7 +299,7 @@ const onMessage = ({ data }) => {
     });
   }
   const key = data.click ? 'selected' : 'hovered';
-  elementsState[key] = data.elements;
+  elementsState[key] = data.elements ?? [];
 };
 const attachListeners = () => {
   window.addEventListener('scroll', onScroll);

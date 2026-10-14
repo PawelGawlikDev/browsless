@@ -61,7 +61,7 @@ type UploadFileData = {
 const props = defineProps({
   data: {
     type: Object as () => UploadFileData,
-    default: () => ({ filePaths: [] }),
+    default: (): UploadFileData => ({ filePaths: [] }),
   },
   hideBase: {
     type: Boolean,

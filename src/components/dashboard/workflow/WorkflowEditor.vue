@@ -77,7 +77,8 @@
     </ui-modal>
   </vue-flow>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { DrawflowData } from '@/types/models';
 import { onMounted, onBeforeUnmount, watch, computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { VueFlow, useVueFlow, MarkerType, getConnectedEdges } from '@vue-flow/core';
@@ -97,8 +98,8 @@ const props = defineProps({
     default: 'editor',
   },
   data: {
-    type: Object,
-    default: () => ({
+    type: Object as () => DrawflowData & { x?: number; y?: number },
+    default: (): DrawflowData & { x?: number; y?: number } => ({
       x: 0,
       y: 0,
       zoom: 0,
@@ -107,7 +108,7 @@ const props = defineProps({
     }),
   },
   options: {
-    type: Object,
+    type: Object as () => import('@vue-flow/core').FlowProps & { disabled?: boolean },
     default: () => ({}),
   },
   editorControls: {
@@ -120,20 +121,27 @@ const props = defineProps({
   },
   disabled: Boolean,
 });
-const emit = defineEmits([
-  'edit',
-  'init',
-  'update:node',
-  'delete:node',
-  'update:settings',
-]);
-const fallbackBlocks = {
+const emit = defineEmits<{
+  edit: [data: import('@/types/editor').EditedBlock];
+  init: [editor: import('@vue-flow/core').VueFlowStore];
+  'update:node': [node: import('@vue-flow/core').GraphNode];
+  'delete:node': [nodeId: string];
+  'update:settings': [
+    data: { settings: Record<string, unknown>; itemId?: string; blockId?: string },
+  ];
+}>();
+const fallbackBlocks: Record<string, string[]> = {
   BlockBasic: ['BlockExportData'],
   BlockBasicWithFallback: ['BlockWebhook'],
 };
 const isMac = navigator.appVersion.indexOf('Mac') !== -1;
-const blockComponents = import.meta.glob('../../block/*.vue', { eager: true });
-const nodeTypes = Object.entries(blockComponents).reduce((acc, [key, module]) => {
+const blockComponents = import.meta.glob<{ default: import('vue').Component }>(
+  '../../block/*.vue',
+  { eager: true }
+);
+const nodeTypes = Object.entries(blockComponents).reduce<
+  Record<string, import('vue').Component>
+>((acc, [key, module]) => {
   const name = key
     .split('/')
     .at(-1)
@@ -148,28 +156,32 @@ const nodeTypes = Object.entries(blockComponents).reduce((acc, [key, module]) =>
   acc[`node-${name}`] = component;
   return acc;
 }, {});
-const getPosition = (position) => (Array.isArray(position) ? position : [0, 0]);
-const setMinValue = (num, min) => (num < min ? min : num);
+const setMinValue = (num: number, min: number) => (num < min ? min : num);
 const { t } = useI18n();
 const store = useStore();
-const editor = useVueFlow(props.id, {
+const editor = useVueFlow({
+  id: props.id,
   edgeUpdaterRadius: 20,
   deleteKeyCode: 'Delete',
   elevateEdgesOnSelect: true,
-  defaultZoom: props.data?.zoom ?? 1,
+  defaultViewport: { x: 0, y: 0, zoom: props.data?.zoom ?? 1 },
   minZoom: setMinValue(+store.settings.editor.minZoom || 0.5, 0.1),
   maxZoom: setMinValue(
     +store.settings.editor.maxZoom || 1.2,
     +store.settings.editor.minZoom + 0.1
   ),
   multiSelectionKeyCode: isMac ? 'Meta' : 'Control',
-  defaultPosition: getPosition(props.data?.position),
+
   ...props.options,
 });
 editor.onConnect((params) => {
-  params.class = `source-${params.sourceHandle} target-${params.targetHandle}`;
-  params.updatable = true;
-  editor.addEdges([params]);
+  editor.addEdges([
+    {
+      ...params,
+      class: `source-${params.sourceHandle} target-${params.targetHandle}`,
+      updatable: true,
+    },
+  ]);
 });
 editor.onEdgeUpdate(({ edge, connection }) => {
   const isBothOutput =
@@ -183,9 +195,19 @@ const settings = store.settings.editor;
 const isDisabled = computed(() => props.options.disabled ?? props.disabled);
 const blockSettingsState = reactive({
   show: false,
-  data: {},
+  data: {} as import('@/types/block-editor').BlockSettingsPayload,
 });
-const initEditBlockSettings = ({ blockId, details, data, itemId }) => {
+const initEditBlockSettings = ({
+  blockId,
+  details,
+  data,
+  itemId,
+}: {
+  blockId: string;
+  details: { id: string };
+  data: import('@/types/block-editor').BlockSettingsPayload['data'];
+  itemId?: string;
+}) => {
   blockSettingsState.data = {
     itemId,
     blockId,
@@ -200,25 +222,31 @@ const clearBlockSettings = () => {
     show: false,
   });
 };
-const minimapNodeClassName = ({ label }) => {
-  const blockDetails = blocks[label];
+const minimapNodeClassName = ({
+  label,
+}: {
+  label?: import('@vue-flow/core').GraphNode['label'];
+}) => {
+  const blockDetails = typeof label === 'string' ? blocks[label] : undefined;
   if (!blockDetails) return 'gray';
-  const { color } = categories[blockDetails.category] || { color: 'gray' };
+  const { color } = categories[blockDetails.category as keyof typeof categories] || {
+    color: 'gray',
+  };
   return color;
 };
-const updateBlockData = (nodeId, data = {}) => {
+const updateBlockData = (nodeId: string, data: Record<string, unknown> = {}) => {
   if (isDisabled.value) return;
   const node = editor.findNode(nodeId);
   node.data = { ...node.data, ...data };
   emit('update:node', node);
 };
-const updateBlockSettingsData = (newSettings) => {
+const updateBlockSettingsData = (newSettings: Record<string, unknown>) => {
   if (isDisabled.value) return;
   const nodeId = blockSettingsState.data.blockId;
   const node = editor.findNode(nodeId);
   if (blockSettingsState.data.itemId) {
     const index = node.data.blocks.findIndex(
-      (item) => item.itemId === blockSettingsState.data.itemId
+      (item: { itemId: string }) => item.itemId === blockSettingsState.data.itemId
     );
     if (index === -1) return;
     node.data.blocks[index].data = {
@@ -234,21 +262,32 @@ const updateBlockSettingsData = (newSettings) => {
     blockId: blockSettingsState.data.blockId,
   });
 };
-const editBlock = ({ id, label, data }, additionalData = {}) => {
+const editBlock = (
+  {
+    id,
+    label,
+    data,
+  }: {
+    id: string;
+    label?: import('@vue-flow/core').GraphNode['label'];
+    data?: Record<string, unknown>;
+  },
+  additionalData = {}
+) => {
   if (isDisabled.value) return;
   emit('edit', {
-    id: label,
+    id: typeof label === 'string' ? label : '',
     blockId: id,
     data: cloneDeep(data),
     ...additionalData,
   });
 };
-const deleteBlock = (nodeId) => {
+const deleteBlock = (nodeId: string) => {
   if (isDisabled.value) return;
   editor.removeNodes([nodeId]);
   emit('delete:node', nodeId);
 };
-const onMousedown = (event) => {
+const onMousedown = (event: MouseEvent) => {
   if (isDisabled.value && event.shiftKey) {
     event.stopPropagation();
     event.preventDefault();
@@ -257,7 +296,7 @@ const onMousedown = (event) => {
 const applyFlowData = () => {
   if (settings.snapToGrid) {
     editor.snapToGrid.value = true;
-    editor.snapGrid.value = Object.values(settings.snapGrid);
+    editor.snapGrid.value = [settings.snapGrid[0] || 20, settings.snapGrid[1] || 20];
   }
   editor.setNodes(props.data?.nodes?.map((node) => ({ ...node, events: {} })) || []);
   editor.setEdges(props.data?.edges || []);
@@ -275,7 +314,7 @@ watch(
       'edgesUpdatable',
       'nodesConnectable',
       'elementsSelectable',
-    ];
+    ] as const;
     keys.forEach((key) => {
       editor[key].value = !value;
     });

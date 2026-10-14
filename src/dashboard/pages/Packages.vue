@@ -159,22 +159,24 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useDialog } from '@/composable/dialog';
 import dayjs from '@/lib/dayjs';
-import { usePackageStore } from '@/stores/package';
+import { usePackageStore, type PackageStoreInstance } from '@/stores/package';
 import dataExporter from '@/utils/dataExporter';
 import { arraySorter, openFilePicker, parseJSON } from '@/utils/helper';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
+import type { SavedPackage } from '@/types/models';
+
 const { t } = useI18n();
 const dialog = useDialog();
-const packageStore = usePackageStore();
+const packageStore = usePackageStore() as PackageStoreInstance;
 const sorts = ['name', 'createdAt'];
 const state = reactive({
   query: '',
 });
-const sortState = reactive({
+const sortState = reactive<{ order: 'asc' | 'desc'; by: 'name' | 'createdAt' }>({
   order: 'desc',
   by: 'createdAt',
 });
@@ -194,7 +196,7 @@ const packages = computed(() => {
     order: sortState.order,
   });
 });
-const duplicatePackage = (pkg) => {
+const duplicatePackage = (pkg: SavedPackage) => {
   const copyPkg = JSON.parse(JSON.stringify(pkg));
   delete copyPkg.id;
   copyPkg.name += ' - copy';
@@ -205,7 +207,10 @@ const importPackage = () => {
     if (file.type !== 'application/json') return;
     const fileReader = new FileReader();
     fileReader.onload = () => {
-      const pkgJson = parseJSON(fileReader.result, null);
+      const pkgJson = parseJSON<Partial<SavedPackage> | null>(
+        fileReader.result as string,
+        null
+      );
       if (!pkgJson) return;
       if (!pkgJson.name || !pkgJson.data) return;
       packageStore.insert(pkgJson);
@@ -213,17 +218,17 @@ const importPackage = () => {
     fileReader.readAsText(file);
   });
 };
-const exportPackage = (pkg) => {
+const exportPackage = (pkg: SavedPackage) => {
   const copyPkg = JSON.parse(JSON.stringify(pkg));
   delete copyPkg.id;
   const blobUrl = dataExporter(
     copyPkg,
     { type: 'json', name: `${pkg.name}.browsless-pkg` },
     true
-  );
+  ) as string;
   URL.revokeObjectURL(blobUrl);
 };
-const deletePackage = ({ id, name }) => {
+const deletePackage = ({ id, name }: SavedPackage) => {
   dialog.confirm({
     title: 'Delete library item',
     body: `Are you sure you want to delete "${name}" from the library?`,

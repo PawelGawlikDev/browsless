@@ -29,7 +29,7 @@
     </div>
   </ui-card>
 </template>
-<script setup>
+<script setup lang="ts">
 import {
   extensionStorage,
   getExtensionStorageValue,
@@ -37,7 +37,13 @@ import {
 } from '@/lib/extensionStorage';
 import dayjs from '@/lib/dayjs';
 import { computed, onMounted, shallowReactive } from 'vue';
-const modalTypes = {
+
+type SurveyModalType = 'testimonial' | 'survey';
+
+const modalTypes: Record<
+  SurveyModalType,
+  { title: string; body: string; button: string; url: string }
+> = {
   testimonial: {
     title: 'Hi There 👋',
     body: 'Thanks for using Browsless. If it is helping, would you like to leave a short testimonial?',
@@ -51,12 +57,12 @@ const modalTypes = {
     url: '',
   },
 };
-const modalState = shallowReactive({
+const modalState = shallowReactive<{ show: boolean; type: SurveyModalType }>({
   show: true,
   type: 'survey',
 });
 const closeModal = () => {
-  let value = true;
+  let value: boolean | string = true;
   if (modalState.type === 'survey') {
     value = new Date().toString();
   }
@@ -72,7 +78,7 @@ const checkModal = async () => {
       await setExtensionStorageValue('local', 'has-survey', Date.now());
       return;
     }
-    const survey = await getExtensionStorageValue('local', 'has-survey');
+    const survey = await getExtensionStorageValue<number>('local', 'has-survey');
     if (!survey) return;
     const daysDiff = dayjs().diff(survey, 'day');
     const showTestimonial =

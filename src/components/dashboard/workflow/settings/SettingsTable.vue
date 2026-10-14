@@ -26,17 +26,20 @@
     </div>
   </transition-expand>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowSettings } from '@/types/models';
 import { useI18n } from 'vue-i18n';
 defineProps({
   settings: {
-    type: Object,
+    type: Object as () => Partial<WorkflowSettings>,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: { key: string; value: unknown }];
+}>();
 const { t } = useI18n();
-const updateSetting = (key, value) => {
+const updateSetting = (key: string, value: string | number | boolean) => {
   emit('update', { key, value });
 };
 </script>

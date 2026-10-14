@@ -88,22 +88,23 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowStateData } from '@/types/block-editor';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useWorkflowStore } from '@/stores/workflow';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => WorkflowStateData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: WorkflowStateData] }>();
 const { t } = useI18n();
 const workflowStore = useWorkflowStore();
 const includeExceptions = ['stop-all'];
 const actions = [{ id: 'stop', name: t('workflow.blocks.workflow-state.actions.stop') }];
-const actionsItems = {
+const actionsItems: Record<string, { id: string; name: string }[]> = {
   stop: [
     { id: 'stop-all', name: 'Stop all workflows' },
     { id: 'stop-current', name: 'Stop current workflow' },
@@ -111,7 +112,7 @@ const actionsItems = {
   ],
 };
 const query = ref('');
-const selectedWorkflows = ref({});
+const selectedWorkflows = ref<Record<string, string>>({});
 const workflows = computed(() => {
   let workflowsList = [];
   workflowsList = workflowStore.getWorkflows;
@@ -121,17 +122,17 @@ const workflows = computed(() => {
     return !selected;
   });
 });
-const updateData = (value) => {
+const updateData = (value: Partial<WorkflowStateData>) => {
   emit('update:data', { ...props.data, ...value });
 };
-const onItemSelected = ({ item }) => {
+const onItemSelected = ({ item }: { item: import('@/types/models').Workflow }) => {
   const copy = [...props.data.workflowsToStop];
   copy.push(item.id);
   selectedWorkflows.value[item.id] = item.name;
   updateData({ workflowsToStop: copy });
   query.value = '';
 };
-const removeSelectedItem = (itemId) => {
+const removeSelectedItem = (itemId: string) => {
   const copy = [...props.data.workflowsToStop];
   const index = props.data.workflowsToStop.indexOf(itemId);
   copy.splice(index, 1);

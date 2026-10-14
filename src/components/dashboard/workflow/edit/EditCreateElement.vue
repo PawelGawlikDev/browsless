@@ -109,7 +109,8 @@
     </ui-modal>
   </edit-interaction-base>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { CreateElementData } from '@/types/block-editor';
 import {
   browslessFuncsCompletion,
   browslessFuncsSnippets,
@@ -124,7 +125,7 @@ const SharedCodemirror = defineAsyncComponent(
 );
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => CreateElementData,
     default: () => ({}),
   },
   blockId: {
@@ -132,7 +133,7 @@ const props = defineProps({
     default: '',
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: CreateElementData] }>();
 const availableFuncs = [
   { name: 'browslessRefData(keyword, path?)', id: 'browslessrefdata-keyword-path' },
   { name: 'browslessExecWorkflow(options)', id: 'browslessexecworkflow-options' },
@@ -157,7 +158,7 @@ const state = reactive({
   showModal: false,
   activeTab: 'html',
 });
-const updateData = (value) => {
+const updateData = (value: Partial<CreateElementData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 const addPreloadScript = () => {
@@ -166,7 +167,7 @@ const addPreloadScript = () => {
     type: 'script',
   });
 };
-const updateSelector = (data) => {
+const updateSelector = (data: Partial<CreateElementData>) => {
   Object.assign(blockData, data);
 };
 watch(blockData, (newValue) => {

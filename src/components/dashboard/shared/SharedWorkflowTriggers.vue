@@ -50,11 +50,12 @@
     </ui-popover>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid/non-secure';
 import cloneDeep from 'lodash.clonedeep';
+import type { Component } from 'vue';
 import TriggerDate from '../workflow/edit/Trigger/TriggerDate.vue';
 import TriggerCronJob from '../workflow/edit/Trigger/TriggerCronJob.vue';
 import TriggerInterval from '../workflow/edit/Trigger/TriggerInterval.vue';
@@ -63,18 +64,33 @@ import TriggerContextMenu from '../workflow/edit/Trigger/TriggerContextMenu.vue'
 import TriggerSpecificDay from '../workflow/edit/Trigger/TriggerSpecificDay.vue';
 // import TriggerElementChange from '../workflow/edit/Trigger/TriggerElementChange.vue';
 import TriggerKeyboardShortcut from '../workflow/edit/Trigger/TriggerKeyboardShortcut.vue';
-const props = defineProps({
-  triggers: {
-    type: Array,
-    default: () => [],
-  },
-  exclude: {
-    type: Array,
-    default: null,
-  },
-});
-const emit = defineEmits(['update:triggers', 'update']);
-const triggersData = {
+
+interface TriggerItem {
+  id?: string;
+  type?: string;
+  data?: Record<string, unknown>;
+}
+interface TriggerTypeDef {
+  onlyOne?: boolean;
+  component: Component | null;
+  data: Record<string, unknown> | null;
+}
+
+const props = withDefaults(
+  defineProps<{
+    triggers?: TriggerItem[];
+    exclude?: string[] | null;
+  }>(),
+  {
+    triggers: () => [],
+    exclude: null,
+  }
+);
+const emit = defineEmits<{
+  'update:triggers': [triggers: TriggerItem[]];
+  update: [triggers: TriggerItem[]];
+}>();
+const triggersData: Record<string, TriggerTypeDef> = {
   // 'element-change': TriggerElementChange,
   interval: {
     component: TriggerInterval,
@@ -132,11 +148,11 @@ const triggersData = {
   },
 };
 const triggersTypes = props.exclude
-  ? Object.keys(triggersData).filter((type) => !props.exclude.includes(type))
+  ? Object.keys(triggersData).filter((type) => !props.exclude?.includes(type))
   : Object.keys(triggersData);
 const { t } = useI18n();
-const triggersList = ref([...(props.triggers || [])]);
-const addTrigger = (type) => {
+const triggersList = ref<TriggerItem[]>([...(props.triggers || [])]);
+const addTrigger = (type: string) => {
   if (triggersData[type].onlyOne) {
     const trigerExists = triggersList.value.some((trigger) => trigger.type === type);
     if (trigerExists) return;
@@ -144,11 +160,11 @@ const addTrigger = (type) => {
   triggersList.value.push({
     id: nanoid(5),
     type,
-    data: cloneDeep(triggersData[type].data),
+    data: cloneDeep(triggersData[type].data) ?? {},
   });
 };
-const updateTriggerData = (index, data) => {
-  Object.assign(triggersList.value[index].data, data);
+const updateTriggerData = (index: number, data: Record<string, unknown>) => {
+  triggersList.value[index].data = { ...triggersList.value[index].data, ...data };
 };
 watch(
   triggersList,

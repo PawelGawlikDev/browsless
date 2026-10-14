@@ -36,7 +36,8 @@
     </ui-button>
   </ui-card>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { VueFlowStore } from '@vue-flow/core';
 import { useDialog } from '@/composable/dialog';
 import { getShortcut, useShortcut } from '@/composable/shortcut';
 import { usePackageStore } from '@/stores/package';
@@ -48,15 +49,22 @@ const props = defineProps({
     default: false,
   },
   data: {
-    type: Object,
+    type: Object as () => import('@/types/editor').WorkflowOrPackage,
     default: () => ({}),
   },
   editor: {
-    type: Object,
+    type: Object as () => VueFlowStore,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [
+    data: {
+      data: Partial<import('@/types/models').SavedPackage>;
+      changedIndicator: boolean;
+    },
+  ];
+}>();
 const { t } = useI18n();
 const dialog = useDialog();
 const router = useRouter();
@@ -88,8 +96,8 @@ function updatePackage(data = {}, changedIndicator = false) {
 function savePackage() {
   const flow = props.editor.toObject();
   flow.edges = flow.edges.map((edge) => {
-    delete edge.sourceNode;
-    delete edge.targetNode;
+    if ('sourceNode' in edge) delete edge.sourceNode;
+    if ('targetNode' in edge) delete edge.targetNode;
     return edge;
   });
   updatePackage({ data: flow }, false);

@@ -77,48 +77,74 @@
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { watch, shallowRef, shallowReactive, toRaw, triggerRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import { useLiveQuery } from '@/composable/liveQuery';
 import { useDialog } from '@/composable/dialog';
 import { objectHasKey } from '@/utils/helper';
 import { dataExportTypes } from '@/utils/shared';
 import StorageEditTable from '@/components/dashboard/storage/StorageEditTable.vue';
 import dbStorage from '@/db/storage';
+import type { DbStorageTableData } from '@/types/db';
 import dataExporter from '@/utils/dataExporter';
+import type { WorkflowDataColumn } from '@/types/models';
+
+interface TableHeader {
+  text: string;
+  value: string;
+  sortable?: boolean;
+  align?: string;
+  attrs?: Record<string, unknown>;
+  filterable?: boolean;
+}
+interface TableRow extends Record<string, unknown> {
+  $$id: number;
+}
+interface EditTableChange {
+  type: 'rename' | 'delete' | 'add';
+  oldValue?: string;
+  newValue?: string;
+  name?: string;
+}
+
 const { t } = useI18n();
 const route = useRoute();
 const dialog = useDialog();
 const router = useRouter();
-const workflowStore = useWorkflowStore();
-const tableId = +route.params.id;
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
+const tableId = +(route.params.id as string);
 const tableDetail = useLiveQuery(() =>
   dbStorage.tablesItems.where('id').equals(tableId).first()
 );
 const tableData = useLiveQuery(() =>
   dbStorage.tablesData.where('tableId').equals(tableId).first()
 );
-const table = shallowRef({
+const table = shallowRef<{ body: TableRow[]; header: TableHeader[] }>({
   body: [],
   header: [],
 });
 const state = shallowReactive({
   query: '',
 });
-const editState = shallowReactive({
+const editState = shallowReactive<{
+  name: string;
+  columns: WorkflowDataColumn[];
+  show: boolean;
+}>({
   name: '',
   columns: [],
   show: false,
 });
 const editTable = () => {
+  if (!tableDetail.value) return;
   editState.name = tableDetail.value.name;
   editState.columns = tableDetail.value.columns;
   editState.show = true;
 };
-const additionalHeaders = (headers) => {
+const additionalHeaders = (headers: TableHeader[]) => {
   headers.unshift({ value: '$$id', text: '', sortable: false });
   headers.push({
     value: 'action',
@@ -131,19 +157,29 @@ const additionalHeaders = (headers) => {
   });
   return headers;
 };
-const exportData = (type) => {
+const exportData = (type: 'json' | 'csv' | 'plain-text') => {
+  if (!tableData.value || !tableDetail.value) return;
   dataExporter(tableData.value.items, { name: tableDetail.value.name, type }, true);
 };
-const saveEditedTable = async ({ columns, name, changes }) => {
+const saveEditedTable = async ({
+  columns,
+  name,
+  changes,
+}: {
+  columns: WorkflowDataColumn[];
+  name: string;
+  changes: Record<string, EditTableChange>;
+}) => {
+  if (!tableData.value) return;
   const columnsChanges = Object.values(changes);
   try {
     await dbStorage.tablesItems.update(tableId, {
       name,
       columns,
     });
-    const headers = [];
-    const newTableData = [];
-    const newColumnsIndex = {};
+    const headers: TableHeader[] = [];
+    const newTableData: Record<string, unknown>[] = [];
+    const newColumnsIndex: DbStorageTableData['columnsIndex'] = {};
     const { columnsIndex } = tableData.value;
     columns.forEach(({ name: columnName, id, type }) => {
       const index = columnsIndex[id]?.index || 0;
@@ -164,10 +200,10 @@ const saveEditedTable = async ({ columns, name, changes }) => {
     table.value.header = additionalHeaders(headers);
     table.value.body = table.value.body.map((item, index) => {
       columnsChanges.forEach(({ type, oldValue, newValue, name: columnName }) => {
-        if (type === 'rename' && objectHasKey(item, oldValue)) {
-          item[newValue] = item[oldValue];
+        if (type === 'rename' && oldValue && objectHasKey(item, oldValue)) {
+          item[newValue as string] = item[oldValue];
           delete item[oldValue];
-        } else if (type === 'delete') {
+        } else if (type === 'delete' && columnName) {
           delete item[columnName];
         }
       });
@@ -185,10 +221,11 @@ const saveEditedTable = async ({ columns, name, changes }) => {
     console.error(error);
   }
 };
-const deleteRow = (item) => {
+const deleteRow = (item: TableRow) => {
+  if (!tableData.value || !tableDetail.value) return;
   const rowIndex = table.value.body.findIndex(({ $$id }) => $$id === item.$$id);
   if (rowIndex === -1) return;
-  const cache = {};
+  const cache: Record<string, WorkflowDataColumn> = {};
   const { columnsIndex } = tableData.value;
   const columns = Object.values(tableDetail.value.columns);
   Object.keys(item).forEach((key) => {
@@ -224,6 +261,7 @@ const clearData = () => {
     okVariant: 'danger',
     body: 'Are you sure want to clear the table data?',
     onConfirm: async () => {
+      if (!tableDetail.value) return;
       await dbStorage.tablesItems.update(tableId, {
         rowsCount: 0,
         modifiedAt: Date.now(),
@@ -237,7 +275,9 @@ const clearData = () => {
           };
           return acc;
         },
-        { column: { index: 0, type: 'any', name: 'column' } }
+        {
+          column: { index: 0, type: 'any', name: 'column' },
+        } as DbStorageTableData['columnsIndex']
       );
       await dbStorage.tablesData.where('tableId').equals(tableId).modify({
         items: [],
@@ -250,7 +290,7 @@ const deleteTable = () => {
   dialog.confirm({
     title: t('storage.table.delete'),
     okVariant: 'danger',
-    body: t('message.delete', { name: tableDetail.value.name }),
+    body: t('message.delete', { name: tableDetail.value?.name }),
     onConfirm: async () => {
       try {
         await dbStorage.tablesItems.where('id').equals(tableId).delete();
@@ -268,7 +308,7 @@ const deleteTable = () => {
 };
 watch(tableData, () => {
   if (!tableDetail.value || !tableData.value) return;
-  const dataTable = { header: [], body: [] };
+  const dataTable: { header: TableHeader[]; body: TableRow[] } = { header: [], body: [] };
   const headers = tableDetail.value.columns.map(({ name, type }) => ({
     text: name,
     value: name,

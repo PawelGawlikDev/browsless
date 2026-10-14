@@ -1,7 +1,12 @@
-import Dexie from 'dexie';
-import type { DbLogItem } from '@/types/db';
+import Dexie, { type EntityTable } from 'dexie';
+import type { DbLogAuxRecord, DbLogItem } from '@/types/db';
 
-const dbLogs = new Dexie('logs');
+const dbLogs = new Dexie('logs') as Dexie & {
+  ctxData: EntityTable<DbLogAuxRecord, 'id'>;
+  logsData: EntityTable<DbLogAuxRecord, 'id'>;
+  histories: EntityTable<DbLogAuxRecord, 'id'>;
+  items: EntityTable<DbLogItem, 'id'>;
+};
 dbLogs.version(1).stores({
   ctxData: '++id, logId',
   logsData: '++id, logId',

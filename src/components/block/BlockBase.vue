@@ -81,31 +81,51 @@
     <slot name="append" />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { excludeGroupBlocks } from '@/utils/shared';
 import { inject, ref } from 'vue';
-const props = defineProps({
-  contentClass: {
-    type: String,
-    default: '',
-  },
-  blockData: {
-    type: Object,
-    default: () => ({}),
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-  blockId: {
-    type: String,
-    default: '',
-  },
-});
-defineEmits(['delete', 'edit', 'update', 'settings']);
+import type {
+  BlockNodeData,
+  WorkflowInjectionContext,
+  WorkflowUtilsInjectionContext,
+} from '@/types/editor';
+
+interface BlockBaseData {
+  details?: {
+    id?: string;
+    disableDelete?: boolean;
+    disableEdit?: boolean;
+  };
+}
+
+const props = withDefaults(
+  defineProps<{
+    contentClass?: string;
+    blockData?: BlockBaseData;
+    data?: BlockNodeData;
+    blockId?: string;
+  }>(),
+  {
+    contentClass: '',
+    blockData: () => ({}),
+    data: () => ({}),
+    blockId: '',
+  }
+);
+defineEmits<{
+  delete: [];
+  edit: [];
+  update: [payload: Record<string, unknown>];
+  settings: [
+    payload: { details?: BlockBaseData['details']; data: unknown; blockId: string },
+  ];
+}>();
 const isCopied = ref(false);
-const workflow = inject('workflow', null);
-const workflowUtils = inject('workflow-utils', null);
+const workflow = inject<WorkflowInjectionContext | null>('workflow', null);
+const workflowUtils = inject<WorkflowUtilsInjectionContext | null>(
+  'workflow-utils',
+  null
+);
 const insertToClipboard = () => {
   navigator.clipboard.writeText(props.blockId);
   isCopied.value = true;
@@ -113,14 +133,14 @@ const insertToClipboard = () => {
     isCopied.value = false;
   }, 1000);
 };
-const handleStartDrag = (event) => {
+const handleStartDrag = (event: DragEvent) => {
   const payload = {
     data: props.data,
     fromBlockBasic: true,
     blockId: props.blockId,
-    id: props.blockData.details.id,
+    id: props.blockData.details?.id,
   };
-  event.dataTransfer.setData('block', JSON.stringify(payload));
+  event.dataTransfer?.setData('block', JSON.stringify(payload));
 };
 const runWorkflow = () => {
   if (!workflowUtils) return;

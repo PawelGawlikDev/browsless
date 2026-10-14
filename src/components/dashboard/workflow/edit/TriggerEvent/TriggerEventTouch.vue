@@ -9,17 +9,17 @@
     </ui-checkbox>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerEventParams } from '@/types/block-editor';
 import { shallowReactive, watch, onMounted } from 'vue';
-import { objectHasKey } from '@/utils/helper';
 
 const props = defineProps({
   params: {
-    type: Object,
+    type: Object as () => TriggerEventParams,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{ update: [params: TriggerEventParams] }>();
 
 const defaultParams = shallowReactive({
   altKey: false,
@@ -37,8 +37,10 @@ watch(
 );
 
 onMounted(() => {
-  Object.entries(props.params).forEach(([key, value]) => {
-    if (objectHasKey(defaultParams, key)) defaultParams[key] = value;
+  (Object.keys(defaultParams) as (keyof typeof defaultParams)[]).forEach((key) => {
+    const value: unknown = props.params[key];
+    if (typeof value === typeof defaultParams[key])
+      Object.assign(defaultParams, { [key]: value });
   });
 });
 </script>

@@ -40,50 +40,44 @@
     </div>
   </div>
 </template>
-<script>
+<script setup lang="ts">
 import { useComponentId } from '@/composable/componentId';
-export default {
-  props: {
-    modelValue: {
-      type: [String, Number],
-      default: '',
-    },
-    label: {
-      type: String,
-      default: '',
-    },
-    prependIcon: {
-      type: String,
-      default: '',
-    },
-    placeholder: {
-      type: String,
-      default: '',
-    },
-    modelModifiers: {
-      type: Object,
-      default: () => ({}),
-    },
-    block: Boolean,
-    disabled: Boolean,
-    showDetail: Boolean,
-  },
-  emits: ['update:modelValue', 'change'],
-  setup(props, { emit }) {
-    const selectId = useComponentId('select');
-    const emitValue = (event) => {
-      let { value } = event.target;
-      if (props.modelModifiers.number) {
-        value = +value;
-      }
-      emit('update:modelValue', value);
-      emit('change', value);
-    };
-    return {
-      selectId,
-      emitValue,
-    };
-  },
+
+interface ModelModifiers {
+  number?: boolean;
+}
+
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string | number;
+    label?: string;
+    prependIcon?: string;
+    placeholder?: string;
+    modelModifiers?: ModelModifiers;
+    block?: boolean;
+    disabled?: boolean;
+    showDetail?: boolean;
+  }>(),
+  {
+    modelValue: '',
+    label: '',
+    prependIcon: '',
+    placeholder: '',
+    modelModifiers: () => ({}),
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: string | number];
+  change: [value: string | number];
+}>();
+const selectId = useComponentId('select');
+const emitValue = (event: Event) => {
+  let value: string | number = (event.target as HTMLSelectElement).value;
+  if (props.modelModifiers.number) {
+    value = +value;
+  }
+  emit('update:modelValue', value);
+  emit('change', value);
 };
 </script>
 <style>

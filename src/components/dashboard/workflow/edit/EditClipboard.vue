@@ -54,7 +54,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useHasPermissions } from '@/composable/hasPermissions';
 import InsertWorkflowData from './InsertWorkflowData.vue';
-type ClipboardData = {
+type ClipboardData = import('@/types/block-editor').InsertWorkflowDataFields & {
   description?: string;
   type?: 'get' | 'insert';
   dataToCopy?: string;

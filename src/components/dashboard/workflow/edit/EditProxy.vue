@@ -43,17 +43,18 @@
     </ui-checkbox>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { ProxyData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => ProxyData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: ProxyData] }>();
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<ProxyData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

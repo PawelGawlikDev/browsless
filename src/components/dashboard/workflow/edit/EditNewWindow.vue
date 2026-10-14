@@ -79,22 +79,23 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { NewWindowData } from '@/types/block-editor';
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { browser } from 'wxt/browser';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => NewWindowData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: NewWindowData] }>();
 const { t } = useI18n();
 const windowType = ['normal', 'popup', 'panel'];
 const windowStates = ['normal', 'minimized', 'maximized', 'fullscreen'];
 const allowInIncognito = ref(false);
-const updateData = (value) => {
+const updateData = (value: Partial<NewWindowData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 onMounted(async () => {

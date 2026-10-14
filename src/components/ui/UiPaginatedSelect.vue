@@ -46,7 +46,7 @@
       <ul ref="optionsListEl" class="max-h-60 overflow-y-auto p-2" @scroll="handleScroll">
         <li
           v-for="option in options"
-          :key="option[optionValueKey]"
+          :key="optionKey(option)"
           class="cursor-pointer rounded-lg px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
           :class="{
             'bg-gray-100 font-semibold dark:bg-gray-700':
@@ -77,54 +77,50 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useComponentId } from '@/composable/componentId';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-const props = defineProps({
-  modelValue: {
-    type: [String, Number, null],
-    default: null,
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  placeholder: {
-    type: String,
-    default: 'Select an option',
-  },
-  searchPlaceholder: {
-    type: String,
-    default: 'Search...',
-  },
-  disabled: Boolean,
-  loadOptions: {
-    type: Function,
-    required: true,
-  },
-  optionValueKey: {
-    type: String,
-    required: true,
-  },
-  optionLabelKey: {
-    type: String,
-    required: true,
-  },
-  initialLabel: {
-    type: String,
-    default: '',
-  },
-});
-const emit = defineEmits(['update:modelValue', 'change']);
+
+type SelectOption = Record<string, unknown>;
+
+interface LoadOptionsResult {
+  data: SelectOption[];
+  hasMore: boolean;
+}
+
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string | number | null;
+    label?: string;
+    placeholder?: string;
+    searchPlaceholder?: string;
+    disabled?: boolean;
+    loadOptions: (params: { query: string; page: number }) => Promise<LoadOptionsResult>;
+    optionValueKey: string;
+    optionLabelKey: string;
+    initialLabel?: string;
+  }>(),
+  {
+    modelValue: null,
+    label: '',
+    placeholder: 'Select an option',
+    searchPlaceholder: 'Search...',
+    initialLabel: '',
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: string | number];
+  change: [value: string | number, label: unknown];
+}>();
 const componentId = useComponentId('paginated-select');
-const root = ref(null);
+const root = ref<HTMLElement | null>(null);
 const isOpen = ref(false);
-const options = ref([]);
+const options = ref<SelectOption[]>([]);
 const searchKeyword = ref('');
 const isLoading = ref(false);
 const page = ref(1);
 const haveMore = ref(true);
-const optionsListEl = ref(null);
+const optionsListEl = ref<HTMLElement | null>(null);
 const localInitialLabel = ref('');
 const fetchRequestToken = ref(0);
 const selectedOption = computed(() =>
@@ -133,9 +129,14 @@ const selectedOption = computed(() =>
 const selectedOptionLabel = computed(
   () => selectedOption.value?.[props.optionLabelKey] || localInitialLabel.value
 );
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
+const optionKey = (option: SelectOption) =>
+  option[props.optionValueKey] as string | number;
+const debounce = <TArgs extends unknown[]>(
+  func: (...args: TArgs) => void,
+  wait: number
+) => {
+  let timeout: ReturnType<typeof setTimeout>;
+  return function executedFunction(...args: TArgs) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);
@@ -144,7 +145,7 @@ const debounce = (func, wait) => {
     timeout = setTimeout(later, wait);
   };
 };
-const fetchOptions = async (isNewSearch) => {
+const fetchOptions = async (isNewSearch: boolean) => {
   // Prevent concurrent scroll requests, but allow new searches to override.
   if (isLoading.value && !isNewSearch) return;
   isLoading.value = true;
@@ -200,23 +201,23 @@ const toggleDropdown = () => {
 const closeDropdown = () => {
   isOpen.value = false;
 };
-const selectOption = (option) => {
-  const value = option[props.optionValueKey];
+const selectOption = (option: SelectOption) => {
+  const value = option[props.optionValueKey] as string | number;
   const label = option[props.optionLabelKey];
-  localInitialLabel.value = label;
+  localInitialLabel.value = (label as string) ?? '';
   emit('update:modelValue', value);
   emit('change', value, label);
   closeDropdown();
 };
-const handleScroll = (event) => {
-  const el = event.target;
+const handleScroll = (event: Event) => {
+  const el = event.target as HTMLElement;
   const threshold = 50;
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - threshold) {
     fetchOptions(false);
   }
 };
-const handleClickOutside = (event) => {
-  if (root.value && !root.value.contains(event.target)) {
+const handleClickOutside = (event: MouseEvent) => {
+  if (root.value && !root.value.contains(event.target as Node)) {
     closeDropdown();
   }
 };

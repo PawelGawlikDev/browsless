@@ -9,23 +9,23 @@
   />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
 
 const SharedCodemirror = defineAsyncComponent(
   () => import('@/components/dashboard/shared/SharedCodemirror.vue')
 );
 
-const props = defineProps({
-  log: {
-    type: [Object, Array, String, Number, Boolean],
-    default: () => ({}),
-  },
-  editorClass: {
-    type: String,
-    default: '',
-  },
-});
+const props = withDefaults(
+  defineProps<{
+    log?: Record<string, unknown> | unknown[] | string | number | boolean;
+    editorClass?: string;
+  }>(),
+  {
+    log: () => ({}),
+    editorClass: '',
+  }
+);
 
 const formattedData = computed(() => {
   try {

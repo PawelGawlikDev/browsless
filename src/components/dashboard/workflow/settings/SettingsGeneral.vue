@@ -22,7 +22,9 @@
         :value="settings.restartTimes ?? 3"
         type="number"
         class="w-12 appearance-none rounded-lg bg-transparent py-2 pl-2 text-right"
-        @input="updateSetting('restartTimes', +($event.target.value ?? 3))"
+        @input="
+          updateSetting('restartTimes', +(($event.target as HTMLInputElement).value ?? 3))
+        "
       />
       <span class="px-2 text-sm">
         {{ t('workflow.settings.restartWorkflow.times') }}
@@ -123,18 +125,23 @@
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowSettings } from '@/types/models';
+import type { Workflow } from '@/types/models';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'vue-toastification';
 import { useHasPermissions } from '@/composable/hasPermissions';
 import { clearCache } from '@/utils/helper';
 const props = defineProps({
+  workflow: { type: Object as () => Workflow, required: true },
   settings: {
-    type: Object,
+    type: Object as () => Partial<WorkflowSettings>,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: { key: string; value: unknown }];
+}>();
 const { t } = useI18n();
 const toast = useToast();
 const permissions = useHasPermissions(['notifications']);
@@ -152,7 +159,12 @@ const onError = [
     name: 'restartWorkflow',
   },
 ];
-const settingItems = [
+const settingItems: {
+  id: string;
+  name: string;
+  description: string;
+  disabled?: boolean;
+}[] = [
   {
     id: 'debugMode',
     name: t('workflow.settings.debugMode.title'),
@@ -183,7 +195,7 @@ const onClearCacheClick = async () => {
   const cacheCleared = await clearCache(props.workflow);
   if (cacheCleared) toast(t('workflow.settings.clearCache.info'));
 };
-const updateSetting = (key, value) => {
+const updateSetting = (key: string, value: string | number | boolean) => {
   emit('update', { key, value });
 };
 </script>

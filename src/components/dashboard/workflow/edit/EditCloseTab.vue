@@ -8,7 +8,7 @@
     />
     <ui-select
       :model-value="data.closeType"
-      :placeholder="Close"
+      placeholder="Close"
       class="mt-2 w-full"
       @change="updateData({ closeType: $event })"
     >
@@ -56,19 +56,20 @@
     </ui-checkbox>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { CloseTabData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => CloseTabData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: CloseTabData] }>();
 const { t } = useI18n();
 const types = ['tab', 'window'];
-const updateData = (value) => {
+const updateData = (value: Partial<CloseTabData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

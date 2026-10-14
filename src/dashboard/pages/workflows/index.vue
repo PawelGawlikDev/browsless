@@ -40,11 +40,7 @@
         </div>
         <workflows-folder v-model="state.activeFolder" class="mt-6" />
       </div>
-      <div
-        class="workflows-list flex-1 lg:ml-8"
-        style="min-height: calc(100vh - 8rem)"
-        @dblclick="clearSelectedWorkflows"
-      >
+      <div class="workflows-list flex-1 lg:ml-8" style="min-height: calc(100vh - 8rem)">
         <div class="flex flex-wrap items-center">
           <div class="flex w-full items-center md:w-auto">
             <ui-input
@@ -191,7 +187,7 @@
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import SharedPermissionsModal from '@/components/dashboard/shared/SharedPermissionsModal.vue';
 import WorkflowsFolder from '@/components/dashboard/workflows/WorkflowsFolder.vue';
 import WorkflowsLocal from '@/components/dashboard/workflows/WorkflowsLocal.vue';
@@ -202,30 +198,49 @@ import {
   getExtensionStorageValue,
   setExtensionStorageValue,
 } from '@/lib/extensionStorage';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import { getWorkflowPermissions, importWorkflow } from '@/utils/workflowData';
 import { onMounted, shallowReactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+import type { Workflow } from '@/types/models';
+
+interface WorkflowSorts {
+  perPage?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
 useGroupTooltip();
 const { t } = useI18n();
 const router = useRouter();
-const workflowStore = useWorkflowStore();
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 const sorts = ['name', 'createdAt', 'updatedAt', 'mostUsed'];
-const state = shallowReactive({
+const state = shallowReactive<{
+  query: string;
+  activeFolder: string;
+  perPage: number;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+}>({
   query: '',
   activeFolder: '',
   perPage: 18,
   sortBy: 'createdAt',
   sortOrder: 'desc',
 });
-const addWorkflowModal = shallowReactive({
+const addWorkflowModal = shallowReactive<{
+  name: string;
+  show: boolean;
+  type: 'manual' | 'recording';
+  description: string;
+}>({
   name: '',
   show: false,
   type: 'manual',
   description: '',
 });
-const permissionState = shallowReactive({
+const permissionState = shallowReactive<{ items: string[]; showModal: boolean }>({
   items: [],
   showModal: false,
 });
@@ -262,8 +277,8 @@ const addWorkflow = () => {
     })
     .finally(clearAddWorkflowModal);
 };
-const checkWorkflowPermissions = async (workflows) => {
-  let requiredPermissions = [];
+const checkWorkflowPermissions = async (workflows: Workflow[]) => {
+  let requiredPermissions: string[] = [];
   for (const workflow of workflows) {
     if (workflow.drawflow) {
       const permissions = await getWorkflowPermissions(workflow.drawflow);
@@ -285,7 +300,7 @@ const openImportDialog = async () => {
 };
 const shortcut = useShortcut(['action:search', 'action:new'], ({ id }) => {
   if (id === 'action:search') {
-    const searchInput = document.querySelector('#search-input input');
+    const searchInput = document.querySelector<HTMLInputElement>('#search-input input');
     searchInput?.focus();
   } else {
     addWorkflowModal.show = true;
@@ -299,7 +314,7 @@ watch(
 );
 onMounted(async () => {
   const savedSorts =
-    (await getExtensionStorageValue('local', 'workflow-sorts', {})) || {};
+    (await getExtensionStorageValue<WorkflowSorts>('local', 'workflow-sorts', {})) || {};
   state.perPage = savedSorts.perPage || 18;
   state.sortBy = savedSorts.sortBy || 'createdAt';
   state.sortOrder = savedSorts.sortOrder || 'desc';

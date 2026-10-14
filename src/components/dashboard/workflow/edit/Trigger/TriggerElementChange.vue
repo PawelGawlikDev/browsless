@@ -62,7 +62,8 @@
     </ui-expand>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerFormData } from '@/types/block-editor';
 import { onMounted, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import cloneDeep from 'lodash.clonedeep';
@@ -70,11 +71,13 @@ import TriggerElementOptions from './TriggerElementOptions.vue';
 
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => TriggerFormData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: Partial<TriggerFormData>];
+}>();
 
 const { t } = useI18n();
 

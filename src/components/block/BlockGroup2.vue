@@ -18,7 +18,7 @@
         placeholder="name"
         type="text"
         class="rounded-lg bg-white px-4 py-2"
-        @input="emit('update', { name: $event.target.value })"
+        @input="handleNameInput"
       />
       <div class="flex-1" />
       <v-remixicon
@@ -34,46 +34,48 @@
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-  position: {
-    type: Object,
-    default: () => ({}),
-  },
-  events: {
-    type: Object,
-    default: () => ({}),
-  },
-  dimensions: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-const emit = defineEmits(['delete', 'edit', 'update']);
-let parent = null;
+import type { BlockNodeData } from '@/types/editor';
+
+withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: BlockNodeData & { width?: number; height?: number; name?: string };
+    position?: Record<string, unknown>;
+    events?: Record<string, unknown>;
+    dimensions?: Record<string, unknown>;
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({}),
+    position: () => ({}),
+    events: () => ({}),
+    dimensions: () => ({}),
+  }
+);
+const emit = defineEmits<{
+  delete: [id: string];
+  edit: [];
+  update: [payload: Record<string, unknown>];
+}>();
+let parent: HTMLElement | null = null;
 const initialRect = {
   x: 0,
   y: 0,
   width: 0,
   height: 0,
 };
-const dragHandle = ref(null);
-const onMousemove = (event) => {
+const dragHandle = ref<HTMLElement | null>(null);
+const handleNameInput = (event: Event) => {
+  emit('update', { name: (event.target as HTMLInputElement).value });
+};
+const onMousemove = (event: MouseEvent) => {
   event.preventDefault();
   event.stopPropagation();
+  if (!parent) return;
   const width = initialRect.width + event.clientX - initialRect.x;
   const height = initialRect.height + event.clientY - initialRect.y;
   parent.style.width = `${width}px`;
@@ -84,9 +86,10 @@ const onMouseup = () => {
   document.documentElement.removeEventListener('mouseup', onMouseup);
   document.documentElement.removeEventListener('mousemove', onMousemove);
 };
-const initDragging = (event) => {
+const initDragging = (event: MouseEvent) => {
   event.preventDefault();
   event.stopPropagation();
+  if (!parent) return;
   const { height, width } = getComputedStyle(parent);
   initialRect.x = event.clientX;
   initialRect.y = event.clientY;
@@ -96,10 +99,10 @@ const initDragging = (event) => {
   document.documentElement.addEventListener('mousemove', onMousemove);
 };
 onMounted(() => {
-  parent = dragHandle.value.closest('.group-block-2');
-  dragHandle.value.addEventListener('mousedown', initDragging);
+  parent = dragHandle.value?.closest('.group-block-2') as HTMLElement | null;
+  dragHandle.value?.addEventListener('mousedown', initDragging as EventListener);
 });
 onBeforeUnmount(() => {
-  dragHandle.value.removeEventListener('mousedown', initDragging);
+  dragHandle.value?.removeEventListener('mousedown', initDragging as EventListener);
 });
 </script>

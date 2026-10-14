@@ -20,26 +20,25 @@
     ></div>
   </div>
 </template>
-<script>
-export default {
-  props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    disabled: Boolean,
-  },
-  emits: ['update:modelValue', 'change'],
-  setup(props, { emit }) {
-    return {
-      emitEvent: () => {
-        const newValue = !props.modelValue;
+<script setup lang="ts">
+const props = withDefaults(
+  defineProps<{
+    modelValue?: boolean;
+    disabled?: boolean;
+  }>(),
+  {
+    modelValue: false,
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean];
+  change: [value: boolean];
+}>();
+const emitEvent = () => {
+  const newValue = !props.modelValue;
 
-        emit('change', newValue);
-        emit('update:modelValue', newValue);
-      },
-    };
-  },
+  emit('change', newValue);
+  emit('update:modelValue', newValue);
 };
 </script>
 <style scoped>

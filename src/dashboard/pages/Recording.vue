@@ -23,7 +23,7 @@
     <p class="mt-6 mb-2 font-semibold">Flows</p>
     <ui-list class="space-y-1">
       <ui-list-item v-for="(item, index) in state.flows" :key="index" class="group" small>
-        <v-remixicon :name="tasks[item.id].icon" />
+        <v-remixicon :name="tasks[item.id as keyof typeof tasks].icon" />
         <div class="mx-2 flex-1 overflow-hidden">
           <p class="leading-tight">
             {{ t(`workflow.blocks.${item.id}.name`) }}
@@ -44,7 +44,7 @@
     </ui-list>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { extensionStorage, watchExtensionStorageValue } from '@/lib/extensionStorage';
 import { onMounted, reactive, toRaw, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -53,35 +53,62 @@ import { nanoid } from 'nanoid';
 import defu from 'defu';
 import { browser } from 'wxt/browser';
 import { tasks } from '@/utils/shared';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import RecordWorkflowUtils from '@/dashboard/utils/RecordWorkflowUtils';
+import type { RecordingFlow, RecordingState } from '@/types/migration-helpers';
+import type { WorkflowEdge, WorkflowNode } from '@/types/models';
+
+type RecordingBlock = RecordingFlow & { groupId?: string };
+interface RecordingPageState {
+  flows: RecordingBlock[];
+  name: string;
+  activeTab: RecordingState['activeTab'];
+  workflowId?: string;
+  description?: string;
+  connectFrom?: { id: string; output?: string };
+  [key: string]: unknown;
+}
+interface RecordingGroupBlockItem {
+  id: string;
+  itemId: string;
+  data: Record<string, unknown>;
+}
+
 const browserEvents = {
-  onTabCreated: (event) => RecordWorkflowUtils.onTabCreated(event),
-  onTabsActivated: (event) => RecordWorkflowUtils.onTabsActivated(event),
-  onCommitted: (event) => RecordWorkflowUtils.onWebNavigationCommited(event),
-  onWebNavigationCompleted: (event) =>
-    RecordWorkflowUtils.onWebNavigationCompleted(event),
+  onTabCreated: (event: chrome.tabs.Tab) => RecordWorkflowUtils.onTabCreated(event),
+  onTabsActivated: (event: chrome.tabs.OnActivatedInfo) =>
+    RecordWorkflowUtils.onTabsActivated(event),
+  onCommitted: (event: chrome.webNavigation.WebNavigationTransitionCallbackDetails) =>
+    RecordWorkflowUtils.onWebNavigationCommited(event),
+  onWebNavigationCompleted: (
+    event: chrome.webNavigation.WebNavigationFramedCallbackDetails
+  ) => RecordWorkflowUtils.onWebNavigationCompleted(event),
 };
 const { t } = useI18n();
 const router = useRouter();
-const workflowStore = useWorkflowStore();
-let unwatchRecording = null;
-const state = reactive({
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
+let unwatchRecording: (() => void) | null = null;
+const state = reactive<RecordingPageState>({
   name: '',
   flows: [],
   activeTab: {},
   isGenerating: false,
 });
-const generateDrawflow = (startBlock, startBlockData) => {
+const generateDrawflow = (
+  startBlock?: RecordingPageState['connectFrom'],
+  startBlockData?: WorkflowNode
+) => {
   let nextNodeId = nanoid();
   const triggerId = startBlock?.id || nanoid();
   let prevNodeId = startBlock?.id || triggerId;
-  const nodes = [];
-  const edges = [];
-  const addEdge = (data = {}) => {
+  const nodes: WorkflowNode[] = [];
+  const edges: WorkflowEdge[] = [];
+  const addEdge = (data: Partial<WorkflowEdge> = {}) => {
     edges.push({
       ...data,
       id: nanoid(),
+      source: data.source ?? '',
+      target: data.target ?? '',
       class: `source-${data.sourceHandle} targte-${data.targetHandle}`,
     });
   };
@@ -107,14 +134,18 @@ const generateDrawflow = (startBlock, startBlockData) => {
     y: startBlockData ? startBlockData.position.y + 120 : 300,
     x: startBlockData ? startBlockData.position.x + 280 : 320,
   };
-  const groups = {};
+  const groups: Record<string, RecordingGroupBlockItem[]> = {};
+  const tasksMap = tasks as Record<
+    string,
+    { data: Record<string, unknown>; component: string }
+  >;
   state.flows.forEach((block, index) => {
     if (block.groupId) {
       if (!groups[block.groupId]) groups[block.groupId] = [];
       groups[block.groupId].push({
         id: block.id,
         itemId: nanoid(),
-        data: defu(block.data, tasks[block.id].data),
+        data: defu(block.data, tasksMap[block.id].data),
       });
       const nextNodeInGroup = state.flows[index + 1]?.groupId;
       if (nextNodeInGroup) return;
@@ -122,11 +153,11 @@ const generateDrawflow = (startBlock, startBlockData) => {
       block.data = { blocks: groups[block.groupId] };
       delete groups[block.groupId];
     }
-    const node = {
+    const node: WorkflowNode = {
       id: nextNodeId,
       label: block.id,
-      type: tasks[block.id].component,
-      data: defu(block.data, tasks[block.id].data),
+      type: tasksMap[block.id].component,
+      data: defu(block.data, tasksMap[block.id].data),
       position: JSON.parse(JSON.stringify(position)),
     };
     prevNodeId = nextNodeId;
@@ -156,8 +187,9 @@ const stopRecording = async () => {
     if (state.flows.length !== 0) {
       if (state.workflowId) {
         const workflow = workflowStore.getById(state.workflowId);
+        if (!workflow) throw new Error(`Workflow ${state.workflowId} not found`);
         const startBlock = workflow.drawflow.nodes.find(
-          (node) => node.id === state.connectFrom.id
+          (node) => node.id === state.connectFrom?.id
         );
         const updatedDrawflow = generateDrawflow(state.connectFrom, startBlock);
         const drawflow = {
@@ -188,7 +220,7 @@ const stopRecording = async () => {
     );
     state.isGenerating = false;
     if (state.workflowId) {
-      router.replace(`/workflows/${state.workflowId}?blockId=${state.connectFrom.id}`);
+      router.replace(`/workflows/${state.workflowId}?blockId=${state.connectFrom?.id}`);
     } else {
       router.replace('/');
     }
@@ -197,24 +229,33 @@ const stopRecording = async () => {
     console.error(error);
   }
 };
-const removeBlock = (index) => {
+const removeBlock = (index: number) => {
   state.flows.splice(index, 1);
   extensionStorage.local.set({ recording: toRaw(state) });
 };
-const onStorageChanged = ({ recording }) => {
+const onStorageChanged = ({
+  recording,
+}: {
+  recording?: { newValue: Partial<RecordingPageState> };
+}) => {
   if (!recording) return;
   Object.assign(state, recording.newValue);
 };
 onMounted(async () => {
-  const { recording, isRecording } = await extensionStorage.local.get([
+  const { recording, isRecording } = (await extensionStorage.local.get([
     'recording',
     'isRecording',
-  ]);
+  ])) as { recording?: RecordingPageState; isRecording?: boolean };
   if (!isRecording && !recording) return;
   window.stopRecording = stopRecording;
-  unwatchRecording = watchExtensionStorageValue('local', 'recording', (value) => {
-    onStorageChanged({ recording: { newValue: value } });
-  });
+  unwatchRecording = watchExtensionStorageValue<RecordingPageState>(
+    'local',
+    'recording',
+    (value) => {
+      if (!value) return;
+      onStorageChanged({ recording: { newValue: value } });
+    }
+  );
   browser.tabs.onCreated.addListener(browserEvents.onTabCreated);
   browser.tabs.onActivated.addListener(browserEvents.onTabsActivated);
   browser.webNavigation.onCommitted.addListener(browserEvents.onCommitted);

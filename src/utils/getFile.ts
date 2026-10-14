@@ -1,10 +1,13 @@
 import type { FileRequestOptions, FileResult, LocalFileResult } from '@/types/utils';
 export const readFileAsBase64 = (blob: Blob) => {
-  return new Promise<string | ArrayBuffer | null>((resolve) => {
+  return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      resolve(reader.result);
+      if (typeof reader.result === 'string') resolve(reader.result);
+      else reject(new Error('Could not read file as a data URL'));
     };
+    reader.onerror = () => reject(reader.error || new Error('Could not read file'));
+    reader.onabort = () => reject(new Error('File reading was aborted'));
     reader.readAsDataURL(blob);
   });
 };

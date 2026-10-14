@@ -62,7 +62,7 @@
                   :label="param.name"
                   :placeholder="param.placeholder"
                   class="w-full"
-                  @keyup.enter="runWorkflow(index, workflow)"
+                  @keyup.enter="executeWorkflowWithParams"
                 />
                 <p v-if="param.description" title="Description" class="ml-1 text-sm">
                   {{ param.description }}
@@ -155,7 +155,7 @@
     </ui-card>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import ParameterInputValue from '@/components/dashboard/workflow/edit/Parameter/ParameterInputValue.vue';
 import ParameterJsonValue from '@/components/dashboard/workflow/edit/Parameter/ParameterJsonValue.vue';
 import iconUrl from '@/assets/icon.png';
@@ -164,6 +164,7 @@ import RendererWorkflowService from '@/service/renderer/RendererWorkflowService'
 import { debounce, parseJSON } from '@/utils/helper';
 import { sendMessage } from '@/utils/message';
 import cloneDeep from 'lodash.clonedeep';
+import type { Workflow, WorkflowNode } from '@/types/models';
 import {
   computed,
   inject,
@@ -174,7 +175,18 @@ import {
   shallowReactive,
   watch,
 } from 'vue';
-const paramsList = {
+
+interface WorkflowParameter {
+  name: string;
+  type: string;
+  inputType?: string;
+  placeholder?: string;
+  description?: string;
+  defaultValue?: unknown;
+  value?: unknown;
+}
+
+const paramsList: Record<string, { id: string; name: string; valueComp: unknown }> = {
   string: {
     id: 'string',
     name: 'Input (string)',
@@ -188,15 +200,30 @@ const paramsList = {
 };
 const os = navigator.appVersion.indexOf('Mac') !== -1 ? 'mac' : 'win';
 const logoUrl = iconUrl;
-const inputRef = ref(null);
-const state = shallowReactive({
+const inputRef = ref<HTMLInputElement | null>(null);
+const state = shallowReactive<{
+  query: string;
+  active: boolean;
+  retrieved: boolean;
+  workflows: Workflow[];
+  shortcutKeys: string[];
+  selectedIndex: number;
+}>({
   query: '',
   active: false,
+  retrieved: false,
   workflows: [],
   shortcutKeys: [],
   selectedIndex: -1,
 });
-const paramsState = reactive({
+const paramsState = reactive<{
+  items: WorkflowParameter[];
+  workflow: Partial<Workflow>;
+  active: boolean;
+  paramNames: string[];
+  activeIndex: number;
+  inputtedVal: string;
+}>({
   items: [],
   workflow: {},
   active: false,
@@ -204,14 +231,14 @@ const paramsState = reactive({
   activeIndex: 0,
   inputtedVal: '',
 });
-const rootElement = inject('rootElement');
+const rootElement = inject<HTMLElement>('rootElement');
 const workflows = computed(() =>
   state.workflows.filter((workflow) =>
     workflow.name.toLocaleLowerCase().includes(state.query.toLocaleLowerCase())
   )
 );
-const getReadableShortcut = (str) => {
-  const list = {
+const getReadableShortcut = (str: string) => {
+  const list: Record<string, { win: string; mac: string }> = {
     option: {
       win: 'alt',
       mac: 'option',
@@ -236,7 +263,10 @@ const clearParamsState = () => {
     inputtedVal: '',
   });
 };
-const sendExecuteCommand = (workflow, options = {}) => {
+const sendExecuteCommand = (
+  workflow: Partial<Workflow>,
+  options: Record<string, unknown> = {}
+) => {
   const workflowData = {
     ...workflow,
     includeTabId: true,
@@ -245,18 +275,19 @@ const sendExecuteCommand = (workflow, options = {}) => {
   RendererWorkflowService.executeWorkflow(workflowData);
   state.active = false;
 };
-const executeWorkflow = (workflow) => {
+const executeWorkflow = (workflow?: Workflow) => {
   if (!workflow) return;
-  let triggerData = workflow.trigger;
+  let triggerData = workflow.trigger as
+    { parameters?: WorkflowParameter[] } | null | undefined;
   if (!triggerData) {
-    const triggerNode = workflow.drawflow?.nodes?.find(
+    const triggerNode = (workflow.drawflow?.nodes as WorkflowNode[] | undefined)?.find(
       (node) => node.label === 'trigger'
     );
-    triggerData = triggerNode?.data;
+    triggerData = triggerNode?.data as { parameters?: WorkflowParameter[] } | undefined;
   }
-  if (triggerData?.parameters?.length > 0) {
-    const keys = new Set();
-    const params = [];
+  if (triggerData?.parameters && triggerData.parameters.length > 0) {
+    const keys = new Set<string>();
+    const params: WorkflowParameter[] = [];
     triggerData.parameters.forEach((param) => {
       if (keys.has(param.name)) return;
       params.push(param);
@@ -272,20 +303,22 @@ const executeWorkflow = (workflow) => {
   } else {
     sendExecuteCommand(workflow);
   }
-  inputRef.value.value = '';
+  if (inputRef.value) inputRef.value.value = '';
   state.query = '';
   paramsState.inputtedVal = '';
 };
-const getParamsValues = (params) => {
-  const getParamVal = {
+const getParamsValues = (params: WorkflowParameter[]) => {
+  const getParamVal: Record<string, (value: unknown) => unknown> = {
     string: (str) => str,
-    number: (num) => (Number.isNaN(+num) ? 0 : +num),
-    json: (value) => parseJSON(value, null),
+    number: (num) => (Number.isNaN(+(num as string)) ? 0 : +(num as string)),
+    json: (value) => parseJSON(value as string, null),
     default: (value) => value,
   };
-  return params.reduce((acc, param) => {
+  return params.reduce<Record<string, unknown>>((acc, param) => {
     const valueFunc =
-      getParamVal[param.type] || paramsList[param.type]?.getValue || getParamVal.default;
+      getParamVal[param.type] ||
+      (paramsList[param.type] as { getValue?: (value: unknown) => unknown })?.getValue ||
+      getParamVal.default;
     const value = valueFunc(param.value || param.defaultValue);
     acc[param.name] = value;
     return acc;
@@ -296,7 +329,7 @@ const executeWorkflowWithParams = () => {
   sendExecuteCommand(paramsState.workflow, { data: { variables } });
   clearParamsState();
 };
-const onKeydown = (event) => {
+const onKeydown = (event: KeyboardEvent) => {
   const { ctrlKey, altKey, metaKey, key, shiftKey } = event;
   if (key === 'Escape') {
     if (paramsState.active) {
@@ -320,7 +353,7 @@ const onKeydown = (event) => {
     state.shortcutKeys = shortcuts;
   }
 };
-const onInputKeydown = (event) => {
+const onInputKeydown = (event: KeyboardEvent) => {
   const { key } = event;
   if (key !== 'Escape') {
     event.stopPropagation();
@@ -343,7 +376,7 @@ const onInputKeydown = (event) => {
     executeWorkflow(workflows.value[state.selectedIndex]);
   }
 };
-const checkInView = (container, element, partial = false) => {
+const checkInView = (container: Element, element: HTMLElement, partial = false) => {
   const cTop = container.scrollTop;
   const cBottom = cTop + container.clientHeight;
   const eTop = element.offsetTop;
@@ -353,8 +386,8 @@ const checkInView = (container, element, partial = false) => {
     partial && ((eTop < cTop && eBottom > cTop) || (eBottom > cBottom && eTop < cBottom));
   return isTotal || isPartial;
 };
-const onInput = (event) => {
-  const { value } = event.target;
+const onInput = (event: Event) => {
+  const { value } = event.target as HTMLInputElement;
   if (paramsState.active) {
     paramsState.inputtedVal = value;
     paramsState.activeIndex = value.split(';').length - 1;
@@ -376,7 +409,7 @@ watch(
       const { workflows: localWorkflows } = await extensionStorage.local.get([
         'workflows',
       ]);
-      state.workflows = [...Object.values(localWorkflows || {})];
+      state.workflows = [...(Object.values(localWorkflows || {}) as Workflow[])];
       state.retrieved = true;
     } else if (!state.active) {
       clearParamsState();
@@ -387,12 +420,12 @@ watch(
 );
 watch(
   () => state.selectedIndex,
-  debounce((activeIndex) => {
-    const container = rootElement.shadowRoot.querySelector(
+  debounce((activeIndex: number) => {
+    const container = rootElement?.shadowRoot?.querySelector(
       '#workflows-container .workflows-list'
     );
-    const element = rootElement.shadowRoot.querySelector(`#list-item-${activeIndex}`);
-    if (element && !checkInView(container, element)) {
+    const element = rootElement?.shadowRoot?.querySelector(`#list-item-${activeIndex}`);
+    if (container && element && !checkInView(container, element as HTMLElement)) {
       element.scrollIntoView({
         block: 'nearest',
         behavior: 'smooth',
@@ -400,9 +433,10 @@ watch(
     }
   }, 100)
 );
-window.initPaletteParams = (data) => {
-  paramsState.items = data.params;
-  paramsState.workflow = data.workflow;
+window.initPaletteParams = (data: unknown) => {
+  const payload = data as { params: WorkflowParameter[]; workflow: Workflow };
+  paramsState.items = payload.params;
+  paramsState.workflow = payload.workflow;
   paramsState.active = true;
   state.active = true;
 };
@@ -410,7 +444,7 @@ onMounted(() => {
   extensionStorage.local.get('browslessShortcut').then(({ browslessShortcut }) => {
     if (Array.isArray(browslessShortcut) && browslessShortcut.length < 1) return;
     let keys = ['mod', 'shift', 'e'];
-    if (browslessShortcut) keys = browslessShortcut.split('+');
+    if (browslessShortcut) keys = (browslessShortcut as string).split('+');
     state.shortcutKeys = keys;
     window._browslessShortcuts = keys;
   });

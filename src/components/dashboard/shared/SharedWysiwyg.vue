@@ -56,7 +56,7 @@
       <button
         title="Insert image"
         class="editor-menu-btn hoverable"
-        @click="insertImage(editor)"
+        @click="insertImage()"
       >
         <v-remixicon name="riImageLine" />
       </button>
@@ -66,7 +66,7 @@
         }"
         title="Link"
         class="editor-menu-btn hoverable"
-        @click="setLink(editor)"
+        @click="setLink()"
       >
         <v-remixicon name="riLinkM" />
       </button>
@@ -83,40 +83,44 @@
     <slot name="append" />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { shallowRef, onMounted, onBeforeUnmount, watch } from 'vue';
-import { Editor, EditorContent } from '@tiptap/vue-3';
+import { Editor, EditorContent, type JSONContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import CharacterCount from '@tiptap/extension-character-count';
-const props = defineProps({
-  modelValue: {
-    type: [String, Object],
-    default: null,
-  },
-  placeholder: {
-    type: String,
-    default: '',
-  },
-  limit: {
-    type: Number,
-    default: Infinity,
-  },
-  options: {
-    type: Object,
-    default: () => ({}),
-  },
-  toolbar: {
-    type: Boolean,
-    default: true,
-  },
-  readonly: Boolean,
-});
-const emit = defineEmits(['update:modelValue', 'count', 'change']);
-const editor = shallowRef(null);
-const menuItems = [
+
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string | JSONContent | null;
+    placeholder?: string;
+    limit?: number;
+    options?: Record<string, unknown>;
+    toolbar?: boolean;
+    readonly?: boolean;
+  }>(),
+  {
+    modelValue: null,
+    placeholder: '',
+    limit: Infinity,
+    options: () => ({}),
+    toolbar: true,
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: JSONContent];
+  count: [count: number];
+  change: [value: JSONContent];
+}>();
+const editor = shallowRef<Editor | null>(null);
+const menuItems: {
+  id: string;
+  name: string;
+  icon: string;
+  action: 'toggleBold' | 'toggleItalic' | 'toggleStrike';
+}[] = [
   { id: 'bold', name: 'Bold', icon: 'riBold', action: 'toggleBold' },
   { id: 'italic', name: 'Italic', icon: 'riItalic', action: 'toggleItalic' },
   {
@@ -127,6 +131,7 @@ const menuItems = [
   },
 ];
 const setLink = () => {
+  if (!editor.value) return;
   const previousUrl = editor.value.getAttributes('link').href;
   const url = window.prompt('URL', previousUrl);
   if (url === null) return;
@@ -142,6 +147,7 @@ const setLink = () => {
     .run();
 };
 const insertImage = () => {
+  if (!editor.value) return;
   const url = window.prompt('URL');
   if (url) {
     editor.value.chain().focus().setImage({ src: url }).run();
@@ -150,9 +156,10 @@ const insertImage = () => {
 watch(
   () => props.modelValue,
   (value) => {
+    if (!editor.value) return;
     const isSame = JSON.stringify(editor.value.getJSON()) === JSON.stringify(value);
     if (isSame) return;
-    editor.value.commands.setContent(value, false);
+    editor.value.commands.setContent(value, { emitUpdate: false });
   }
 );
 onMounted(() => {
@@ -160,8 +167,12 @@ onMounted(() => {
     content: props.modelValue,
     editable: !props.readonly,
     onUpdate: () => {
+      if (!editor.value) return;
       const editorValue = editor.value.getJSON();
-      emit('count', editor.value.storage.characterCount.characters());
+      emit(
+        'count',
+        (editor.value.storage.characterCount as { characters: () => number }).characters()
+      );
       emit('change', editorValue);
       emit('update:modelValue', editorValue);
     },
@@ -178,7 +189,10 @@ onMounted(() => {
     ],
     ...props.options,
   });
-  emit('count', editor.value.storage.characterCount.characters());
+  emit(
+    'count',
+    (editor.value.storage.characterCount as { characters: () => number }).characters()
+  );
 });
 onBeforeUnmount(() => {
   editor.value?.destroy();

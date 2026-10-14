@@ -15,13 +15,13 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { indentWithTab } from '@codemirror/commands';
 import { css } from '@codemirror/lang-css';
 import { html } from '@codemirror/lang-html';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
-import { EditorState } from '@codemirror/state';
+import { EditorState, type Extension } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { keymap } from '@codemirror/view';
 import { EditorView, basicSetup } from 'codemirror';
@@ -29,35 +29,37 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 // don't remove this unused import, the css is used in dynamic style
 import { store } from '../settings/jsBlockWrap';
 
-const props = defineProps({
-  lang: {
-    type: String,
-    default: 'javascript',
-  },
-  modelValue: {
-    type: String,
-    default: '',
-  },
-  readonly: {
-    type: Boolean,
-    default: false,
-  },
-  lineNumbers: {
-    type: Boolean,
-    default: true,
-  },
-  extensions: {
-    type: [Object, Array],
-    default: () => [],
-  },
-  hideLang: Boolean,
-});
-const emit = defineEmits(['change', 'update:modelValue']);
+const props = withDefaults(
+  defineProps<{
+    lang?: string;
+    modelValue?: string;
+    readonly?: boolean;
+    lineNumbers?: boolean;
+    extensions?: Extension | Extension[];
+    hideLang?: boolean;
+  }>(),
+  {
+    lang: 'javascript',
+    modelValue: '',
+    readonly: false,
+    lineNumbers: true,
+    extensions: () => [],
+  }
+);
+const emit = defineEmits<{
+  change: [value: string];
+  'update:modelValue': [value: string];
+}>();
 
-let view = null;
-const langs = { json, javascript, html, css };
+let view: EditorView | null = null;
+const langs: Record<string, (() => Extension) | undefined> = {
+  json,
+  javascript,
+  html,
+  css,
+};
 
-const containerEl = ref(null);
+const containerEl = ref<HTMLElement | null>(null);
 
 const updateListener = EditorView.updateListener.of((event) => {
   if (event.docChanged) {
@@ -91,7 +93,7 @@ const state = EditorState.create({
 watch(
   () => props.modelValue,
   (value) => {
-    if (value === view.state.doc.toString()) return;
+    if (!view || value === view.state.doc.toString()) return;
 
     view.dispatch({
       changes: { from: 0, to: view.state.doc.length, insert: value },
@@ -100,6 +102,7 @@ watch(
 );
 
 onMounted(() => {
+  if (!containerEl.value) return;
   view = new EditorView({
     state,
     parent: containerEl.value,

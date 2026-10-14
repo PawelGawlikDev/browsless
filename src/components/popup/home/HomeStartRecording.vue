@@ -71,16 +71,28 @@
     </ui-tab-panel>
   </ui-tab-panels>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
+import type { Workflow } from '@/types/models';
 import HomeSelectBlock from './HomeSelectBlock.vue';
-const emit = defineEmits(['update', 'close', 'record']);
+
+const emit = defineEmits<{
+  update: [tab: string];
+  close: [];
+  record: [
+    options: {
+      name?: string;
+      workflowId?: string;
+      connectFrom?: { id: string | null; output: string | null };
+    },
+  ];
+}>();
 emit('update', 'new');
 const tabs = ['new', 'existing'];
 const { t } = useI18n();
-const workflowStore = useWorkflowStore();
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 const state = reactive({
   query: '',
   workflowName: '',
@@ -95,7 +107,7 @@ const workflows = computed(() =>
     )
     .sort((a, b) => (a.createdAt > b.createdAt ? 1 : -1))
 );
-const updateWorkflow = (data) => {
+const updateWorkflow = (data: Partial<Workflow>) => {
   workflowStore.update({
     data,
     id: state.activeWorkflow,

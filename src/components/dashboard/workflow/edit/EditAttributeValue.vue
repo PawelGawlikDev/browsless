@@ -34,20 +34,21 @@
     <insert-workflow-data v-else :data="data" extra-row variables @update="updateData" />
   </edit-interaction-base>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { AttributeValueData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import EditInteractionBase from './EditInteractionBase.vue';
 import InsertWorkflowData from './InsertWorkflowData.vue';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => AttributeValueData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: AttributeValueData] }>();
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<AttributeValueData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

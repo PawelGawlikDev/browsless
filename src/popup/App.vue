@@ -4,7 +4,7 @@
     <ui-dialog />
   </template>
 </template>
-<script setup>
+<script setup lang="ts">
 import { extensionStorage } from '@/lib/extensionStorage';
 import { ref, onMounted } from 'vue';
 import { useStore } from '@/stores/main';

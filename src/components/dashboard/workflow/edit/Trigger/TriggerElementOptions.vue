@@ -40,22 +40,24 @@
     </li>
   </ul>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { debounce } from '@/utils/helper';
 
 const props = defineProps({
   modelValue: {
-    type: Object,
+    type: Object as () => MutationObserverInit,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits<{
+  'update:modelValue': [options: MutationObserverInit];
+}>();
 
-const types = ['subtree', 'childList', 'attributes', 'characterData'];
+const types = ['subtree', 'childList', 'attributes', 'characterData'] as const;
 const { t } = useI18n();
 
-const onAttrFilterChange = debounce((value) => {
+const onAttrFilterChange = debounce((value: string) => {
   emit('update:modelValue', {
     ...props.modelValue,
     attributeFilter: value.split(','),

@@ -31,19 +31,25 @@
     </div>
   </ui-modal>
 </template>
-<script setup>
+<script setup lang="ts">
 import { toRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { browser } from 'wxt/browser';
-const props = defineProps({
-  permissions: {
-    type: Array,
-    default: () => [],
-  },
-});
-const emit = defineEmits(['update:modelValue', 'granted']);
+
+const props = withDefaults(
+  defineProps<{
+    permissions?: string[];
+  }>(),
+  {
+    permissions: () => [],
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean];
+  granted: [value: boolean];
+}>();
 const { t } = useI18n();
-const icons = {
+const icons: Record<string, string> = {
   cookies: 'mdiCookieOutline',
   downloads: 'riDownloadLine',
   clipboardRead: 'riClipboardLine',
@@ -51,9 +57,13 @@ const icons = {
   notifications: 'riNotification3Line',
 };
 const requestPermission = () => {
-  browser.permissions.request({ permissions: toRaw(props.permissions) }).then(() => {
-    emit('update:modelValue', false);
-    emit('granted', true);
-  });
+  browser.permissions
+    .request({
+      permissions: toRaw(props.permissions) as chrome.runtime.ManifestPermission[],
+    })
+    .then(() => {
+      emit('update:modelValue', false);
+      emit('granted', true);
+    });
 };
 </script>

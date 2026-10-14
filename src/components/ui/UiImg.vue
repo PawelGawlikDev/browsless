@@ -21,61 +21,58 @@
     </div>
   </div>
 </template>
-<script>
+<script setup lang="ts">
 import { ref, shallowReactive, onMounted } from 'vue';
-export default {
-  props: {
-    src: {
-      type: String,
-      default: '',
-    },
-    alt: {
-      type: String,
-      default: '',
-    },
-    lazy: Boolean,
-    contain: Boolean,
-  },
-  emits: ['error', 'load'],
-  setup(props, { emit }) {
-    const imageContainer = ref(null);
-    const state = shallowReactive({
-      loading: true,
-      error: false,
-    });
-    const handleImageLoad = () => {
-      state.loading = false;
-      state.error = false;
-      emit('load', true);
-    };
-    const handleImageError = () => {
-      state.loading = false;
-      state.error = true;
-      emit('error', true);
-    };
-    const loadImage = () => {
-      const image = new Image();
-      image.onload = () => handleImageLoad(image);
-      image.onerror = handleImageError;
-      image.src = props.src;
-    };
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const { target } = entry;
-          loadImage();
-          observer.unobserve(target);
-        }
-      });
-    });
-    onMounted(() => {
-      if (props.lazy) observer.observe(imageContainer.value);
-      else loadImage();
-    });
-    return {
-      state,
-      imageContainer,
-    };
-  },
+
+const props = withDefaults(
+  defineProps<{
+    src?: string;
+    alt?: string;
+    lazy?: boolean;
+    contain?: boolean;
+  }>(),
+  {
+    src: '',
+    alt: '',
+  }
+);
+const emit = defineEmits<{
+  error: [value: boolean];
+  load: [value: boolean];
+}>();
+
+const imageContainer = ref<HTMLDivElement | null>(null);
+const state = shallowReactive({
+  loading: true,
+  error: false,
+});
+const handleImageLoad = () => {
+  state.loading = false;
+  state.error = false;
+  emit('load', true);
 };
+const handleImageError = () => {
+  state.loading = false;
+  state.error = true;
+  emit('error', true);
+};
+const loadImage = () => {
+  const image = new Image();
+  image.onload = () => handleImageLoad();
+  image.onerror = handleImageError;
+  image.src = props.src;
+};
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      const { target } = entry;
+      loadImage();
+      observer.unobserve(target);
+    }
+  });
+});
+onMounted(() => {
+  if (props.lazy && imageContainer.value) observer.observe(imageContainer.value);
+  else loadImage();
+});
 </script>

@@ -19,20 +19,23 @@
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerFormData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import dayjs from '@/lib/dayjs';
 defineProps({
   data: {
-    type: Object,
+    type: Object as () => TriggerFormData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: Partial<TriggerFormData>];
+}>();
 const { t } = useI18n();
 const maxDate = dayjs().add(30, 'day').format('YYYY-MM-DD');
 const minDate = dayjs().format('YYYY-MM-DD');
-const updateDate = (value) => {
+const updateDate = (value: { date?: string }) => {
   if (!value) return;
   let date = value?.date ?? minDate;
   if (dayjs(minDate).isAfter(date)) date = minDate;

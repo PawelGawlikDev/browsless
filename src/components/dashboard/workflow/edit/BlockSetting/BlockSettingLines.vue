@@ -34,7 +34,11 @@
             type="color"
             name="color"
             class="bg-input h-10 w-10 rounded-lg p-1"
-            @input="updateActiveEdge('style', { stroke: $event.target.value })"
+            @input="
+              updateActiveEdge('style', {
+                stroke: ($event.target as HTMLInputElement).value,
+              })
+            "
           />
           <span class="ml-2">
             {{ t('workflow.blocks.base.settings.line.lineColor') }}
@@ -44,7 +48,9 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { Ref } from 'vue';
+import type { VueFlowStore } from '@vue-flow/core';
 import { inject, onMounted, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { debounce } from '@/utils/helper';
@@ -58,24 +64,40 @@ const props = defineProps({
 
 const { t } = useI18n();
 
-const editor = inject('workflow-editor');
+const editor = inject<Ref<VueFlowStore>>('workflow-editor');
 const state = reactive({
   retrieved: false,
-  edges: {},
+  edges: {} as Record<
+    string,
+    {
+      id: string;
+      name: string;
+      label: string;
+      animated: boolean;
+      labelStyle: import('vue').CSSProperties | string;
+      style?: import('vue').CSSProperties;
+    }
+  >,
   activeEdge: '',
 });
 
 const activeEdge = computed(() => state.edges[state.activeEdge]);
 
-const updateActiveEdge = debounce((name, value) => {
-  const edge = editor.value.getEdge.value(state.activeEdge);
+const updateActiveEdge = debounce(
+  (
+    name: 'label' | 'animated' | 'style' | 'labelStyle',
+    value: string | boolean | import('vue').CSSProperties
+  ) => {
+    const edge = editor.value.getEdge.value(state.activeEdge);
 
-  edge[name] = value;
-  state.edges[state.activeEdge][name] = value;
-}, 250);
+    Object.assign(edge, { [name]: value });
+    Object.assign(state.edges[state.activeEdge], { [name]: value });
+  },
+  250
+);
 
 onMounted(() => {
-  state.edges = editor.value.getEdges.value.reduce(
+  state.edges = editor.value.getEdges.value.reduce<typeof state.edges>(
     (acc, { id, source, targetNode, label, animated, labelStyle, style }) => {
       if (source !== props.blockId) return acc;
 
@@ -94,7 +116,7 @@ onMounted(() => {
         labelStyle: labelStyle || '',
       };
 
-      if (style) acc[id].style = style;
+      if (style && typeof style !== 'function') acc[id].style = style;
 
       return acc;
     },

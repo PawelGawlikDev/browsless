@@ -49,18 +49,20 @@
   </div>
   <storage-edit-table v-model="state.showAddTable" @save="saveTable" />
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import { useDialog } from '@/composable/dialog';
-import { useWorkflowStore } from '@/stores/workflow';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import { useLiveQuery } from '@/composable/liveQuery';
 import dbStorage from '@/db/storage';
+import type { DbStorageTableData, DbStorageTableItem } from '@/types/db';
+import type { WorkflowDataColumn } from '@/types/models';
 import StorageEditTable from './StorageEditTable.vue';
 const { t } = useI18n();
 const dialog = useDialog();
-const workflowStore = useWorkflowStore();
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 const state = reactive({
   query: '',
   showAddTable: false,
@@ -104,12 +106,18 @@ const tableHeaders = [
   },
 ];
 const items = useLiveQuery(() => dbStorage.tablesItems.reverse().toArray());
-const formatDate = (date) => {
+const formatDate = (date: number) => {
   return dayjs(date).format('DD MMM YYYY, hh:mm:ss A');
 };
-const saveTable = async ({ columns, name }) => {
+const saveTable = async ({
+  columns,
+  name,
+}: {
+  columns: WorkflowDataColumn[];
+  name: string;
+}) => {
   try {
-    const columnsIndex = columns.reduce(
+    const columnsIndex = columns.reduce<DbStorageTableData['columnsIndex']>(
       (acc, column) => {
         acc[column.id] = {
           index: 0,
@@ -128,7 +136,7 @@ const saveTable = async ({ columns, name }) => {
       columns,
     });
     await dbStorage.tablesData.add({
-      tableId,
+      tableId: tableId as number,
       items: [],
       columnsIndex,
     });
@@ -137,15 +145,21 @@ const saveTable = async ({ columns, name }) => {
     console.error(error);
   }
 };
-const deleteTable = (table) => {
+const deleteTable = (table: DbStorageTableItem) => {
   dialog.confirm({
     title: t('storage.table.delete'),
     okVariant: 'danger',
     body: t('message.delete', { name: table.name }),
     onConfirm: async () => {
       try {
-        await dbStorage.tablesItems.where('id').equals(table.id).delete();
-        await dbStorage.tablesData.where('tableId').equals(table.id).delete();
+        await dbStorage.tablesItems
+          .where('id')
+          .equals(table.id as number)
+          .delete();
+        await dbStorage.tablesData
+          .where('tableId')
+          .equals(table.id as number)
+          .delete();
         await workflowStore.update({
           id: (workflow) => workflow.connectedTable === table.id,
           data: { connectedTable: null },

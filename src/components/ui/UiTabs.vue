@@ -14,51 +14,64 @@
     <slot></slot>
   </div>
 </template>
-<script setup>
-import { provide, toRefs, ref } from 'vue';
-const props = defineProps({
-  modelValue: {
-    type: [String, Number],
-    default: '',
-  },
-  type: {
-    type: String,
-    default: 'default',
-    validator: (value) => ['default', 'fill'].includes(value),
-  },
-  color: {
-    type: String,
-    default: 'bg-box-transparent',
-  },
-  small: Boolean,
-  fill: Boolean,
-});
-const emit = defineEmits(['update:modelValue', 'change']);
+<script setup lang="ts">
+import { provide, toRefs, ref, type Ref } from 'vue';
+
+export interface UiTabsContext {
+  modelValue: Ref<string | number>;
+  type: Ref<'default' | 'fill'>;
+  color: Ref<string>;
+  small: Ref<boolean>;
+  fill: Ref<boolean>;
+  updateActive: (id: string | number) => void;
+  hoverHandler: (event: MouseEvent) => void;
+}
+
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string | number;
+    type?: 'default' | 'fill';
+    color?: string;
+    small?: boolean;
+    fill?: boolean;
+  }>(),
+  {
+    modelValue: '',
+    type: 'default',
+    color: 'bg-box-transparent',
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [id: string | number];
+  change: [id: string | number];
+}>();
 const tabTypes = {
   default: 'border-b',
   fill: 'p-2 rounded-lg',
 };
-const hoverIndicator = ref(null);
+const hoverIndicator = ref<HTMLElement | null>(null);
 const showHoverIndicator = ref(false);
-const updateActive = (id) => {
+const updateActive = (id: string | number) => {
   emit('change', id);
   emit('update:modelValue', id);
 };
-const hoverHandler = ({ target }) => {
+const hoverHandler = ({ target }: MouseEvent) => {
+  const el = target as HTMLElement;
   const isFill = props.type === 'fill';
-  if (target.classList.contains('is-active') && isFill) {
+  if (!hoverIndicator.value) return;
+  if (el.classList.contains('is-active') && isFill) {
     hoverIndicator.value.style.display = 'none';
     return;
   }
-  const { height, width } = target.getBoundingClientRect();
+  const { height, width } = el.getBoundingClientRect();
   const elHeight = isFill ? height + 3 : height - 11;
   showHoverIndicator.value = true;
   hoverIndicator.value.style.width = `${width}px`;
   hoverIndicator.value.style.height = `${elHeight}px`;
   hoverIndicator.value.style.display = 'inline-block';
-  hoverIndicator.value.style.transform = `translate(${target.offsetLeft}px, -50%)`;
+  hoverIndicator.value.style.transform = `translate(${el.offsetLeft}px, -50%)`;
 };
-provide('ui-tabs', {
+provide<UiTabsContext>('ui-tabs', {
   updateActive,
   hoverHandler,
   ...toRefs(props),

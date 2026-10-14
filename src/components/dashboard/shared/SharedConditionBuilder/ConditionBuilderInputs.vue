@@ -55,8 +55,16 @@
           <ui-input
             v-else
             v-model="inputsData[index].data[name]"
-            :title="conditionBuilder.inputTypes[name].label"
-            :placeholder="conditionBuilder.inputTypes[name].label"
+            :title="
+              conditionBuilder.inputTypes[
+                name as keyof typeof conditionBuilder.inputTypes
+              ]?.label
+            "
+            :placeholder="
+              conditionBuilder.inputTypes[
+                name as keyof typeof conditionBuilder.inputTypes
+              ]?.label
+            "
             autocomplete="off"
             class="w-full"
           />
@@ -84,7 +92,7 @@
     </ui-select>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { ref, watch, defineAsyncComponent, inject } from 'vue';
 import { nanoid } from 'nanoid';
 import { useI18n } from 'vue-i18n';
@@ -98,40 +106,53 @@ import {
 import { conditionBuilder } from '@/utils/shared';
 import SharedElSelectorActions from '@/components/dashboard/shared/SharedElSelectorActions.vue';
 import EditAutocomplete from '../../workflow/edit/EditAutocomplete.vue';
+import type { WorkflowInjectionContext } from '@/types/editor';
+
+interface ConditionInputItem {
+  id: string;
+  category: 'value' | 'compare';
+  type: string;
+  data?: Record<string, string>;
+}
+
 const SharedCodemirror = defineAsyncComponent(() => import('../SharedCodemirror.vue'));
-const props = defineProps({
-  data: {
-    type: Array,
-    default: () => [],
-  },
-  autocomplete: {
-    type: Array,
-    default: () => [],
-  },
-});
-const emit = defineEmits(['update']);
+const props = withDefaults(
+  defineProps<{
+    data?: ConditionInputItem[];
+    autocomplete?: unknown[];
+  }>(),
+  {
+    data: () => [],
+    autocomplete: () => [],
+  }
+);
+const emit = defineEmits<{
+  update: [value: ConditionInputItem[]];
+}>();
 const autocompleteList = [browslessFuncsSnippets.browslessRefData];
 const codemirrorExts = [
   autocompletion({
     override: [browslessFuncsCompletion(autocompleteList), completeFromGlobalScope],
   }),
 ];
-const conditionOperators = conditionBuilder.compareTypes.reduce((acc, type) => {
+const conditionOperators = conditionBuilder.compareTypes.reduce<
+  Record<string, typeof conditionBuilder.compareTypes>
+>((acc, type) => {
   if (!acc[type.category]) acc[type.category] = [];
   acc[type.category].push(type);
   return acc;
 }, {});
 const excludeData = ['context'];
-const workflow = inject('workflow');
+const workflow = inject<WorkflowInjectionContext>('workflow');
 const { t } = useI18n();
-const inputsData = ref(cloneDeep(props.data));
-const getConditionDataList = (inputData) => {
-  const keys = Object.keys(inputData.data);
+const inputsData = ref<ConditionInputItem[]>(cloneDeep(props.data));
+const getConditionDataList = (inputData: ConditionInputItem) => {
+  const keys = Object.keys(inputData.data ?? {});
   const filteredKeys = keys.filter((item) => !excludeData.includes(item));
   return filteredKeys;
 };
-const getDefaultValues = (items) => {
-  const defaultValues = {
+const getDefaultValues = (items: string | string[]) => {
+  const defaultValues: Record<string, ConditionInputItem> = {
     value: {
       id: nanoid(),
       type: 'value',
@@ -143,30 +164,35 @@ const getDefaultValues = (items) => {
   if (typeof items === 'string') return defaultValues[items];
   return items.map((item) => defaultValues[item]);
 };
-const filterValueTypes = (index) => {
-  return conditionBuilder.valueTypes.reduce((acc, item) => {
+const filterValueTypes = (index: number) => {
+  return conditionBuilder.valueTypes.reduce<
+    Record<string, typeof conditionBuilder.valueTypes>
+  >((acc, item) => {
     if (index < 1 || item.compareable) {
       (acc[item.category] = acc[item.category] || []).push(item);
     }
     return acc;
   }, {});
 };
-const updateValueType = (newType, index) => {
+const updateValueType = (newType: string, index: number) => {
   const type = conditionBuilder.valueTypes.find(({ id }) => id === newType);
+  if (!type) return;
   if (index === 0 && !type.compareable) {
     inputsData.value.splice(index + 1);
   } else if (inputsData.value.length === 1) {
-    inputsData.value.push(...getDefaultValues(['compare', 'value']));
+    inputsData.value.push(
+      ...(getDefaultValues(['compare', 'value']) as ConditionInputItem[])
+    );
   }
   inputsData.value[index].type = newType;
   inputsData.value[index].data = { ...type.data };
 };
-const updateCompareType = (newType, index) => {
-  const { needValue } = conditionBuilder.compareTypes.find(({ id }) => id === newType);
-  if (!needValue) {
+const updateCompareType = (newType: string, index: number) => {
+  const compareType = conditionBuilder.compareTypes.find(({ id }) => id === newType);
+  if (!compareType?.needValue) {
     inputsData.value.splice(index + 1);
   } else if (inputsData.value.length === 2) {
-    inputsData.value.push(getDefaultValues('value'));
+    inputsData.value.push(getDefaultValues('value') as ConditionInputItem);
   }
   inputsData.value[index].type = newType;
 };

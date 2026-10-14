@@ -14,39 +14,42 @@
     stroke-width="2"
   ></rect>
 </template>
-<script setup>
-const props = defineProps({
-  items: {
-    type: Object,
-    default: () => ({}),
-  },
-  stroke: {
-    type: String,
-    default: null,
-  },
-  activeStroke: {
-    type: String,
-    default: null,
-  },
-  fill: {
-    type: String,
-    default: null,
-  },
-  activeFill: {
-    type: String,
-    default: null,
-  },
-});
-const getNumber = (num) => {
-  if (Number.isNaN(num) || !num) return 0;
+<script setup lang="ts">
+export interface HighlightItem {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  highlight?: boolean;
+  outline?: boolean;
+}
+
+const props = withDefaults(
+  defineProps<{
+    items?: HighlightItem[];
+    stroke?: string | null;
+    activeStroke?: string | null;
+    fill?: string | null;
+    activeFill?: string | null;
+  }>(),
+  {
+    items: () => [],
+    stroke: null,
+    activeStroke: null,
+    fill: null,
+    activeFill: null,
+  }
+);
+const getNumber = (num?: number) => {
+  if (num === undefined || Number.isNaN(num) || !num) return 0;
   return num;
 };
-const getFillColor = (item) => {
+const getFillColor = (item?: HighlightItem) => {
   if (!item) return null;
   if (item.outline) return null;
   return item.highlight ? props.activeFill || props.fill : props.fill;
 };
-const getStrokeColor = (item) => {
+const getStrokeColor = (item?: HighlightItem) => {
   if (!item) return null;
   return item.highlight ? props.activeStroke || props.stroke : props.stroke;
 };

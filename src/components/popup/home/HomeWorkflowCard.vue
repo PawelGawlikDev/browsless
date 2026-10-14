@@ -40,7 +40,7 @@
           :key="item.name"
           v-close-popover
           class="cursor-pointer capitalize"
-          @click="$emit(item.name, workflow)"
+          @click="emitMenuAction(item.name, workflow)"
         >
           <v-remixicon :name="item.icon" class="mr-2 -ml-1" />
           <span>{{ item.name }}</span>
@@ -49,26 +49,34 @@
     </ui-popover>
   </ui-card>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import dayjs from '@/lib/dayjs';
+import type { Workflow } from '@/types/models';
 
-const props = defineProps({
-  workflow: {
-    type: Object,
-    default: () => ({}),
-  },
-  tab: {
-    type: String,
-    default: 'local',
-  },
-  pinned: Boolean,
-});
-defineEmits(['execute', 'togglePin', 'rename', 'details', 'delete', 'update']);
+const props = withDefaults(
+  defineProps<{
+    workflow?: Workflow;
+    tab?: 'local' | string;
+    pinned?: boolean;
+  }>(),
+  {
+    workflow: () => ({}) as Workflow,
+    tab: 'local',
+  }
+);
+const emit = defineEmits<{
+  execute: [workflow: Workflow];
+  togglePin: [];
+  rename: [workflow: Workflow];
+  details: [workflow: Workflow];
+  delete: [workflow: Workflow];
+  update: [data: Partial<Workflow>];
+}>();
 
 const { t } = useI18n();
 
-const menu = [
+const menu: { name: 'rename' | 'delete'; icon: string }[] = [
   { name: 'rename', icon: 'riPencilLine' },
   { name: 'delete', icon: 'riDeleteBin7Line' },
 ];
@@ -77,4 +85,7 @@ const filteredMenu = menu.filter(({ name }) => {
 
   return true;
 });
+const emitMenuAction = (name: 'rename' | 'delete', workflow: Workflow) => {
+  emit(name as 'rename', workflow);
+};
 </script>

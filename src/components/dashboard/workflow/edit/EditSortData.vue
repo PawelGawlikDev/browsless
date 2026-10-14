@@ -78,27 +78,29 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowInjectionContext } from '@/types/editor';
+import type { SortDataData } from '@/types/block-editor';
 import { inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import cloneDeep from 'lodash.clonedeep';
 import InsertWorkflowData from './InsertWorkflowData.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => SortDataData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: SortDataData] }>();
 const { t } = useI18n();
 const dataSources = [
   { id: 'table', name: t('workflow.table.title') },
   { id: 'variable', name: t('workflow.variables.title') },
 ];
-const workflow = inject('workflow');
+const workflow = inject<WorkflowInjectionContext>('workflow');
 const columns = workflow.columns.value.map(({ name }) => name);
 const properties = ref(cloneDeep(props.data.itemProperties));
-const updateData = (value) => {
+const updateData = (value: Partial<SortDataData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 const addProperty = () => {

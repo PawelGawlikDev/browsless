@@ -51,99 +51,79 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { IMaskDirective as vImask } from 'vue-imask';
 import { useComponentId } from '@/composable/componentId';
-const props = defineProps({
-  modelModifiers: {
-    default: () => ({}),
-  },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
-  readonly: {
-    type: Boolean,
-    default: false,
-  },
-  autofocus: {
-    type: Boolean,
-    default: false,
-  },
-  modelValue: {
-    type: [String, Number, Object],
-    default: '',
-  },
-  inputClass: {
-    type: String,
-    default: '',
-  },
-  prependIcon: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  list: {
-    type: String,
-    default: null,
-  },
-  type: {
-    type: String,
-    default: 'text',
-  },
-  placeholder: {
-    type: String,
-    default: '',
-  },
-  max: {
-    type: [String, Number],
-    default: null,
-  },
-  min: {
-    type: [String, Number],
-    default: null,
-  },
-  autocomplete: {
-    type: String,
-    default: null,
-  },
-  step: {
-    type: String,
-    default: null,
-  },
-  mask: {
-    type: [Array, Object],
-    default: null,
-  },
-  status: {
-    type: String,
-    default: '',
-  },
-  unmaskValue: Boolean,
-});
-const emit = defineEmits([
-  'update:modelValue',
-  'change',
-  'keydown',
-  'blur',
-  'keyup',
-  'focus',
-]);
+
+interface ModelModifiers {
+  lowercase?: boolean;
+  number?: boolean;
+}
+
+const props = withDefaults(
+  defineProps<{
+    modelModifiers?: ModelModifiers;
+    disabled?: boolean;
+    readonly?: boolean;
+    autofocus?: boolean;
+    modelValue?: string | number | Record<string, unknown>;
+    inputClass?: string;
+    prependIcon?: string;
+    label?: string;
+    list?: string | null;
+    type?: string;
+    placeholder?: string;
+    max?: string | number | null;
+    min?: string | number | null;
+    autocomplete?: string | null;
+    step?: string | null;
+    mask?: unknown[] | Record<string, unknown> | null;
+    status?: string;
+    unmaskValue?: boolean;
+  }>(),
+  {
+    modelModifiers: () => ({}),
+    disabled: false,
+    readonly: false,
+    autofocus: false,
+    modelValue: '',
+    inputClass: '',
+    prependIcon: '',
+    label: '',
+    list: null,
+    type: 'text',
+    placeholder: '',
+    max: null,
+    min: null,
+    autocomplete: null,
+    step: null,
+    mask: null,
+    status: '',
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: string | number];
+  change: [value: string | number];
+  keydown: [event: KeyboardEvent];
+  blur: [event: FocusEvent];
+  keyup: [event: KeyboardEvent];
+  focus: [event: FocusEvent];
+}>();
 const componentId = useComponentId('ui-input');
-const statusColors = {
+const statusColors: Record<string, string> = {
   error: 'ring-red-400 ring-2 focus:ring-red-400 focus:ring-2',
 };
-const emitValue = (event) => {
-  let { value } = event.target;
+const emitValue = (event: Event) => {
+  const target = event.target as HTMLInputElement & {
+    maskRef?: { unmaskedValue?: string };
+  };
+  let value: string | number = target.value;
   if (props.mask && props.unmaskValue) {
-    const { maskRef } = event.target;
+    const { maskRef } = target;
     if (maskRef && maskRef.unmaskedValue) value = maskRef.unmaskedValue;
   }
   if (props.modelModifiers.lowercase) {
-    value = value.toLocaleLowerCase();
+    value = value.toString().toLocaleLowerCase();
   } else if (props.modelModifiers.number) {
     value = +value;
   }

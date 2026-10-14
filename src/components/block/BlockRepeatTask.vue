@@ -44,32 +44,36 @@
     />
   </block-base>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { Handle, Position } from '@vue-flow/core';
 import { useComponentId } from '@/composable/componentId';
 import { useEditorBlock } from '@/composable/editorBlock';
 import BlockBase from './BlockBase.vue';
+import type { BlockNodeData } from '@/types/editor';
+
 const { t } = useI18n();
-const props = defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-const emit = defineEmits(['delete', 'update', 'settings']);
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: BlockNodeData & { repeatFor?: string };
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({}),
+  }
+);
+const emit = defineEmits<{
+  delete: [id: string];
+  update: [payload: Record<string, unknown>];
+  settings: [payload: unknown];
+}>();
 const block = useEditorBlock(props.label);
 const componentId = useComponentId('block-delay');
-const handleInput = ({ target }) => {
-  emit('update', { repeatFor: target.value });
+const handleInput = (event: Event) => {
+  emit('update', { repeatFor: (event.target as HTMLInputElement).value });
 };
 </script>
 <style>

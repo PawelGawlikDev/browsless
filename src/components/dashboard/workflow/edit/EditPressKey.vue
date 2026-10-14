@@ -79,7 +79,8 @@
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { PressKeyData } from '@/types/block-editor';
 import SharedElSelectorActions from '@/components/dashboard/shared/SharedElSelectorActions.vue';
 import { keyDefinitions } from '@/utils/USKeyboardLayout';
 import { recordPressedKey } from '@/utils/recordKeys';
@@ -88,11 +89,11 @@ import { useI18n } from 'vue-i18n';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => PressKeyData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: PressKeyData] }>();
 const spaceKeys = ['\r', '\n', ' ', '\u0000'];
 const includedKeys = ['Enter', 'Control', 'Meta', 'Shift', 'Alt', 'Space'];
 const filteredDefinitions = Object.keys(keyDefinitions)
@@ -102,14 +103,14 @@ const keysList = filteredDefinitions.concat(includedKeys);
 const { t } = useI18n();
 const isRecordingKey = ref(false);
 const dataKeys = ref(`${props.data.keys}`);
-const updateData = (value) => {
+const updateData = (value: Partial<PressKeyData>) => {
   emit('update:data', { ...props.data, ...value });
 };
-const updateKeys = (value) => {
+const updateKeys = (value: string) => {
   dataKeys.value = value;
   updateData({ keys: value });
 };
-const onKeydown = (event) => {
+const onKeydown = (event: KeyboardEvent) => {
   event.preventDefault();
   event.stopPropagation();
   recordPressedKey(event, (keys) => {

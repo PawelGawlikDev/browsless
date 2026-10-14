@@ -102,7 +102,7 @@
     />
   </block-base>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useBlockValidation } from '@/composable/blockValidation';
 import { useComponentId } from '@/composable/componentId';
 import { useEditorBlock } from '@/composable/editorBlock';
@@ -110,33 +110,32 @@ import { Handle, Position } from '@vue-flow/core';
 import { computed, shallowReactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BlockBase from './BlockBase.vue';
-const props = defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-  position: {
-    type: Object,
-    default: () => ({}),
-  },
-  events: {
-    type: Object,
-    default: () => ({}),
-  },
-  dimensions: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-defineEmits(['delete', 'edit', 'update', 'settings']);
+import type { BlockNodeData } from '@/types/editor';
+
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: BlockNodeData;
+    position?: Record<string, unknown>;
+    events?: Record<string, unknown>;
+    dimensions?: Record<string, unknown>;
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({}),
+    position: () => ({}),
+    events: () => ({}),
+    dimensions: () => ({}),
+  }
+);
+defineEmits<{
+  delete: [id: string];
+  edit: [];
+  update: [payload: Record<string, unknown>];
+  settings: [payload: unknown];
+}>();
 const loopBlocks = ['loop-data', 'loop-elements'];
 const { t, te } = useI18n();
 const block = useEditorBlock(props.label);
@@ -146,7 +145,7 @@ const state = shallowReactive({
   isCopied: false,
 });
 const showTextToCopy = computed(() => {
-  if (loopBlocks.includes(block.details.id) && props.data.loopId) {
+  if (loopBlocks.includes(block.details.id ?? '') && props.data.loopId) {
     return {
       name: 'Loop id',
       value: props.data.loopId,
@@ -160,7 +159,7 @@ const showTextToCopy = computed(() => {
   }
   return null;
 });
-const insertToClipboard = (text) => {
+const insertToClipboard = (text: string) => {
   navigator.clipboard.writeText(text);
   state.isCopied = true;
   setTimeout(() => {
@@ -171,7 +170,7 @@ const getBlockName = () => {
   const key = `workflow.blocks.${block.details.id}.name`;
   return te(key) ? t(key) : block.details.name;
 };
-const getIconPath = (path) => {
+const getIconPath = (path?: string) => {
   if (path && path.startsWith('path')) {
     const { 1: iconPath } = path.split(':');
     return iconPath;

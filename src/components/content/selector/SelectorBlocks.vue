@@ -28,8 +28,9 @@
       >{{ state.blockResult }}</pre>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { shallowReactive } from 'vue';
+import type { Component } from 'vue';
 import { tasks } from '@/utils/shared';
 import EditForms from '@/components/dashboard/workflow/edit/EditForms.vue';
 import EditTriggerEvent from '@/components/dashboard/workflow/edit/EditTriggerEvent.vue';
@@ -39,18 +40,33 @@ import handleGetText from '@/content/blocksHandler/handlerGetText';
 import handleEventClick from '@/content/blocksHandler/handlerEventClick';
 import handelTriggerEvent from '@/content/blocksHandler/handlerTriggerEvent';
 import handleElementScroll from '@/content/blocksHandler/handlerElementScroll';
-const props = defineProps({
-  selector: {
-    type: String,
-    default: '',
-  },
-  elements: {
-    type: Array,
-    default: () => [],
-  },
-});
-const emit = defineEmits(['update', 'execute']);
-const blocks = {
+
+const props = withDefaults(
+  defineProps<{
+    selector?: string;
+    elements?: unknown[];
+  }>(),
+  {
+    selector: '',
+    elements: () => [],
+  }
+);
+const emit = defineEmits<{
+  update: [];
+  execute: [running: boolean];
+}>();
+type SelectorBlockKey =
+  'forms' | 'get-text' | 'event-click' | 'trigger-event' | 'element-scroll';
+const blocks: Record<
+  SelectorBlockKey,
+  Record<string, unknown> & {
+    name: string;
+    component: Component | '';
+    handler: (
+      block: import('@/types/migration-helpers').SelectorBlock
+    ) => Promise<unknown>;
+  }
+> = {
   forms: {
     ...tasks.forms,
     component: EditForms,
@@ -77,28 +93,33 @@ const blocks = {
     handler: handleElementScroll,
   },
 };
-const state = shallowReactive({
+const state = shallowReactive<{
+  params: Record<string, unknown>;
+  blockResult: string;
+  selectedBlock: SelectorBlockKey | '';
+}>({
   params: {},
   blockResult: '',
   selectedBlock: '',
 });
-const updateParams = (data = {}) => {
+const updateParams = (data: Record<string, unknown> = {}) => {
   state.params = data;
   emit('update');
 };
-const onSelectChanged = (value) => {
+const onSelectChanged = (value: SelectorBlockKey) => {
   state.params = tasks[value].data;
   state.blockResult = '';
   emit('update');
 };
 const executeBlock = () => {
+  if (!state.selectedBlock) return;
   const params = {
     ...state.params,
     selector: props.selector,
     multiple: props.elements.length > 1,
   };
   emit('execute', true);
-  blocks[state.selectedBlock].handler({ data: params }).then((result) => {
+  blocks[state.selectedBlock].handler({ data: params }).then((result: unknown) => {
     state.blockResult = JSON.stringify(result, null, 2).trim();
     emit('update');
     emit('execute', false);

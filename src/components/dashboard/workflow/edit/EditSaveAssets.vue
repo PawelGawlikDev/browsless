@@ -77,7 +77,8 @@
     </template>
   </edit-interaction-base>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { SaveAssetsData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import { useHasPermissions } from '@/composable/hasPermissions';
 import EditInteractionBase from './EditInteractionBase.vue';
@@ -85,16 +86,16 @@ import EditAutocomplete from './EditAutocomplete.vue';
 import InsertWorkflowData from './InsertWorkflowData.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => SaveAssetsData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: SaveAssetsData] }>();
 const { t } = useI18n();
 const permission = useHasPermissions(['downloads']);
 const types = ['element', 'url'];
 const onConflict = ['uniquify', 'overwrite', 'prompt'];
-const updateData = (value) => {
+const updateData = (value: Partial<SaveAssetsData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

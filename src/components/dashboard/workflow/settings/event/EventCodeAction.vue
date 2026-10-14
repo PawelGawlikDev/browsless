@@ -5,7 +5,8 @@
     @change="$emit('update:data', { code: $event })"
   />
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowEventAction } from '@/types/block-editor';
 import { defineAsyncComponent } from 'vue';
 
 const SharedCodemirror = defineAsyncComponent(
@@ -14,9 +15,9 @@ const SharedCodemirror = defineAsyncComponent(
 
 defineProps({
   data: {
-    type: Object,
+    type: Object as () => WorkflowEventAction,
     default: () => ({}),
   },
 });
-defineEmits(['update:data']);
+defineEmits<{ 'update:data': [data: Partial<WorkflowEventAction>] }>();
 </script>

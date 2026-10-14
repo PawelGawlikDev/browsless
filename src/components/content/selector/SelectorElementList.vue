@@ -11,16 +11,22 @@
     </li>
   </ul>
 </template>
-<script setup>
-defineProps({
-  elements: {
-    type: Array,
-    default: () => [],
-  },
-  elementName: {
-    type: String,
-    default: 'Element',
-  },
-});
-defineEmits(['highlight']);
+<script setup lang="ts">
+import type { SelectedElementRect } from '@/content/elementSelector/types';
+
+withDefaults(
+  defineProps<{
+    elements?: SelectedElementRect[];
+    elementName?: string;
+  }>(),
+  {
+    elements: () => [],
+    elementName: 'Element',
+  }
+);
+defineEmits<{
+  highlight: [
+    payload: { highlight: boolean; index: number; element: SelectedElementRect },
+  ];
+}>();
 </script>

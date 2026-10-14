@@ -41,7 +41,7 @@
           </span>
         </div>
         <img
-          v-if="block.icon.startsWith('http')"
+          v-if="block.icon?.startsWith('http')"
           :src="block.icon"
           alt=""
           width="24"
@@ -67,28 +67,37 @@
     </div>
   </ui-expand>
 </template>
-<script setup>
+<script setup lang="ts">
+interface BlockListItem {
+  id: string;
+  name: string;
+  icon?: string;
+  description?: string;
+  tag?: string;
+}
 import { getBlocks } from '@/utils/getSharedData';
 import { useI18n } from 'vue-i18n';
 import { getBlockDocsPath } from '@/docs';
 defineProps({
   category: {
-    type: Object,
+    type: Object as () => { color?: string; name?: string },
     default: () => ({}),
   },
   blocks: {
-    type: Array,
-    default: () => [],
+    type: Array as () => BlockListItem[],
+    default: (): BlockListItem[] => [],
   },
   pinned: {
-    type: Array,
-    default: () => [],
+    type: Array as () => string[],
+    default: (): string[] => [],
   },
 });
-defineEmits(['pin']);
+defineEmits<{
+  pin: [block: BlockListItem];
+}>();
 const { t, te } = useI18n();
 const blocksDetail = getBlocks();
-const getBlockTitle = ({ description, id, name }) => {
+const getBlockTitle = ({ description, id, name }: BlockListItem) => {
   const blockPath = `workflow.blocks.${id}`;
   if (!te(blockPath)) return blocksDetail[id].name;
   const descPath = `${blockPath}.${description ? 'description' : 'name'}`;
@@ -98,7 +107,7 @@ const getBlockTitle = ({ description, id, name }) => {
   }
   return blockDescription;
 };
-const getIconPath = (path) => {
+const getIconPath = (path: string) => {
   if (path && path.startsWith('path')) {
     const { 1: iconPath } = path.split(':');
     return iconPath;

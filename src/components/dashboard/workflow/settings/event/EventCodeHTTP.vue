@@ -32,7 +32,7 @@
           <ui-input
             v-model="header.name"
             :title="header.name"
-            :placeholder="`Header ${index + 1}`"
+            :placeholder="`Header ${Number(index) + 1}`"
             type="text"
             class="col-span-3"
           />
@@ -71,7 +71,8 @@
     </ui-tab-panel>
   </ui-tab-panels>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowEventAction } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import { defineAsyncComponent, shallowRef } from 'vue';
 const SharedCodemirror = defineAsyncComponent(
@@ -79,14 +80,14 @@ const SharedCodemirror = defineAsyncComponent(
 );
 defineProps({
   data: {
-    type: Object,
+    type: Object as () => WorkflowEventAction,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [data: Partial<WorkflowEventAction>] }>();
 const { t } = useI18n();
 const activeTab = shallowRef('headers');
-const emitData = (data) => {
+const emitData = (data: Partial<WorkflowEventAction>) => {
   emit('update:data', data);
 };
 </script>

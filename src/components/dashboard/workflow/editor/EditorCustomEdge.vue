@@ -14,60 +14,26 @@
     :label-bg-border-radius="2"
   />
 </template>
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { BaseEdge, getBezierPath, getSmoothStepPath } from '@vue-flow/core';
 
-const props = defineProps({
-  id: {
-    type: String,
-    required: true,
-  },
-  sourceX: {
-    type: Number,
-    required: true,
-  },
-  sourceY: {
-    type: Number,
-    required: true,
-  },
-  targetX: {
-    type: Number,
-    required: true,
-  },
-  targetY: {
-    type: Number,
-    required: true,
-  },
-  sourcePosition: {
-    type: String,
-    required: true,
-  },
-  targetPosition: {
-    type: String,
-    required: true,
-  },
-  data: {
-    type: Object,
-    required: false,
-    default: () => ({}),
-  },
-  markerEnd: {
-    type: String,
-    required: false,
-    default: '',
-  },
-  label: {
-    type: String,
-    required: false,
-    default: '',
-  },
-  style: {
-    type: Object,
-    required: false,
-    default: null,
-  },
-});
+const props = withDefaults(
+  defineProps<{
+    id: string;
+    sourceX: number;
+    sourceY: number;
+    targetX: number;
+    targetY: number;
+    sourcePosition: import('@vue-flow/core').Position;
+    targetPosition: import('@vue-flow/core').Position;
+    data?: Record<string, unknown>;
+    markerEnd?: string;
+    label?: import('@vue-flow/core').EdgeProps['label'];
+    style?: import('vue').CSSProperties;
+  }>(),
+  { data: () => ({}), markerEnd: '' }
+);
 
 const path = computed(() => {
   const options = {
@@ -86,7 +52,7 @@ const path = computed(() => {
   return getBezierPath(options);
 });
 </script>
-<script>
+<script lang="ts">
 export default {
   inheritAttrs: false,
 };

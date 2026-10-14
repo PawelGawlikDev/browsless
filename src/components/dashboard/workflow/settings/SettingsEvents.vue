@@ -151,7 +151,9 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowEvent, WorkflowEventAction } from '@/types/block-editor';
+import type { WorkflowSettings } from '@/types/models';
 import { reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid';
@@ -160,13 +162,15 @@ import EventCodeHTTP from './event/EventCodeHTTP.vue';
 import EventCodeAction from './event/EventCodeAction.vue';
 const props = defineProps({
   settings: {
-    type: Object,
+    type: Object as () => Partial<WorkflowSettings>,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{
+  update: [data: { key: string; value: unknown }];
+}>();
 const { t } = useI18n();
-const EVENT_ACTIONS = {
+const EVENT_ACTIONS: Record<string, WorkflowEventAction> = {
   'http-request': {
     type: 'http-request',
     url: '',
@@ -179,11 +183,11 @@ const EVENT_ACTIONS = {
     type: 'js-code',
   },
 };
-const EVENT_ACTIONS_COMP = {
+const EVENT_ACTIONS_COMP: Record<string, import('vue').Component> = {
   'js-code': EventCodeAction,
   'http-request': EventCodeHTTP,
 };
-const WORKFLOW_EVENTS_CLASSES = {
+const WORKFLOW_EVENTS_CLASSES: Record<string, string> = {
   'finish:success': 'bg-green-300 dark:text-black dark:bg-green-200',
   'finish:failed': 'bg-red-300 dark:text-black dark:bg-red-200',
 };
@@ -193,12 +197,14 @@ const defaultActionModal = {
   show: false,
   data: {
     name: '',
-    events: [],
+    events: [] as string[],
     action: EVENT_ACTIONS['http-request'],
   },
 };
-const actionModal = reactive({ ...cloneDeep(defaultActionModal) });
-const updateModalState = (detail) => {
+const actionModal = reactive<{ type: string; show: boolean; data: WorkflowEvent }>({
+  ...cloneDeep(defaultActionModal),
+});
+const updateModalState = (detail: Partial<typeof actionModal>) => {
   Object.assign(actionModal, { ...cloneDeep(defaultActionModal), ...detail });
 };
 const upsertAction = () => {

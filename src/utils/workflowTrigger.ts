@@ -275,7 +275,7 @@ export const workflowTriggersMap: Record<string, TriggerHandler> = {
 };
 export const registerWorkflowTrigger = async (
   workflowId: string,
-  { data }: WorkflowNode
+  { data }: Partial<WorkflowNode> & Pick<WorkflowNode, 'data'>
 ) => {
   try {
     const triggerData = data as TriggerBlockData;

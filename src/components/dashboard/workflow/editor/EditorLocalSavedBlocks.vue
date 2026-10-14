@@ -90,7 +90,9 @@
     </ui-card>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { Ref } from 'vue';
+import type { VueFlowStore } from '@vue-flow/core';
 import { useDialog } from '@/composable/dialog';
 import { usePackageStore } from '@/stores/package';
 import { computed, inject, reactive } from 'vue';
@@ -102,7 +104,7 @@ const packageStore = usePackageStore();
 const state = reactive({
   query: '',
 });
-const editor = inject('workflow-editor');
+const editor = inject<Ref<VueFlowStore>>('workflow-editor');
 const sortedItems = computed(() =>
   packageStore.packages.slice().sort((a, b) => b.createdAt - a.createdAt)
 );
@@ -112,7 +114,7 @@ const items = computed(() => {
     item.name.toLocaleLowerCase().includes(query)
   );
 });
-const deleteItem = ({ id, name }) => {
+const deleteItem = ({ id, name }: { id: string; name: string }) => {
   dialog.confirm({
     title: 'Delete library item',
     body: `Are you sure you want to delete "${name}" from the library?`,
@@ -123,8 +125,18 @@ const deleteItem = ({ id, name }) => {
     },
   });
 };
-const removeConnections = ({ id, type, oldEdges, newEdges }) => {
-  const removedEdges = [];
+const removeConnections = ({
+  id,
+  type,
+  oldEdges,
+  newEdges,
+}: {
+  id: string;
+  type: string;
+  oldEdges: import('@/types/models').PackageIoItem[];
+  newEdges: import('@/types/models').PackageIoItem[];
+}) => {
+  const removedEdges: string[] = [];
   oldEdges.forEach((edge) => {
     const isNotDeleted = newEdges.find((item) => item.id === edge.id);
     if (isNotDeleted) return;
@@ -141,7 +153,7 @@ const removeConnections = ({ id, type, oldEdges, newEdges }) => {
   );
   editor.value.removeEdges(edgesToRemove);
 };
-const updatePackages = (item) => {
+const updatePackages = (item: import('@/types/models').SavedPackage) => {
   const packageNodes = editor.value.getNodes.value.filter(
     (node) => node.data.id === item.id
   );

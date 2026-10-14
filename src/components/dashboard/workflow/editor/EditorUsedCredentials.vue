@@ -45,27 +45,28 @@
     </ui-popover>
   </ui-card>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { VueFlowStore } from '@vue-flow/core';
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import objectPath from 'object-path';
 import { getBlocks } from '@/utils/getSharedData';
 const props = defineProps({
   editor: {
-    type: Object,
+    type: Object as () => VueFlowStore,
     default: () => ({}),
   },
 });
 const blocks = getBlocks();
 const { t } = useI18n();
-const credentials = ref([]);
+const credentials = ref<{ nodeId: string; nodeName: string; items: string[] }[]>([]);
 const checkCredentials = () => {
   const regex = /\{\{\s*secrets@(.*?)\}\}/;
-  const tempCreds = [];
+  const tempCreds: typeof credentials.value = [];
   props.editor.getNodes.value.forEach(({ label, id, data }) => {
-    const keys = blocks[label]?.refDataKeys;
+    const keys = typeof label === 'string' ? blocks[label]?.refDataKeys : undefined;
     if (!keys || !data) return;
-    const usedCredentials = new Set();
+    const usedCredentials = new Set<string>();
     keys.forEach((key) => {
       const str = objectPath.get(data, key);
       const match = str?.match?.(regex);
@@ -82,7 +83,7 @@ const checkCredentials = () => {
   });
   credentials.value = tempCreds;
 };
-const jumpToBlock = (nodeId) => {
+const jumpToBlock = (nodeId: string) => {
   const node = props.editor.getNode.value(nodeId);
   if (!node) return;
   const { x, y } = node.computedPosition;

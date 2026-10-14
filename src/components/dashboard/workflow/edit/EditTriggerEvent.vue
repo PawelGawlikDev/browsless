@@ -57,7 +57,8 @@
     </transition-expand>
   </edit-interaction-base>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { TriggerEventData } from '@/types/block-editor';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { eventList } from '@/utils/shared';
@@ -70,7 +71,7 @@ import TriggerEventInput from './TriggerEvent/TriggerEventInput.vue';
 import TriggerEventKeyboard from './TriggerEvent/TriggerEventKeyboard.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => TriggerEventData,
     default: () => ({}),
   },
   hideBase: {
@@ -78,9 +79,9 @@ const props = defineProps({
     default: false,
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: TriggerEventData] }>();
 const { t } = useI18n();
-const eventComponents = {
+const eventComponents: Record<string, import('vue').Component | string> = {
   'mouse-event': TriggerEventMouse,
   'focus-event': '',
   event: '',
@@ -95,17 +96,17 @@ const getEventDetailsUrl = () => {
   const eventType = toCamelCase(props.data.eventType);
   return `https://developer.mozilla.org/en-US/docs/Web/API/${eventType}/${eventType}`;
 };
-const updateData = (value) => {
+const updateData = (value: Partial<TriggerEventData>) => {
   emit('update:data', { ...props.data, ...value });
 };
-const updateParams = (value) => {
+const updateParams = (value: import('@/types/block-editor').TriggerEventParams) => {
   params.value = value;
   updateData({ eventParams: value });
 };
-const handleSelectChange = (value) => {
+const handleSelectChange = (value: string) => {
   const eventType = eventList.find(({ id }) => id === value).type;
-  const payload = { eventName: value, eventType };
-  if (eventType !== props.eventType) {
+  const payload: Partial<TriggerEventData> = { eventName: value, eventType };
+  if (eventType !== props.data.eventType) {
     const defaultParams = { bubbles: true, cancelable: true };
     payload.eventParams = defaultParams;
     params.value = defaultParams;

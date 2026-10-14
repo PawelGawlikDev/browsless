@@ -120,7 +120,13 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowInjectionContext } from '@/types/editor';
+import type {
+  DataMappingData,
+  MappingSource,
+  MappingDestination,
+} from '@/types/block-editor';
 import { reactive, onMounted, inject, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid';
@@ -128,35 +134,53 @@ import { debounce } from '@/utils/helper';
 import InsertWorkflowData from './InsertWorkflowData.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => DataMappingData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: DataMappingData] }>();
 const { t } = useI18n();
 const dataSources = [
   { id: 'table', name: t('workflow.table.title') },
   { id: 'variable', name: t('workflow.variables.title') },
 ];
-const workflow = inject('workflow');
+const workflow = inject<WorkflowInjectionContext>('workflow');
 const state = reactive({
   query: '',
   showModal: false,
-  autocompleteItems: [],
+  autocompleteItems: [] as string[],
   sources: [...props.data.sources],
 });
-const isNameDuplicate = ({ items, currItem, newName, event }) => {
+const isNameDuplicate = ({
+  items,
+  currItem,
+  newName,
+  event,
+}: {
+  items: MappingDestination[];
+  currItem: MappingDestination;
+  newName: string;
+  event: Event;
+}) => {
   const isDuplicate = items.some(
     (item) => currItem.id !== item.id && item.name === newName
   );
   if (isDuplicate || !newName) {
-    event.target.value = currItem.name;
+    (event.target as HTMLInputElement).value = currItem.name;
     return true;
   }
   return false;
 };
-const updateSource = ({ index, source, event }) => {
-  const newName = event.target.value.trim();
+const updateSource = ({
+  index,
+  source,
+  event,
+}: {
+  index: number;
+  source: MappingSource;
+  event: Event;
+}) => {
+  const newName = (event.target as HTMLInputElement).value.trim();
   const isDuplicate = isNameDuplicate({
     event,
     newName,
@@ -166,8 +190,18 @@ const updateSource = ({ index, source, event }) => {
   if (isDuplicate) return;
   state.sources[index].name = newName;
 };
-const updateDestination = ({ index, destIndex, destination, event }) => {
-  const newName = event.target.value.trim();
+const updateDestination = ({
+  index,
+  destIndex,
+  destination,
+  event,
+}: {
+  index: number;
+  destIndex: number;
+  destination: MappingDestination;
+  event: Event;
+}) => {
+  const newName = (event.target as HTMLInputElement).value.trim();
   const sourceDests = state.sources[index].destinations;
   const isDuplicate = isNameDuplicate({
     event,
@@ -186,14 +220,14 @@ const addSource = () => {
     name: `source_${id}`,
   });
 };
-const addDestination = (sourceIndex) => {
+const addDestination = (sourceIndex: number) => {
   const id = nanoid(4);
   state.sources[sourceIndex].destinations.push({
     id,
     name: `dest_${id}`,
   });
 };
-const updateData = (value) => {
+const updateData = (value: Partial<DataMappingData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 watch(

@@ -19,31 +19,27 @@
     </span>
   </label>
 </template>
-<script>
+<script setup lang="ts">
 import { computed } from 'vue';
-export default {
-  props: {
-    modelValue: {
-      type: String,
-      default: '',
-    },
-    value: {
-      type: String,
-      default: undefined,
-    },
-  },
-  emits: ['update:modelValue', 'change'],
-  setup(props, { emit }) {
-    const isChecked = computed(() => props.value === props.modelValue);
-    const changeHandler = ({ target: { value } }) => {
-      emit('update:modelValue', value);
-      emit('change', value);
-    };
-    return {
-      isChecked,
-      changeHandler,
-    };
-  },
+
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string;
+    value?: string;
+  }>(),
+  {
+    modelValue: '',
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: string];
+  change: [value: string];
+}>();
+const isChecked = computed(() => props.value === props.modelValue);
+const changeHandler = (event: Event) => {
+  const { value } = event.target as HTMLInputElement;
+  emit('update:modelValue', value);
+  emit('change', value);
 };
 </script>
 <style scoped>

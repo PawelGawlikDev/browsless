@@ -294,3 +294,34 @@ export const useWorkflowStore = defineStore('workflow', {
     },
   },
 });
+
+// `useWorkflowStore`'s options-store generics don't infer under this
+// project's TypeScript/Pinia combo — consumers should cast:
+// `useWorkflowStore() as WorkflowStoreInstance`.
+export type WorkflowStoreInstance = ReturnType<typeof useWorkflowStore> & {
+  states: WorkflowStateEntry[];
+  workflows: WorkflowMap;
+  popupStates: WorkflowStateEntry[];
+  retrieved: boolean;
+  isFirstTime: boolean;
+  getAllStates: WorkflowStateEntry[];
+  getById: (id: string) => Workflow | undefined;
+  getWorkflows: Workflow[];
+  getWorkflowStates: (id: string) => WorkflowStateEntry[];
+  loadData: () => Promise<void>;
+  updateStates: (newStates: WorkflowStateEntry[]) => void;
+  insert: (
+    data?: DeepPartial<Workflow> | DeepPartial<Workflow>[],
+    options?: { duplicateId?: boolean }
+  ) => Promise<WorkflowMap>;
+  update: (options: {
+    id: WorkflowMatcher;
+    data?: Partial<Workflow>;
+    deep?: boolean;
+  }) => Promise<WorkflowMap | null>;
+  insertOrUpdate: (
+    data?: DeepPartial<Workflow>[],
+    options?: { checkUpdateDate?: boolean; duplicateId?: boolean }
+  ) => Promise<WorkflowMap>;
+  delete: (id: string | string[]) => Promise<string | string[]>;
+};

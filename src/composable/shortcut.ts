@@ -3,13 +3,19 @@ import { onUnmounted, onMounted, reactive } from 'vue';
 import defu from 'defu';
 import Mousetrap from 'mousetrap';
 import { isObject } from '@/utils/helper';
-type ShortcutData = Record<string, unknown>;
+type ShortcutHandlerParams = ShortcutDefinition & {
+  event: KeyboardEvent;
+};
+type ShortcutHandler = (params: ShortcutHandlerParams, event: KeyboardEvent) => void;
+// `data` is genuinely polymorphic across callers: a callback to run on
+// trigger, a route path string, or an arbitrary payload object.
+type ShortcutData = unknown;
 export type ShortcutDefinition = {
   id: string;
   combo: string;
   readable?: string;
   data?: ShortcutData;
-} & ShortcutData;
+} & Record<string, unknown>;
 type ShortcutInput =
   | string
   | ShortcutDefinition
@@ -18,10 +24,6 @@ type ShortcutInput =
       data?: ShortcutData;
     }
   | Array<string | ShortcutDefinition>;
-type ShortcutHandlerParams = ShortcutDefinition & {
-  event: KeyboardEvent;
-};
-type ShortcutHandler = (params: ShortcutHandlerParams, event: KeyboardEvent) => void;
 type ShortcutMap = Record<string, ShortcutDefinition>;
 type ReadableShortcutToken = 'option' | 'mod';
 type PlatformKey = 'mac' | 'win';
@@ -84,7 +86,7 @@ const defaultShortcut: ShortcutMap = {
     combo: 'mod+[',
   },
 };
-export const mapShortcuts = reactive(defu({}, defaultShortcut));
+export const mapShortcuts: ShortcutMap = reactive(defu({}, defaultShortcut));
 getExtensionStorageValue<Partial<ShortcutMap>>('local', 'shortcuts', {}).then(
   (customShortcut) => {
     Object.assign(mapShortcuts, defu(customShortcut || {}, defaultShortcut));

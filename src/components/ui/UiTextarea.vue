@@ -12,58 +12,51 @@
     @blur="$emit('blur', $event)"
   ></textarea>
 </template>
-<script>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useComponentId } from '@/composable/componentId';
-export default {
-  props: {
-    modelValue: {
-      type: String,
-      default: '',
-    },
-    label: {
-      type: String,
-      default: '',
-    },
-    placeholder: {
-      type: String,
-      default: '',
-    },
-    autoresize: {
-      type: Boolean,
-      default: false,
-    },
-    max: {
-      type: [Number, String],
-      default: null,
-    },
-    block: Boolean,
-  },
-  emits: ['update:modelValue', 'change', 'focus', 'blur', 'keyup', 'keydown'],
-  setup(props, { emit }) {
-    const textareaId = useComponentId('textarea');
-    const textarea = ref(null);
-    const calcHeight = () => {
-      if (!props.autoresize) return;
-      textarea.value.style.height = 'auto';
-      textarea.value.style.height = `${textarea.value.scrollHeight}px`;
-    };
-    const emitValue = (event) => {
-      let { value } = event.target;
-      const maxLength = Math.abs(props.max) || Infinity;
-      if (value.length > maxLength) {
-        value = value.slice(0, maxLength);
-      }
-      emit('update:modelValue', value);
-      emit('change', value);
-      // calcHeight();
-    };
-    onMounted(calcHeight);
-    return {
-      textarea,
-      emitValue,
-      textareaId,
-    };
-  },
+
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string;
+    label?: string;
+    placeholder?: string;
+    autoresize?: boolean;
+    max?: number | string | null;
+    block?: boolean;
+  }>(),
+  {
+    modelValue: '',
+    label: '',
+    placeholder: '',
+    autoresize: false,
+    max: null,
+  }
+);
+const emit = defineEmits<{
+  'update:modelValue': [value: string];
+  change: [value: string];
+  focus: [event: FocusEvent];
+  blur: [event: FocusEvent];
+  keyup: [event: KeyboardEvent];
+  keydown: [event: KeyboardEvent];
+}>();
+const textareaId = useComponentId('textarea');
+const textarea = ref<HTMLTextAreaElement | null>(null);
+const calcHeight = () => {
+  if (!props.autoresize || !textarea.value) return;
+  textarea.value.style.height = 'auto';
+  textarea.value.style.height = `${textarea.value.scrollHeight}px`;
 };
+const emitValue = (event: Event) => {
+  let { value } = event.target as HTMLTextAreaElement;
+  const maxLength = Math.abs(Number(props.max)) || Infinity;
+  if (value.length > maxLength) {
+    value = value.slice(0, maxLength);
+  }
+  emit('update:modelValue', value);
+  emit('change', value);
+  // calcHeight();
+};
+onMounted(calcHeight);
 </script>

@@ -69,7 +69,7 @@ type InjectedWorkflow = {
 const props = defineProps({
   data: {
     type: Object as () => ContextMenuTriggerData,
-    default: () => ({ contextMenuName: '', contextTypes: [] }),
+    default: (): ContextMenuTriggerData => ({ contextMenuName: '', contextTypes: [] }),
   },
 });
 const emit = defineEmits<{

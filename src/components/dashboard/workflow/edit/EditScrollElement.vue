@@ -36,12 +36,13 @@
     </div>
   </edit-interaction-base>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { ScrollElementData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import EditInteractionBase from './EditInteractionBase.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => ScrollElementData,
     default: () => ({}),
   },
   hideBase: {
@@ -49,9 +50,9 @@ const props = defineProps({
     default: false,
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: ScrollElementData] }>();
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<ScrollElementData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

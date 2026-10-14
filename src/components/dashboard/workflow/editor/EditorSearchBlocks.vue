@@ -53,13 +53,21 @@
     </ui-autocomplete>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+interface SearchBlock {
+  id: string;
+  name: string;
+  description: string;
+  position: { x: number; y: number };
+}
+
+import type { VueFlowStore } from '@vue-flow/core';
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useShortcut } from '@/composable/shortcut';
 const props = defineProps({
   editor: {
-    type: Object,
+    type: Object as () => VueFlowStore,
     default: () => ({}),
   },
 });
@@ -73,25 +81,26 @@ const initialState = {
     zoom: 1,
   },
 };
-const autocompleteEl = ref(null);
+const autocompleteEl = ref<{ state: { showPopover: boolean } } | null>(null);
 const state = reactive({
   query: '',
   active: false,
   selected: false,
-  autocompleteItems: [],
+  autocompleteItems: [] as SearchBlock[],
 });
 const shortcut = useShortcut('editor:search-blocks', () => {
   state.active = true;
-  document.querySelector('#search-blocks')?.focus();
+  document.querySelector<HTMLInputElement>('#search-blocks')?.focus();
 });
-const searchNodes = ({ item, text }) => {
-  const isMatch = (str) => str.toLocaleLowerCase().includes(text.toLocaleLowerCase());
+const searchNodes = ({ item, text }: { item: SearchBlock; text: string }) => {
+  const isMatch = (str: string) =>
+    str.toLocaleLowerCase().includes(text.toLocaleLowerCase());
   return isMatch(item.id) || isMatch(item.name) || isMatch(item.description);
 };
 const toggleActiveSearch = () => {
   state.active = !state.active;
   if (state.active) {
-    document.querySelector('#search-blocks')?.focus();
+    document.querySelector<HTMLInputElement>('#search-blocks')?.focus();
   }
 };
 const extractBlocks = () => {
@@ -131,7 +140,7 @@ const clearState = () => {
       zoom: 1,
     },
   });
-  autocompleteEl.value.state.showPopover = false;
+  if (autocompleteEl.value) autocompleteEl.value.state.showPopover = false;
   clearHighlightedNodes();
   setTimeout(() => {
     const editorContainer = document.querySelector('.vue-flow');
@@ -139,9 +148,9 @@ const clearState = () => {
   }, 500);
 };
 const blurInput = () => {
-  document.querySelector('#search-blocks')?.blur();
+  document.querySelector<HTMLInputElement>('#search-blocks')?.blur();
 };
-const onSelectItem = ({ item }) => {
+const onSelectItem = ({ item }: { item: SearchBlock }) => {
   const { x, y } = item.position;
   const { rectX, rectY } = initialState;
   clearHighlightedNodes();
@@ -152,7 +161,7 @@ const onSelectItem = ({ item }) => {
     y: -(y - rectY),
   });
 };
-const onItemSelected = (event) => {
+const onItemSelected = (event: { item: SearchBlock }) => {
   state.selected = true;
   const node = props.editor.getNode.value(event.item.id);
   props.editor.addSelectedNodes([node]);

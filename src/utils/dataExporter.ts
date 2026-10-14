@@ -47,7 +47,7 @@ const dataExporter = (
         : generateJSON(Object.keys(sourceData), sourceData);
     result =
       type === 'csv'
-        ? Papa.unparse(jsonData, csvOptions || {})
+        ? Papa.unparse(jsonData as unknown[], csvOptions || {})
         : JSON.stringify(jsonData, null, 2);
   } else if (type === 'plain-text') {
     const extractObj = (obj) => {

@@ -33,12 +33,19 @@
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { VueFlowStore } from '@vue-flow/core';
+import type { EditedBlock } from '@/types/editor';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getBlockDocsPath } from '@/docs';
-const editComponents = import.meta.glob('./edit/Edit*.vue', { eager: true });
-const components = Object.entries(editComponents).reduce((acc, [key, module]) => {
+const editComponents = import.meta.glob<{ default: import('vue').Component }>(
+  './edit/Edit*.vue',
+  { eager: true }
+);
+const components = Object.entries(editComponents).reduce<
+  Record<string, import('vue').Component>
+>((acc, [key, module]) => {
   const name = key
     .split('/')
     .at(-1)
@@ -50,24 +57,28 @@ const components = Object.entries(editComponents).reduce((acc, [key, module]) =>
 }, {});
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => EditedBlock,
     default: () => ({}),
   },
   editor: {
-    type: Object,
+    type: Object as () => VueFlowStore,
     default: () => ({}),
   },
   workflow: {
-    type: Object,
+    type: Object as () => import('@/types/editor').WorkflowOrPackage,
     default: () => ({}),
   },
   autocomplete: {
-    type: Object,
+    type: Object as () => Record<string, unknown>,
     default: () => ({}),
   },
   dataChanged: Boolean,
 });
-const emit = defineEmits(['close', 'update', 'update:autocomplete']);
+const emit = defineEmits<{
+  close: [];
+  update: [data: Record<string, unknown>];
+  'update:autocomplete': [data: Record<string, unknown>];
+}>();
 const { t, te } = useI18n();
 const blockData = computed({
   get() {
@@ -83,7 +94,7 @@ const handleClose = () => {
 };
 const getEditComponent = () => {
   const editComp = props.data.editComponent;
-  if (typeof editComp === 'object') return editComp;
+  if (typeof editComp !== 'string') return editComp;
   return components[editComp] || null;
 };
 const getBlockName = () => {

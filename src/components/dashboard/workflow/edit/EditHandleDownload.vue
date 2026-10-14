@@ -66,21 +66,22 @@
     </template>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { HandleDownloadData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import { useHasPermissions } from '@/composable/hasPermissions';
 import InsertWorkflowData from './InsertWorkflowData.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => HandleDownloadData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: HandleDownloadData] }>();
 const permission = useHasPermissions(['downloads']);
 const onConflict = ['uniquify', 'overwrite', 'prompt'];
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<HandleDownloadData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

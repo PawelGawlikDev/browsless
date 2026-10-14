@@ -131,11 +131,11 @@
       >
         <template v-if="isPackage">
           <ui-tab-panel value="package-details" class="container pt-24">
-            <package-details :data="workflow" @update="updateWorkflow" />
+            <package-details :data="workflow as SavedPackage" @update="updateWorkflow" />
           </ui-tab-panel>
           <ui-tab-panel value="package-settings" class="container pt-24">
             <package-settings
-              :data="workflow"
+              :data="workflow as SavedPackage"
               :editor="editor"
               @update="updateWorkflow"
               @goBlock="goToPkgBlock"
@@ -150,7 +150,7 @@
           />
           <workflow-editor
             v-if="state.workflowConverted"
-            :id="route.params.id"
+            :id="workflowId"
             :data="editorData"
             :disabled="!haveEditAccess"
             :class="{ 'animate-blocks': state.animateBlocks }"
@@ -211,7 +211,7 @@
             v-if="editor"
             :editor="editor"
             :is-package="isPackage"
-            :package-io="workflow.settings?.asBlock"
+            :package-io="(workflow.settings as { asBlock?: boolean })?.asBlock"
             @group="groupBlocks"
             @ungroup="ungroupBlocks"
             @packageIo="addPackageIO"
@@ -267,7 +267,7 @@
     />
   </ui-modal>
 </template>
-<script setup>
+<script setup lang="ts">
 import PackageDetails from '@/components/dashboard/package/PackageDetails.vue';
 import PackageSettings from '@/components/dashboard/package/PackageSettings.vue';
 import SharedPermissionsModal from '@/components/dashboard/shared/SharedPermissionsModal.vue';
@@ -295,8 +295,8 @@ import dbStorage from '@/db/storage';
 import emitter from '@/lib/mitt';
 import startRecordWorkflow from '@/dashboard/utils/startRecordWorkflow';
 import RendererWorkflowService from '@/service/renderer/RendererWorkflowService';
-import { usePackageStore } from '@/stores/package';
-import { useWorkflowStore } from '@/stores/workflow';
+import { usePackageStore, type PackageStoreInstance } from '@/stores/package';
+import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import convertWorkflowData from '@/utils/convertWorkflowData';
 import DroppedNode from '@/utils/editor/DroppedNode';
 import extractAutocopmleteData from '@/utils/editor/editorAutocomplete';
@@ -329,27 +329,61 @@ import { useI18n } from 'vue-i18n';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { browser } from 'wxt/browser';
+import type { VueFlowStore, GraphNode, EdgeChange, NodeChange } from '@vue-flow/core';
+import type {
+  Workflow,
+  WorkflowNode,
+  WorkflowDataColumn,
+  PackageIoItem,
+  DrawflowData,
+  SavedPackage,
+} from '@/types/models';
+import type { DbStorageTableItem } from '@/types/db';
+import type { WorkflowOrPackage } from '@/types/editor';
+
+interface EditingBlockData extends Record<string, unknown> {
+  id?: string;
+  blockId?: string;
+  itemId?: string;
+  data?: Record<string, unknown>;
+  connections?: { id: string; name: string }[];
+  editComponent?: unknown;
+  name?: string;
+}
+interface ModalDef {
+  icon?: string;
+  width?: string;
+  component?: unknown;
+  title?: string;
+  docs?: string;
+  events?: Record<string, (...args: unknown[]) => void>;
+  attrs?: Record<string, unknown>;
+}
+
 const blocks = getBlocks();
-let editorCommands = null;
-const executeCommandTimeout = null;
+let editorCommands: EditorCommands | null = null;
+const executeCommandTimeout: ReturnType<typeof setTimeout> | null = null;
 const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 7);
 useGroupTooltip();
 const { t, te } = useI18n();
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
-const packageStore = usePackageStore();
-const workflowStore = useWorkflowStore();
+const packageStore = usePackageStore() as PackageStoreInstance;
+const workflowStore = useWorkflowStore() as WorkflowStoreInstance;
 const commandManager = useCommandManager();
-const { id: workflowId } = route.params;
+const workflowId = route.params.id as string;
 const isPackage = route.name === 'packages-details';
-const funcsAutocomplete = Object.keys(functions).reduce((acc, name) => {
-  acc[`$${name}`] = '';
-  return acc;
-}, {});
-const editor = shallowRef(null);
-const connectedTable = shallowRef(null);
-const sidebarRef = ref(null);
+const funcsAutocomplete = Object.keys(functions).reduce<Record<string, string>>(
+  (acc, name) => {
+    acc[`$${name}`] = '';
+    return acc;
+  },
+  {}
+);
+const editor = shallowRef<VueFlowStore | null>(null);
+const connectedTable = shallowRef<DbStorageTableItem | null>(null);
+const sidebarRef = ref<HTMLElement | null>(null);
 const sidebarCss = reactive({
   width: 360,
   padding: '20px',
@@ -357,7 +391,7 @@ const sidebarCss = reactive({
   startX: 0,
   startWidth: 0,
 });
-const drag = (event) => {
+const drag = (event: MouseEvent) => {
   if (sidebarCss.isDragging) {
     const diffX = event.clientX - sidebarCss.startX;
     sidebarCss.width = Math.max(360, sidebarCss.startWidth + diffX); // min-width : 360px,max-width: 30%
@@ -368,7 +402,7 @@ const stopDrag = () => {
   document.removeEventListener('mousemove', drag);
   document.removeEventListener('mouseup', stopDrag);
 };
-const startDrag = (event) => {
+const startDrag = (event: MouseEvent) => {
   sidebarCss.isDragging = true;
   sidebarCss.startX = event.clientX;
   sidebarCss.startWidth = sidebarCss.width;
@@ -382,37 +416,49 @@ const state = reactive({
   animateBlocks: false,
   isExecuteCommand: false,
   workflowConverted: false,
-  activeTab: route.query.tab || 'editor',
+  activeTab: (route.query.tab as string) || 'editor',
 });
-const blockFolderModal = reactive({
+const blockFolderModal = reactive<{
+  name: string;
+  icon: string;
+  nodes: WorkflowNode[];
+  description: string;
+  showList: boolean;
+  showModal: boolean;
+  asBlock: boolean;
+}>({
   name: '',
   icon: '',
   nodes: [],
   description: '',
   showList: false,
   showModal: false,
+  asBlock: false,
 });
-const permissionState = reactive({
-  permissions: [],
+const permissionState = reactive<{ items: string[]; showModal: boolean }>({
+  items: [],
   showModal: false,
 });
-const modalState = reactive({
+const modalState = reactive<{ name: string; show: boolean }>({
   name: '',
   show: false,
 });
-const editState = reactive({
+const editState = reactive<{ blockData: EditingBlockData; editing: boolean }>({
   blockData: {},
   editing: false,
 });
-const autocompleteState = reactive({
+const autocompleteState = reactive<{
+  blocks: Record<string, Record<string, unknown>>;
+  common: { globalData?: unknown; variables?: Record<string, unknown> };
+}>({
   blocks: {},
   common: {},
 });
-const workflowPayload = {
+const workflowPayload: { data: Record<string, unknown>; isUpdating: boolean } = {
   data: {},
   isUpdating: false,
 };
-const workflowModals = {
+const workflowModals: Record<string, ModalDef> = {
   table: {
     icon: 'riKey2Line',
     width: 'max-w-2xl',
@@ -451,7 +497,7 @@ const workflowModals = {
   },
 };
 const autocompleteList = computed(() => {
-  const autocompleteData = {
+  const autocompleteData: Record<string, unknown> = {
     loopData: {},
     googleSheets: {},
     table: {},
@@ -460,76 +506,80 @@ const autocompleteList = computed(() => {
     variables: { ...autocompleteState.common.variables },
   };
   Object.values(autocompleteState.blocks).forEach((item) => {
-    if (item.loopData) Object.assign(autocompleteData.loopData, item.loopData);
-    if (item.variables) Object.assign(autocompleteData.variables, item.variables);
+    if (item.loopData) Object.assign(autocompleteData.loopData as object, item.loopData);
+    if (item.variables)
+      Object.assign(autocompleteData.variables as object, item.variables);
     if (item.googleSheets)
-      Object.assign(autocompleteData.googleSheets, item.googleSheets);
+      Object.assign(autocompleteData.googleSheets as object, item.googleSheets);
   });
   return autocompleteData;
 });
 const haveEditAccess = computed(() => {
   return true;
 });
-const workflow = computed(() => {
+const workflow = computed<WorkflowOrPackage | undefined>(() => {
   if (isPackage) {
     return packageStore.getById(workflowId);
   }
   return workflowStore.getById(workflowId);
 });
-const workflowStates = computed(() => workflowStore.getWorkflowStates(route.params.id));
+const workflowStates = computed(() => workflowStore.getWorkflowStates(workflowId));
 const activeWorkflowModal = computed(() => workflowModals[modalState.name] || {});
-const workflowColumns = computed(() => {
+const workflowColumns = computed<WorkflowDataColumn[]>(() => {
   if (connectedTable.value) {
     return connectedTable.value.columns;
   }
-  return workflow.value.table;
+  return (workflow.value as { table?: WorkflowDataColumn[] })?.table || [];
 });
-const editorData = computed(() => {
-  if (isPackage) return workflow.value.data;
-  return workflow.value.drawflow;
+const editorData = computed<DrawflowData | undefined>(() => {
+  if (isPackage) return workflow.value?.data;
+  return (workflow.value as { drawflow?: DrawflowData })?.drawflow;
 });
-const updateBlockData = debounce((data) => {
+const updateBlockData = debounce((data: Record<string, unknown>) => {
   if (!haveEditAccess.value) return;
-  const node = editor.value.getNode.value(editState.blockData.blockId);
+  const node = editor.value?.getNode.value(editState.blockData.blockId as string);
+  if (!node) return;
   const dataCopy = JSON.parse(JSON.stringify(data));
   let autocompleteId = '';
   if (editState.blockData.itemId) {
     const itemIndex = node.data.blocks.findIndex(
-      ({ itemId }) => itemId === editState.blockData.itemId
+      ({ itemId }: { itemId: string }) => itemId === editState.blockData.itemId
     );
     if (itemIndex !== -1) {
       node.data.blocks[itemIndex].data = dataCopy;
-      autocompleteId = editState.blockData.itemId;
+      autocompleteId = editState.blockData.itemId as string;
     }
   } else {
     node.data = dataCopy;
-    autocompleteId = editState.blockData.blockId;
+    autocompleteId = editState.blockData.blockId as string;
   }
   if (autocompleteState.blocks[autocompleteId]) {
     const { id, blockId } = editState.blockData;
     Object.assign(
       autocompleteState.blocks,
-      extractAutocopmleteData(id, { data, id: blockId })
+      extractAutocopmleteData(id as string, { data, id: blockId })
     );
   }
   editState.blockData.data = data;
   state.dataChanged = true;
 }, 250);
-const onEdgesChange = debounce((changes) => {
-  changes.forEach(({ type, item }) => {
+const onEdgesChange = debounce((changes: EdgeChange[]) => {
+  changes.forEach((change) => {
+    const { type } = change;
+    const item = 'item' in change ? change.item : undefined;
     if (
       type === 'add' &&
       item?.sourceHandle?.includes('output') &&
       item?.targetHandle?.includes('output')
     ) {
-      editor.value.removeEdges([item.id]);
+      editor.value?.removeEdges([item.id]);
       return;
     }
     if (state.dataChanged) return;
     state.dataChanged = type !== 'select';
   });
 }, 250);
-const onTabChange = (tabVal) => {
+const onTabChange = (tabVal: string | number) => {
   if (tabVal === 'logs') {
     emitter.emit('ui:logs', {
       workflowId,
@@ -537,9 +587,17 @@ const onTabChange = (tabVal) => {
     });
     return;
   }
-  state.activeTab = tabVal;
+  state.activeTab = tabVal as string;
 };
-const onUpdateBlockSettings = ({ blockId, itemId, settings }) => {
+const onUpdateBlockSettings = ({
+  blockId,
+  itemId,
+  settings,
+}: {
+  blockId: string;
+  itemId?: string;
+  settings: Record<string, unknown>;
+}) => {
   state.dataChanged = true;
   if (!editState.editing) return;
   if (itemId && itemId !== editState.blockData.itemId) return;
@@ -551,10 +609,10 @@ const closeEditingCard = () => {
   editState.blockData = {};
   state.showSidebar = state.sidebarState;
 };
-const executeFromBlock = async (blockId) => {
+const executeFromBlock = async (blockId: string) => {
   try {
     if (!blockId) return;
-    const workflowOptions = { blockId };
+    const workflowOptions: { blockId: string; tabId?: number } = { blockId };
     let tab = await getActiveTab();
     if (!tab) {
       [tab] = await browser.tabs.query({ active: true, url: '*://*/*' });
@@ -562,19 +620,28 @@ const executeFromBlock = async (blockId) => {
     if (tab) {
       workflowOptions.tabId = tab.id;
     }
-    RendererWorkflowService.executeWorkflow(workflow.value, workflowOptions);
+    RendererWorkflowService.executeWorkflow(
+      workflow.value as Record<string, unknown>,
+      workflowOptions
+    );
   } catch (error) {
     console.error(error);
   }
 };
-const startRecording = ({ nodeId, handleId }) => {
+const startRecording = ({
+  nodeId,
+  handleId,
+}: {
+  nodeId?: string | null;
+  handleId?: string | null;
+}) => {
   if (state.dataChanged) {
     alert('Make sure to save the workflow before starting recording');
     return;
   }
   const options = {
     workflowId,
-    name: workflow.value.name,
+    name: workflow.value?.name,
     connectFrom: {
       id: nodeId,
       output: handleId,
@@ -585,13 +652,14 @@ const startRecording = ({ nodeId, handleId }) => {
     router.replace('/recording');
   });
 };
-const goToBlock = (blockId) => {
+const goToBlock = (blockId: string) => {
   if (!editor.value) return;
   const block = editor.value.getNode.value(blockId);
   if (!block) return;
   editor.value.addSelectedNodes([block]);
   setTimeout(() => {
     const editorContainer = document.querySelector('.vue-flow');
+    if (!editorContainer || !editor.value) return;
     const { height, width } = editorContainer.getBoundingClientRect();
     const { x, y } = block.position;
     editor.value.setTransform({
@@ -601,12 +669,22 @@ const goToBlock = (blockId) => {
     });
   }, 200);
 };
-const goToPkgBlock = (blockId) => {
+const goToPkgBlock = (blockId: string) => {
   state.activeTab = 'editor';
   goToBlock(blockId);
 };
-const addPackageIO = ({ type, handleId, nodeId }) => {
-  const copyPkgIO = [...workflow.value[type]];
+const addPackageIO = ({
+  type,
+  handleId,
+  nodeId,
+}: {
+  type: 'inputs' | 'outputs';
+  handleId: string;
+  nodeId: string;
+}) => {
+  const copyPkgIO = [
+    ...((workflow.value as Record<string, unknown>)[type] as PackageIoItem[]),
+  ];
   const itemExist = copyPkgIO.some(
     (io) => io.blockId === nodeId && handleId === io.handleId
   );
@@ -622,9 +700,9 @@ const addPackageIO = ({ type, handleId, nodeId }) => {
   });
   updateWorkflow({ [type]: copyPkgIO });
 };
-const initBlockFolder = ({ nodes }) => {
+const initBlockFolder = ({ nodes }: { nodes: GraphNode[] }) => {
   Object.assign(blockFolderModal, {
-    nodes,
+    nodes: nodes.map((node) => ({ ...node, label: String(node.label) })),
     showModal: true,
   });
 };
@@ -640,13 +718,14 @@ const clearBlockFolderModal = () => {
 };
 const saveBlockToFolder = async () => {
   try {
-    const seen = new Set();
+    if (!editor.value) return;
+    const seen = new Set<string>();
     const nodeList = [
       ...editor.value.getSelectedNodes.value,
       ...blockFolderModal.nodes,
-    ].reduce((acc, node) => {
+    ].reduce<WorkflowNode[]>((acc, node) => {
       if (seen.has(node.id)) return acc;
-      const { label, data, position, id, type } = node;
+      const { label, data, position, id, type } = node as unknown as WorkflowNode;
       acc.push(cloneDeep({ label, data, position, id, type }));
       seen.add(node.id);
       return acc;
@@ -667,19 +746,27 @@ const saveBlockToFolder = async () => {
     console.error(error);
   }
 };
-const groupBlocks = ({ position }) => {
-  const nodesToDelete = [];
+const groupBlocks = ({
+  position,
+}: {
+  position?: { clientX: number; clientY: number };
+}) => {
+  if (!editor.value || !position) return;
+  const nodesToDelete: GraphNode[] = [];
   const nodes = editor.value.getSelectedNodes.value;
-  const groupBlocksList = nodes.reduce((acc, node) => {
-    if (excludeGroupBlocks.includes(node.label)) return acc;
-    acc.push({
-      id: node.label,
-      itemId: node.id,
-      data: node.data,
-    });
-    nodesToDelete.push(node);
-    return acc;
-  }, []);
+  const groupBlocksList = nodes.reduce<{ id: string; itemId: string; data: unknown }[]>(
+    (acc, node) => {
+      if (excludeGroupBlocks.includes(node.label as string)) return acc;
+      acc.push({
+        id: node.label as string,
+        itemId: node.id,
+        data: node.data,
+      });
+      nodesToDelete.push(node);
+      return acc;
+    },
+    []
+  );
   if (groupBlocksList.length === 0) return;
   editor.value.removeNodes(nodesToDelete);
   const { component, data } = blocks['blocks-group'];
@@ -696,16 +783,24 @@ const groupBlocks = ({ position }) => {
     },
   ]);
 };
-const ungroupBlocks = ({ nodes }) => {
+const ungroupBlocks = ({ nodes }: { nodes: GraphNode[] }) => {
   const [node] = nodes;
   if (!node || node.label !== 'blocks-group') return;
-  const edges = [];
+  const edges: import('@vue-flow/core').Edge[] = [];
   const position = { ...node.position };
-  const copyBlocks = cloneDeep(node.data?.blocks || []);
+  const copyBlocks = cloneDeep(node.data?.blocks || []) as {
+    id: string;
+    itemId?: string;
+    data: Record<string, unknown>;
+    label?: string;
+    position?: { x: number; y: number };
+    type?: string;
+  }[];
   const groupBlocksList = copyBlocks.map((item, index) => {
     const nextNode = copyBlocks[index + 1];
     if (nextNode) {
       edges.push({
+        id: `edge-${nanoid()}`,
         source: item.itemId,
         target: nextNode.itemId,
         sourceHandle: `${item.itemId}-output-1`,
@@ -718,44 +813,55 @@ const ungroupBlocks = ({ nodes }) => {
     item.type = blocks[item.label].component;
     delete item.itemId;
     position.x += 250;
-    return item;
+    return { ...item, position: { ...item.position } as { x: number; y: number } };
   });
   editor.value.removeNodes(nodes);
   editor.value.addNodes(groupBlocksList);
-  editor.value.addSelectedNodes(groupBlocksList);
+  editor.value.addSelectedNodes(
+    groupBlocksList.map((item) => editor.value.findNode(item.id)).filter(Boolean)
+  );
   editor.value.addEdges(edges);
 };
 const initAutocomplete = async () => {
-  const autocompleteCache = await getExtensionStorageValue(
+  const autocompleteCache = await getExtensionStorageValue<string>(
     'session',
     `autocomplete:${workflowId}`
   );
   if (autocompleteCache) {
-    const objData = parseJSON(autocompleteCache, {});
+    const objData = parseJSON<Record<string, Record<string, unknown>>>(
+      autocompleteCache,
+      {}
+    );
     autocompleteState.blocks = objData;
   } else {
-    const autocompleteData = {};
-    editorData.value.nodes.forEach(({ label, id, data }) => {
+    const autocompleteData: Record<string, Record<string, unknown>> = {};
+    editorData.value?.nodes.forEach(({ label, id, data }) => {
       Object.assign(autocompleteData, extractAutocopmleteData(label, { data, id }));
     });
     autocompleteState.blocks = autocompleteData;
   }
   try {
     const storageVars = await dbStorage.variables.toArray();
-    autocompleteState.common.globalData = parseJSON(workflow.value.globalData, {});
+    autocompleteState.common.globalData = parseJSON(
+      (workflow.value as { globalData?: string })?.globalData as string,
+      {}
+    );
     autocompleteState.common.variables = {};
     storageVars.forEach((variable) => {
-      autocompleteState.common.variables[`$$${variable.name}`] = {};
+      (autocompleteState.common.variables as Record<string, unknown>)[
+        `$$${variable.name}`
+      ] = {};
     });
   } catch (error) {
     console.error(error);
   }
 };
 const registerTrigger = () => {
-  const triggerBlock = editorData.value.nodes.find((node) => node.label === 'trigger');
+  const triggerBlock = editorData.value?.nodes.find((node) => node.label === 'trigger');
+  if (!triggerBlock) return;
   registerWorkflowTrigger(workflowId, triggerBlock);
 };
-const executeCommand = (type) => {
+const executeCommand = (type: 'undo' | 'redo') => {
   state.isExecuteCommand = true;
   if (type === 'undo') {
     commandManager.undo();
@@ -767,9 +873,14 @@ const executeCommand = (type) => {
     state.isExecuteCommand = false;
   }, 500);
 };
-const onNodesChange = (changes) => {
-  const nodeChanges = { added: [], removed: [] };
-  changes.forEach(({ type, id, item }) => {
+const onNodesChange = (changes: NodeChange[]) => {
+  const nodeChanges: { added: GraphNode[]; removed: string[] } = {
+    added: [],
+    removed: [],
+  };
+  changes.forEach((change) => {
+    const { type, id } = change as { type: string; id: string };
+    const item = 'item' in change ? change.item : undefined;
     if (type === 'remove') {
       if (editState.blockData.blockId === id) {
         editState.editing = false;
@@ -777,11 +888,11 @@ const onNodesChange = (changes) => {
       }
       state.dataChanged = true;
       nodeChanges.removed.push(id);
-    } else if (type === 'add') {
+    } else if (type === 'add' && item) {
       if (isPackage) {
         const excludeBlocks = ['block-package', 'trigger', 'execute-workflow'];
-        if (excludeBlocks.includes(item.label)) {
-          editor.value.removeNodes([item]);
+        if (excludeBlocks.includes(item.label as string)) {
+          editor.value?.removeNodes([item]);
         }
         return;
       }
@@ -801,13 +912,12 @@ const onNodesChange = (changes) => {
 };
 const autoAlign = () => {
   state.animateBlocks = true;
-  const graph = new dagre.graphlib.Graph();
+  const graph = new dagre.graphlib.Graph({ multigraph: true });
   graph.setGraph({
     rankdir: 'LR',
     ranksep: 100,
     ranker: 'tight-tree',
   });
-  graph._isMultigraph = true;
   graph.setDefaultEdgeLabel(() => ({}));
   editor.value.getNodes.value.forEach(({ id, label, dimensions, parentNode }) => {
     if (label === 'blocks-group-2' || parentNode) return;
@@ -821,7 +931,7 @@ const autoAlign = () => {
     graph.setEdge(source, target, { id });
   });
   dagre.layout(graph);
-  const nodeChanges = [];
+  const nodeChanges: NodeChange[] = [];
   graph.nodes().forEach((nodeId) => {
     const graphNode = graph.node(nodeId);
     if (!graphNode) return;
@@ -832,6 +942,7 @@ const autoAlign = () => {
     nodeChanges.push({
       id: nodeId,
       type: 'position',
+      from: editor.value.findNode(nodeId)?.position || { x, y },
       dragging: false,
       position: { x, y },
     });
@@ -847,19 +958,22 @@ function toggleSidebar() {
   state.showSidebar = !state.showSidebar;
   setExtensionStorageValue('local', 'workflow:sidebar', state.showSidebar);
 }
-const getBlockDefinition = (blockId, blockNodeId = null) => {
+const getBlockDefinition = (blockId: string, blockNodeId: string | null = null) => {
   if (blocks[blockId]) return blocks[blockId];
   if (blockNodeId) {
     const node = editor.value?.findNode?.(blockNodeId);
-    const fallbackLabel = node?.label;
+    const fallbackLabel = node?.label as string | undefined;
     if (fallbackLabel && blocks[fallbackLabel]) {
       return blocks[fallbackLabel];
     }
   }
   return null;
 };
-const initEditBlock = (data) => {
-  const blockDefinition = getBlockDefinition(data.id, data.blockId);
+const initEditBlock = (data: EditingBlockData) => {
+  const blockDefinition = getBlockDefinition(
+    data.id as string,
+    (data.blockId as string) ?? null
+  );
   if (!blockDefinition) {
     console.warn('Missing block definition for edit action', data);
     return;
@@ -875,33 +989,33 @@ const initEditBlock = (data) => {
     name,
     data: blockData,
   };
-  if (data.id === 'wait-connections') {
-    const connections = editor.value.getEdges.value.reduce(
-      (acc, { target, sourceNode, source }) => {
-        if (target !== data.blockId) return acc;
-        const blockNameKey = `workflow.blocks.${sourceNode.label}.name`;
-        let blockName = te(blockNameKey)
-          ? t(blockNameKey)
-          : blocks[sourceNode.label]?.name || sourceNode.label;
-        const { description, name: groupName } = sourceNode.data;
-        if (description || groupName) blockName += ` (${description || groupName})`;
-        acc.push({
-          id: source,
-          name: blockName,
-        });
-        return acc;
-      },
-      []
-    );
+  if (data.id === 'wait-connections' && editor.value) {
+    const connections = editor.value.getEdges.value.reduce<
+      { id: string; name: string }[]
+    >((acc, { target, sourceNode, source }) => {
+      if (target !== data.blockId) return acc;
+      const sourceLabel = sourceNode.label as string;
+      const blockNameKey = `workflow.blocks.${sourceLabel}.name`;
+      let blockName = te(blockNameKey)
+        ? t(blockNameKey)
+        : blocks[sourceLabel]?.name || sourceLabel;
+      const { description, name: groupName } = sourceNode.data;
+      if (description || groupName) blockName += ` (${description || groupName})`;
+      acc.push({
+        id: source,
+        name: blockName,
+      });
+      return acc;
+    }, []);
     editState.blockData.connections = connections;
   }
   state.showSidebar = true;
   editState.editing = true;
 };
-const updateWorkflow = async (data) => {
+const updateWorkflow = async (data: Record<string, unknown>) => {
   try {
     if (isPackage) {
-      if (workflow.value.isExternal) return;
+      if ((workflow.value as { isExternal?: boolean })?.isExternal) return;
       delete data.drawflow;
       await packageStore.update({
         id: workflowId,
@@ -911,48 +1025,59 @@ const updateWorkflow = async (data) => {
     }
     await workflowStore.update({
       data,
-      id: route.params.id,
+      id: workflowId,
     });
     workflowPayload.data = { ...workflowPayload.data, ...data };
   } catch (error) {
     console.error(error);
   }
 };
-const onActionUpdated = ({ data, changedIndicator }) => {
+const onActionUpdated = ({
+  data,
+  changedIndicator,
+}: {
+  data: Record<string, unknown>;
+  changedIndicator: boolean;
+}) => {
   state.dataChanged = changedIndicator;
   workflowPayload.data = { ...workflowPayload.data, ...data };
 };
-const onEditorInit = (instance) => {
+const onEditorInit = (instance: VueFlowStore) => {
   editor.value = instance;
-  let nodeToConnect = null;
+  let nodeToConnect: { nodeId: string; handleId: string | null } | null = null;
   instance.onEdgesChange(onEdgesChange);
   instance.onNodesChange(onNodesChange);
   instance.onEdgeDoubleClick(({ edge }) => {
     instance.removeEdges([edge]);
   });
   instance.onConnectStart(({ nodeId, handleId, handleType }) => {
-    if (handleType !== 'source') return;
+    if (handleType !== 'source' || !nodeId) return;
     nodeToConnect = { nodeId, handleId };
   });
-  instance.onConnectEnd(({ target }) => {
+  instance.onConnectEnd((event) => {
+    const target = event.target as HTMLElement;
     if (!nodeToConnect) return;
     if (target.hasAttribute('data-handleid')) {
       const handleId = target.getAttribute('data-handleid');
-      if (handleId.includes('-output-')) return;
+      if (handleId?.includes('-output-')) return;
     }
     const isNotTargetHandle = !target.closest('.vue-flow__handle.target');
     const targetNode = isNotTargetHandle && target.closest('.vue-flow__node');
-    if (targetNode && targetNode.dataset.id !== nodeToConnect.nodeId) {
-      const nodeId = targetNode.dataset.id;
-      const nodeData = editor.value.getNode.value(nodeId);
-      if (nodeData && nodeData.handleBounds.target.length >= 1) {
+    if (targetNode && (targetNode as HTMLElement).dataset.id !== nodeToConnect.nodeId) {
+      const nodeId = (targetNode as HTMLElement).dataset.id as string;
+      const nodeData = editor.value?.getNode.value(nodeId);
+      if (
+        nodeData &&
+        nodeData.handleBounds?.target &&
+        nodeData.handleBounds.target.length >= 1
+      ) {
         const targetHandle = nodeData.handleBounds.target.find((item) => item.id);
         if (!targetHandle) return;
-        editor.value.addEdges([
+        editor.value?.addEdges([
           {
             target: nodeId,
             source: nodeToConnect.nodeId,
-            targetHandle: targetHandle.id,
+            targetHandle: targetHandle.id as string,
             sourceHandle: nodeToConnect.handleId,
           },
         ]);
@@ -969,8 +1094,8 @@ const onEditorInit = (instance) => {
       editorCommands.state.nodes[node.id] = node;
     });
   });
-  const convertToObj = (array) =>
-    array.reduce((acc, item) => {
+  const convertToObj = <T extends { id: string }>(array: T[]) =>
+    array.reduce<Record<string, T>>((acc, item) => {
       acc[item.id] = item;
       return acc;
     }, {});
@@ -979,10 +1104,13 @@ const onEditorInit = (instance) => {
       nodes: convertToObj(instance.getNodes.value),
       edges: convertToObj(instance.getEdges.value),
     };
-    editorCommands = new EditorCommands(instance, commandInitState);
+    editorCommands = new EditorCommands(
+      instance as unknown as ConstructorParameters<typeof EditorCommands>[0],
+      commandInitState as unknown as ConstructorParameters<typeof EditorCommands>[1]
+    );
   }, 1000);
   const { blockId } = route.query;
-  if (blockId) goToBlock(blockId);
+  if (blockId) goToBlock(blockId as string);
 };
 const clearHighlightedElements = () => {
   const elements = document.querySelectorAll(
@@ -993,7 +1121,15 @@ const clearHighlightedElements = () => {
     element.classList.remove('dropable-area__handle');
   });
 };
-const toggleHighlightElement = ({ target, elClass, classes }) => {
+const toggleHighlightElement = ({
+  target,
+  elClass,
+  classes,
+}: {
+  target: HTMLElement;
+  elClass: string;
+  classes: string;
+}) => {
   const targetEl = target.closest(elClass);
   if (targetEl) {
     targetEl.classList.add(classes);
@@ -1004,7 +1140,9 @@ const toggleHighlightElement = ({ target, elClass, classes }) => {
     });
   }
 };
-const onDragoverEditor = ({ target }) => {
+const onDragoverEditor = (event: DragEvent) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
   toggleHighlightElement({
     target,
     elClass: '.vue-flow__handle.source',
@@ -1018,12 +1156,21 @@ const onDragoverEditor = ({ target }) => {
     });
   }
 };
-const onDropInEditor = ({ dataTransfer, clientX, clientY, target }) => {
-  const savedBlocks = parseJSON(dataTransfer.getData('savedBlocks'), null);
-  const editorRect = editor.value.viewportRef.value.getBoundingClientRect();
+const onDropInEditor = ({
+  dataTransfer,
+  clientX,
+  clientY,
+  target,
+}: DragEvent & { target: HTMLElement }) => {
+  if (!dataTransfer || !editor.value) return;
+  const savedBlocks = parseJSON<import('@/types/models').SavedPackage | null>(
+    dataTransfer.getData('savedBlocks'),
+    null
+  );
+  const editorRect = editor.value.viewportRef.value?.getBoundingClientRect();
   const position = editor.value.project({
-    y: clientY - editorRect.top,
-    x: clientX - editorRect.left,
+    y: clientY - (editorRect?.top ?? 0),
+    x: clientX - (editorRect?.left ?? 0),
   });
   if (savedBlocks && !isPackage) {
     if (savedBlocks.settings.asBlock) {
@@ -1045,7 +1192,15 @@ const onDropInEditor = ({ dataTransfer, clientX, clientY, target }) => {
     state.dataChanged = true;
     return;
   }
-  const block = parseJSON(dataTransfer.getData('block'), null);
+  const block = parseJSON<{
+    id: string;
+    component?: string;
+    data?: Record<string, unknown>;
+    fromBlockBasic?: boolean;
+    fromGroup?: boolean;
+    outputs?: number;
+    itemId?: string;
+  } | null>(dataTransfer.getData('block'), null);
   if (!block || block.fromBlockBasic) return;
   if (block.id === 'trigger' && isPackage) return;
   clearHighlightedElements();
@@ -1055,7 +1210,10 @@ const onDropInEditor = ({ dataTransfer, clientX, clientY, target }) => {
   if (isTriggerExists) return;
   const nodeEl = DroppedNode.isNode(target);
   if (nodeEl) {
-    DroppedNode.replaceNode(editor.value, { block, target: nodeEl });
+    DroppedNode.replaceNode(
+      editor.value as unknown as Parameters<typeof DroppedNode.replaceNode>[0],
+      { block, target: nodeEl as HTMLElement }
+    );
     return;
   }
   const nodeId = nanoid();
@@ -1070,16 +1228,22 @@ const onDropInEditor = ({ dataTransfer, clientX, clientY, target }) => {
   const edgeEl = DroppedNode.isEdge(target);
   const handleEl = DroppedNode.isHandle(target);
   if (handleEl) {
-    DroppedNode.appendNode(editor.value, {
-      target: handleEl,
-      nodeId: newNode.id,
-    });
+    DroppedNode.appendNode(
+      editor.value as unknown as Parameters<typeof DroppedNode.replaceNode>[0],
+      {
+        target: handleEl as HTMLElement,
+        nodeId: newNode.id,
+      }
+    );
   } else if (edgeEl) {
-    DroppedNode.insertBetweenNode(editor.value, {
-      target: edgeEl,
-      nodeId: newNode.id,
-      outputs: block.outputs,
-    });
+    DroppedNode.insertBetweenNode(
+      editor.value as unknown as Parameters<typeof DroppedNode.replaceNode>[0],
+      {
+        target: edgeEl as HTMLElement,
+        nodeId: newNode.id,
+        outputs: block.outputs,
+      }
+    );
   }
   if (block.fromGroup) {
     setTimeout(() => {
@@ -1089,33 +1253,39 @@ const onDropInEditor = ({ dataTransfer, clientX, clientY, target }) => {
   }
   state.dataChanged = true;
 };
-const copyElements = (nodes, edges, initialPos) => {
-  const newIds = new Map();
-  let firstNodePos = null;
-  const newNodes = nodes.map(({ id, label, position, data, type }, index) => {
+const copyElements = (
+  nodes: (WorkflowNode | GraphNode)[],
+  edges: (import('@/types/models').WorkflowEdge | import('@vue-flow/core').GraphEdge)[],
+  initialPos?: { clientX: number; clientY: number } | { x: number; y: number }
+) => {
+  const newIds = new Map<string, string>();
+  let firstNodePos: { x: number; y: number } | null = null;
+  let projectedInitialPos = initialPos as { x: number; y: number } | undefined;
+  const newNodes = nodes.map(({ id, label: nodeLabel, position, data, type }, index) => {
+    const label = typeof nodeLabel === 'string' ? nodeLabel : '';
     const newNodeId = nanoid();
     const nodePos = {
-      z: position.z || 0,
+      z: 0,
       y: position.y + 50,
       x: position.x + 50,
     };
     newIds.set(id, newNodeId);
-    if (initialPos) {
+    if (projectedInitialPos) {
       if (index === 0) {
         firstNodePos = {
           x: nodePos.x,
           y: nodePos.y,
         };
-        initialPos = editor.value.project({
-          y: initialPos.clientY,
-          x: initialPos.clientX - 360,
+        projectedInitialPos = editor.value?.project({
+          y: (initialPos as { clientY: number }).clientY,
+          x: (initialPos as { clientX: number }).clientX - 360,
         });
-        Object.assign(nodePos, initialPos);
-      } else {
-        const xDistance = nodePos.x - firstNodePos.x;
-        const yDistance = nodePos.y - firstNodePos.y;
-        nodePos.x = initialPos.x + xDistance;
-        nodePos.y = initialPos.y + yDistance;
+        Object.assign(nodePos, projectedInitialPos);
+      } else if (firstNodePos && projectedInitialPos) {
+        const xDistance = nodePos.x - (firstNodePos as { x: number }).x;
+        const yDistance = nodePos.y - (firstNodePos as { y: number }).y;
+        nodePos.x = projectedInitialPos.x + xDistance;
+        nodePos.y = projectedInitialPos.y + yDistance;
       }
     }
     const copyNode = cloneDeep({
@@ -1129,27 +1299,37 @@ const copyElements = (nodes, edges, initialPos) => {
     copyNode.data = reactive(copyNode.data);
     return copyNode;
   });
-  const newEdges = edges.reduce((acc, { target, targetHandle, source, sourceHandle }) => {
-    const targetId = newIds.get(target);
-    const sourceId = newIds.get(source);
-    if (!targetId || !sourceId) return acc;
-    const copyEdge = cloneDeep({
-      selected: true,
-      target: targetId,
-      source: sourceId,
-      id: `edge-${nanoid()}`,
-      targetHandle: targetHandle.replace(target, targetId),
-      sourceHandle: sourceHandle.replace(source, sourceId),
-    });
-    acc.push(copyEdge);
-    return acc;
-  }, []);
+  const newEdges = edges.reduce(
+    (acc, { target, targetHandle, source, sourceHandle }) => {
+      const targetId = newIds.get(target);
+      const sourceId = newIds.get(source);
+      if (!targetId || !sourceId) return acc;
+      const copyEdge = cloneDeep({
+        selected: true,
+        target: targetId,
+        source: sourceId,
+        id: `edge-${nanoid()}`,
+        targetHandle: targetHandle?.replace(target, targetId),
+        sourceHandle: sourceHandle?.replace(source, sourceId),
+      });
+      acc.push(copyEdge);
+      return acc;
+    },
+    [] as import('@/types/models').WorkflowEdge[]
+  );
   return {
     nodes: newNodes,
     edges: newEdges,
   };
 };
-function duplicateElements({ nodes, edges }) {
+function duplicateElements({
+  nodes,
+  edges,
+}: {
+  nodes?: (WorkflowNode | GraphNode)[];
+  edges?: (import('@/types/models').WorkflowEdge | import('@vue-flow/core').GraphEdge)[];
+} = {}) {
+  if (!editor.value) return;
   const selectedNodes = editor.value.getSelectedNodes.value;
   const selectedEdges = editor.value.getSelectedEdges.value;
   const { edges: newEdges, nodes: newNodes } = copyElements(
@@ -1166,7 +1346,15 @@ function duplicateElements({ nodes, edges }) {
   editor.value.addEdges(newEdges);
   state.dataChanged = true;
 }
-const copySelectedElements = (data = {}) => {
+const copySelectedElements = (
+  data: {
+    nodes?: (WorkflowNode | GraphNode)[];
+    edges?: (
+      import('@/types/models').WorkflowEdge | import('@vue-flow/core').GraphEdge
+    )[];
+  } = {}
+) => {
+  if (!editor.value) return;
   const nodes = data.nodes || editor.value.getSelectedNodes.value;
   const edges = data.edges || editor.value.getSelectedEdges.value;
   const clipboardData = JSON.stringify({
@@ -1177,7 +1365,8 @@ const copySelectedElements = (data = {}) => {
     console.error(error);
   });
 };
-const pasteCopiedElements = async (position) => {
+const pasteCopiedElements = async (position?: { clientX: number; clientY: number }) => {
+  if (!editor.value) return;
   editor.value.removeSelectedNodes(editor.value.getSelectedNodes.value);
   editor.value.removeSelectedEdges(editor.value.getSelectedEdges.value);
   const permission = await browser.permissions.request({
@@ -1189,8 +1378,15 @@ const pasteCopiedElements = async (position) => {
   }
   try {
     const copiedText = await navigator.clipboard.readText();
-    const workflowBlocks = parseJSON(copiedText);
-    if (workflowBlocks && workflowBlocks.name === 'browsless-blocks') {
+    const workflowBlocks = parseJSON<{
+      name?: string;
+      data?: { nodes: WorkflowNode[]; edges: import('@/types/models').WorkflowEdge[] };
+    } | null>(copiedText, null);
+    if (
+      workflowBlocks &&
+      workflowBlocks.name === 'browsless-blocks' &&
+      workflowBlocks.data
+    ) {
       const { nodes, edges } = copyElements(
         workflowBlocks.data.nodes,
         workflowBlocks.data.edges,
@@ -1204,12 +1400,19 @@ const pasteCopiedElements = async (position) => {
     console.error(error);
   }
 };
-const undoRedoCommand = (type, { target }) => {
+const undoRedoCommand = (type: 'undo' | 'redo', { target }: { target: HTMLElement }) => {
   const els = ['INPUT', 'SELECT', 'TEXTAREA'];
   if (els.includes(target.tagName) || target.isContentEditable) return;
   executeCommand(type);
 };
-const onKeydown = ({ ctrlKey, metaKey, shiftKey, key, target, repeat }) => {
+const onKeydown = ({
+  ctrlKey,
+  metaKey,
+  shiftKey,
+  key,
+  target,
+  repeat,
+}: KeyboardEvent & { target: HTMLElement }) => {
   if (repeat) return;
   const els = ['INPUT', 'SELECT', 'TEXTAREA'];
   if (
@@ -1218,8 +1421,8 @@ const onKeydown = ({ ctrlKey, metaKey, shiftKey, key, target, repeat }) => {
     !target.closest('.workflow-editor')
   )
     return;
-  if (isPackage && workflow.value.isExternal) return;
-  const command = (keyName) => (ctrlKey || metaKey) && keyName === key;
+  if (isPackage && (workflow.value as { isExternal?: boolean })?.isExternal) return;
+  const command = (keyName: string) => (ctrlKey || metaKey) && keyName === key;
   if (command('c')) {
     copySelectedElements();
   } else if (command('v')) {
@@ -1231,12 +1434,13 @@ const onKeydown = ({ ctrlKey, metaKey, shiftKey, key, target, repeat }) => {
 async function fetchConnectedTable() {
   const table = await dbStorage.tablesItems
     .where('id')
-    .equals(workflow.value.connectedTable)
+    .equals((workflow.value as { connectedTable?: number })?.connectedTable as number)
     .first();
   if (!table) return;
   connectedTable.value = table;
 }
 const checkWorkflowPermission = () => {
+  if (!editorData.value) return;
   getWorkflowPermissions(editorData.value).then((permissions) => {
     if (permissions.length === 0) return;
     permissionState.items = permissions;
@@ -1260,7 +1464,7 @@ useHead({
 });
 const shortcut = useShortcut([
   getShortcut('editor:toggle-sidebar', toggleSidebar),
-  getShortcut('editor:duplicate-block', duplicateElements),
+  getShortcut('editor:duplicate-block', () => duplicateElements()),
 ]);
 provide('workflow-editor', editor);
 provide('autocompleteData', autocompleteList);
@@ -1295,14 +1499,14 @@ onBeforeRouteLeave(onBeforeLeave);
 onMounted(async () => {
   if (!workflow.value) {
     router.replace(isPackage ? '/packages' : '/');
-    return null;
+    return;
   }
   const sidebarState =
     (await getExtensionStorageValue('local', 'workflow:sidebar', true)) ?? true;
   state.showSidebar = sidebarState;
   state.sidebarState = sidebarState;
   if (!isPackage) {
-    const convertedData = convertWorkflowData(workflow.value);
+    const convertedData = convertWorkflowData(workflow.value as Workflow);
     updateWorkflow({ drawflow: convertedData.drawflow }).then(() => {
       state.workflowConverted = true;
     });

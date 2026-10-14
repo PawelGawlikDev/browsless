@@ -108,25 +108,28 @@
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowInjectionContext } from '@/types/editor';
+import type { TakeScreenshotData } from '@/types/block-editor';
 import { inject, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { objectHasKey } from '@/utils/helper';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => TakeScreenshotData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: TakeScreenshotData] }>();
 const { t } = useI18n();
-const workflow = inject('workflow');
+const workflow = inject<WorkflowInjectionContext>('workflow');
 const types = ['page', 'fullpage', 'element'];
-const updateData = (value) => {
+const updateData = (value: Partial<TakeScreenshotData>) => {
   emit('update:data', { ...props.data, ...value });
 };
-const updateQuality = ({ target }) => {
+const updateQuality = (event: Event) => {
+  const target = event.target as HTMLInputElement;
   let quality = +target.value;
   if (quality <= 0) quality = 0;
   if (quality >= 100) quality = 100;
@@ -137,9 +140,9 @@ onMounted(() => {
     updateData({ saveToComputer: true, saveToColumn: false });
   }
   if (!objectHasKey(props.data, 'type')) {
-    const type = 'page';
+    let type = 'page';
     if (props.data.fullPage) {
-      type === 'fullpage';
+      type = 'fullpage';
     }
     updateData({ type, fullPage: false });
   }

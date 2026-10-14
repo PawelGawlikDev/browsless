@@ -52,7 +52,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import dayjs from '@/lib/dayjs';
@@ -60,24 +60,39 @@ import { countDuration } from '@/utils/helper';
 import { tasks } from '@/utils/shared';
 import LogsDataViewer from './LogsDataViewer.vue';
 
-const props = defineProps({
-  currentLog: {
-    type: Object,
-    default: () => ({}),
-  },
-  ctxData: {
-    type: Object,
-    default: () => ({}),
-  },
-  parentLog: {
-    type: Object,
-    default: null,
-  },
-  isRunning: Boolean,
-});
+export interface HistoryItem extends Record<string, unknown> {
+  id: string;
+  type?: string;
+  name: string;
+  message?: string;
+  timestamp?: number;
+  duration?: number;
+  description?: string;
+}
+interface LogCtxData {
+  ctxData?: Record<
+    string,
+    { referenceData?: Record<string, unknown> } & Record<string, unknown>
+  >;
+  dataSnapshot?: Record<string, unknown>;
+}
+
+const props = withDefaults(
+  defineProps<{
+    currentLog?: { history?: HistoryItem[] } & Record<string, unknown>;
+    ctxData?: LogCtxData;
+    parentLog?: { name?: string } | null;
+    isRunning?: boolean;
+  }>(),
+  {
+    currentLog: () => ({}),
+    ctxData: () => ({}),
+    parentLog: null,
+  }
+);
 
 const { t, te } = useI18n();
-const state = reactive({
+const state = reactive<{ showData: boolean; selectedData: Record<string, unknown> }>({
   showData: false,
   selectedData: {},
 });
@@ -88,12 +103,14 @@ const translatedHistory = computed(() => {
     .slice()
     .reverse()
     .map((item) => {
-      const blockName = tasks[item.name]?.name ?? item.name;
-      const name = ['finish', 'stop'].includes(item.type)
-        ? t(`log.types.${item.type}`)
-        : te(`workflow.blocks.${item.name}.name`)
-          ? t(`workflow.blocks.${item.name}.name`)
-          : blockName;
+      const blockName =
+        (tasks as Record<string, { name?: string }>)[item.name]?.name ?? item.name;
+      const name =
+        item.type && ['finish', 'stop'].includes(item.type)
+          ? t(`log.types.${item.type}`)
+          : te(`workflow.blocks.${item.name}.name`)
+            ? t(`workflow.blocks.${item.name}.name`)
+            : blockName;
       const message =
         item.message && te(`log.messages.${item.message}`)
           ? t(`log.messages.${item.message}`, item)
@@ -107,26 +124,26 @@ const translatedHistory = computed(() => {
     });
 });
 
-const formatTime = (timestamp) => {
+const formatTime = (timestamp?: number) => {
   if (!timestamp) return '--';
   return dayjs(timestamp).format('HH:mm:ss');
 };
 
-const formatDuration = (duration) => {
+const formatDuration = (duration?: number) => {
   if (!duration && duration !== 0) return '';
   return countDuration(0, duration).trim();
 };
 
-const getItemData = (id) => {
+const getItemData = (id: string) => {
   const ctxData = props.ctxData?.ctxData?.[id];
   if (!ctxData) return null;
 
   const snapshot = props.ctxData?.dataSnapshot ?? {};
-  const referenceData = { ...(ctxData.referenceData ?? {}) };
+  const referenceData: Record<string, unknown> = { ...(ctxData.referenceData ?? {}) };
 
   ['loopData', 'variables'].forEach((key) => {
     if (typeof referenceData[key] === 'string') {
-      referenceData[key] = snapshot[referenceData[key]] ?? {};
+      referenceData[key] = snapshot[referenceData[key] as string] ?? {};
     }
   });
 
@@ -136,7 +153,7 @@ const getItemData = (id) => {
   };
 };
 
-const openData = (data) => {
+const openData = (data: Record<string, unknown>) => {
   state.selectedData = data;
   state.showData = true;
 };

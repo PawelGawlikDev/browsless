@@ -54,20 +54,21 @@
     </label>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { ElementExistsData } from '@/types/block-editor';
 import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => ElementExistsData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: ElementExistsData] }>();
 const { t } = useI18n();
 const selectorTypes = ['cssSelector', 'xpath'];
-const updateData = (value) => {
+const updateData = (value: Partial<ElementExistsData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 onMounted(() => {

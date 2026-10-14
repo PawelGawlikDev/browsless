@@ -142,8 +142,10 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WebhookData } from '@/types/block-editor';
 import { contentTypes } from '@/utils/shared';
+import cloneDeep from 'lodash.clonedeep';
 import { defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import EditAutocomplete from './EditAutocomplete.vue';
@@ -153,28 +155,28 @@ const SharedCodemirror = defineAsyncComponent(
 );
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => WebhookData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: WebhookData] }>();
 const { t } = useI18n();
 const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
 const notHaveBody = ['GET', 'HEAD'];
-const copyHeaders = JSON.parse(JSON.stringify(props.data.headers));
+const copyHeaders = cloneDeep(props.data.headers || []);
 const activeTab = ref('headers');
 const showBodyModal = ref(false);
 const headers = ref(Array.isArray(copyHeaders) ? copyHeaders : []);
-const updateData = (value) => {
+const updateData = (value: Partial<WebhookData>) => {
   emit('update:data', { ...props.data, ...value });
 };
-const removeHeader = (index) => {
+const removeHeader = (index: number) => {
   headers.value.splice(index, 1);
 };
 const addHeader = () => {
   headers.value.push({ name: '', value: '' });
 };
-const updateMethod = (method) => {
+const updateMethod = (method: string) => {
   if (notHaveBody.includes(method) && activeTab.value === 'body') {
     activeTab.value = 'headers';
   }

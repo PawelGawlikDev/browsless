@@ -37,7 +37,7 @@
     </ui-tab-panels>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import StorageCredentials from '@/components/dashboard/storage/StorageCredentials.vue';
 import StorageTables from '@/components/dashboard/storage/StorageTables.vue';
 import StorageVariables from '@/components/dashboard/storage/StorageVariables.vue';
@@ -50,9 +50,9 @@ const route = useRoute();
 const router = useRouter();
 const { tab } = route.query;
 const state = reactive({
-  activeTab: tabs.includes(tab) ? tab : 'tables',
+  activeTab: typeof tab === 'string' && tabs.includes(tab) ? tab : 'tables',
 });
-const onTabChange = (value) => {
+const onTabChange = (value: string | number) => {
   router.replace({ query: { tab: value } });
 };
 </script>

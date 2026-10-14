@@ -139,7 +139,9 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowInjectionContext } from '@/types/editor';
+import type { JavascriptCodeData } from '@/types/block-editor';
 import {
   browslessFuncsCompletion,
   browslessFuncsSnippets,
@@ -161,11 +163,11 @@ const SharedCodemirror = defineAsyncComponent(
 );
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => JavascriptCodeData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: JavascriptCodeData] }>();
 const { t } = useI18n();
 const availableFuncs = [
   { name: 'browslessNextBlock(data, insert?)', id: 'browslessnextblock-data' },
@@ -181,14 +183,14 @@ const availableFuncs = [
   { name: 'browslessResetTimeout()', id: 'browslessresettimeout' },
 ];
 const autocompleteList = Object.values(browslessFuncsSnippets).slice(0, 4);
-const workflow = inject('workflow');
+const workflow = inject<WorkflowInjectionContext>('workflow');
 const state = reactive({
   activeTab: 'code',
   code: `${props.data.code}`,
   preloadScripts: [...Object.values(props.data.preloadScripts || [])],
   showCodeModal: false,
 });
-const updateData = (value) => {
+const updateData = (value: Partial<JavascriptCodeData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 const addScript = () => {

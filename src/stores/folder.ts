@@ -52,3 +52,15 @@ export const useFolderStore = defineStore('folder', {
     },
   },
 });
+
+// `useFolderStore`'s options-store generics don't infer under this
+// project's TypeScript/Pinia combo (see @/utils/workflowData.ts) —
+// consumers should cast: `useFolderStore() as FolderStoreInstance`.
+export type FolderStoreInstance = ReturnType<typeof useFolderStore> & {
+  items: Folder[];
+  retrieved: boolean;
+  addFolder: (name: string) => Promise<Folder | undefined>;
+  deleteFolder: (id: string) => Promise<number | null>;
+  updateFolder: (id: string, data?: Partial<Folder>) => Promise<Folder | null>;
+  load: () => Promise<Folder[]>;
+};

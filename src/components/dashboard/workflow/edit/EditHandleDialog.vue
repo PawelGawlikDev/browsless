@@ -27,18 +27,19 @@
     </edit-autocomplete>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { HandleDialogData } from '@/types/block-editor';
 import { useI18n } from 'vue-i18n';
 import EditAutocomplete from './EditAutocomplete.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => HandleDialogData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: HandleDialogData] }>();
 const { t } = useI18n();
-const updateData = (value) => {
+const updateData = (value: Partial<HandleDialogData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 </script>

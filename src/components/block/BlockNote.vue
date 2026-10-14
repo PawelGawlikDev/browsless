@@ -51,34 +51,45 @@
       style="resize: both; min-width: 280px; min-height: 168px"
       class="mt-2 bg-transparent focus:ring-0"
       @keydown.stop
-      @input="updateData({ note: $event.target.value })"
+      @input="onNoteInput"
       @mousedown.stop
       @mouseup="onMouseup"
     />
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { debounce } from '@/utils/helper';
-const props = defineProps({
-  id: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-const emit = defineEmits(['update', 'delete']);
+
+type NoteColor = 'white' | 'red' | 'indigo' | 'green' | 'amber' | 'sky';
+type NoteFontSize = 'regular' | 'medium' | 'large' | 'extra-large';
+
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    label?: string;
+    data?: {
+      width?: number;
+      height?: number;
+      color?: NoteColor;
+      fontSize?: NoteFontSize;
+      note?: string;
+    };
+  }>(),
+  {
+    id: '',
+    label: '',
+    data: () => ({}),
+  }
+);
+const emit = defineEmits<{
+  update: [payload: Record<string, unknown>];
+  delete: [id: string];
+}>();
 const initialSize = {
   width: `${props.data.width}px`,
   height: `${props.data.height}px`,
 };
-const colors = {
+const colors: Record<NoteColor, string> = {
   white: 'bg-white dark:bg-gray-800',
   red: 'bg-red-200 dark:bg-red-300',
   indigo: 'bg-indigo-200 dark:bg-indigo-300',
@@ -86,7 +97,7 @@ const colors = {
   amber: 'bg-amber-200 dark:bg-amber-300',
   sky: 'bg-sky-200 dark:bg-sky-300',
 };
-const fontSize = {
+const fontSize: Record<NoteFontSize, { name: string; class: string }> = {
   regular: {
     name: 'Regular',
     class: 'text-base',
@@ -104,15 +115,18 @@ const fontSize = {
     class: 'text-3xl',
   },
 };
-const updateData = debounce((data) => {
+const updateData = debounce((data: Record<string, unknown>) => {
   emit('update', data);
 }, 250);
-const onMouseup = ({ target }) => {
-  let { height, width } = target.style;
-  width = parseInt(width, 10);
-  height = parseInt(height, 10);
-  if (width === props.data.width && height === props.data.height) return;
-  updateData({ height, width });
+const onNoteInput = (event: Event) => {
+  updateData({ note: (event.target as HTMLTextAreaElement).value });
+};
+const onMouseup = ({ target }: MouseEvent) => {
+  const { height, width } = (target as HTMLTextAreaElement).style;
+  const parsedWidth = parseInt(width, 10);
+  const parsedHeight = parseInt(height, 10);
+  if (parsedWidth === props.data.width && parsedHeight === props.data.height) return;
+  updateData({ height: parsedHeight, width: parsedWidth });
 };
 </script>
 <style>

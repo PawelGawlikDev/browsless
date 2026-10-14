@@ -115,54 +115,83 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive, watch, onMounted } from 'vue';
 import cloneDeep from 'lodash.clonedeep';
 import Draggable from 'vuedraggable';
 import { getBlocks } from '@/utils/getSharedData';
 import { debounce } from '@/utils/helper';
-const props = defineProps({
-  data: {
-    type: Object,
-    default: () => ({}),
-  },
-  editor: {
-    type: Object,
-    default: () => ({}),
-  },
-});
-const emit = defineEmits(['update', 'goBlock']);
+import type { VueFlowStore } from '@vue-flow/core';
+import type { PackageIoItem, SavedPackage } from '@/types/models';
+
+type BlockIoType = 'inputs' | 'outputs';
+
+const props = withDefaults(
+  defineProps<{
+    data?: Partial<SavedPackage>;
+    editor?: VueFlowStore | null;
+  }>(),
+  {
+    data: () => ({}),
+    editor: null,
+  }
+);
+const emit = defineEmits<{
+  update: [
+    payload: {
+      inputs: PackageIoItem[];
+      outputs: PackageIoItem[];
+      settings: { asBlock: boolean };
+    },
+  ];
+  goBlock: [blockId: string];
+}>();
 const blocks = getBlocks();
 const state = reactive({
   retrieved: false,
 });
-const packageState = reactive({
+const packageState = reactive<{
+  inputs: PackageIoItem[];
+  outputs: PackageIoItem[];
+  settings: { asBlock: boolean };
+}>({
   inputs: [],
   outputs: [],
   settings: { asBlock: false },
 });
-const deleteBlockIo = (type, index) => {
+const deleteBlockIo = (type: BlockIoType, index: number) => {
   packageState[type].splice(index, 1);
 };
-const cacheIOName = new Map();
-const getNodeName = ({ label, data }) => {
-  let name = blocks[label]?.name || '';
-  if (data.name) name += ` (${data.name})`;
-  else if (data.description) name += ` (${data.description})`;
+const cacheIOName = new Map<string, string>();
+const getNodeName = ({
+  label,
+  data,
+}: {
+  label?: string;
+  data?: { name?: string; description?: string };
+}) => {
+  let name = (label && blocks[label]?.name) || '';
+  if (data?.name) name += ` (${data.name})`;
+  else if (data?.description) name += ` (${data.description})`;
   return name;
 };
-const getBlockIOName = (type, data) => {
+const getBlockIOName = (type: BlockIoType, data: PackageIoItem) => {
   if (!props.editor) return '';
   const cacheId = `${data.blockId}-${data.handleId}`;
-  if (cacheIOName.has(cacheId)) return cacheIOName.get(cacheId);
+  if (cacheIOName.has(cacheId)) return cacheIOName.get(cacheId) as string;
   let name = '';
   const node = props.editor.getNode.value(data.blockId);
   if (!node) {
     name = 'Block not found';
   } else {
-    const nodeName = getNodeName(node);
+    const nodeName = getNodeName(
+      node as unknown as {
+        label?: string;
+        data?: { name?: string; description?: string };
+      }
+    );
     const handleType = type === 'outputs' ? 'source' : 'target';
-    const index = node.handleBounds[handleType].findIndex(
+    const index = (node.handleBounds?.[handleType] ?? []).findIndex(
       (item) => item.id === data.handleId
     );
     const handleName = index === -1 ? 'Not found' : `${type.slice(0, -1)} ${index + 1}`;
@@ -186,7 +215,7 @@ onMounted(() => {
     cloneDeep({
       inputs: props.data.inputs,
       outputs: props.data.outputs,
-      settings: props.data.settings || {},
+      settings: props.data.settings || { asBlock: false },
     })
   );
   setTimeout(() => {

@@ -21,21 +21,21 @@
     </ui-card>
   </ui-modal>
 </template>
-<script setup>
+<script setup lang="ts">
 import { reactive } from 'vue';
 import emitter from '@/lib/mitt';
 import AppLogsItem from './AppLogsItem.vue';
 import AppLogsItems from './AppLogsItems.vue';
 import AppLogsItemRunning from './AppLogsItemRunning.vue';
 const state = reactive({
-  logId: '',
+  logId: '' as string | number,
   source: '',
   show: false,
   workflowId: '',
   runningWorkflow: false,
 });
-emitter.on('ui:logs', (event = {}) => {
-  Object.assign(state, event);
+emitter.on('ui:logs', (event) => {
+  Object.assign(state, event ?? {});
 });
 const clearState = () => {
   state.show = false;
@@ -47,7 +47,7 @@ const closeItemPage = (closeModal = false) => {
   state.logId = '';
   if (closeModal) clearState();
 };
-const onSelectLog = ({ id, type }) => {
+const onSelectLog = ({ id, type }: { id: string | number; type?: string }) => {
   state.runningWorkflow = type === 'running';
   state.logId = id;
 };

@@ -7,7 +7,7 @@
       @change="updateData({ description: $event })"
     />
     <ul class="delete-list mt-4">
-      <li v-for="(item, index) in deleteList" :key="item.id" class="mb-2 border-b pb-4">
+      <li v-for="(item, index) in deleteList" :key="index" class="mb-2 border-b pb-4">
         <div class="flex items-end space-x-2">
           <ui-select
             v-model="deleteList[index].type"
@@ -55,25 +55,27 @@
     </ui-button>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { WorkflowInjectionContext } from '@/types/editor';
+import type { DeleteDataData } from '@/types/block-editor';
 import { inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import cloneDeep from 'lodash.clonedeep';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => DeleteDataData,
     default: () => ({}),
   },
 });
-const emit = defineEmits(['update:data']);
+const emit = defineEmits<{ 'update:data': [value: DeleteDataData] }>();
 const { t } = useI18n();
-const workflow = inject('workflow', {});
+const workflow = inject<WorkflowInjectionContext>('workflow');
 const deleteList = ref(cloneDeep(props.data.deleteList));
 const types = [
   { id: 'table', name: t('workflow.table.title') },
   { id: 'variable', name: t('workflow.variables.title') },
 ];
-const updateData = (value) => {
+const updateData = (value: Partial<DeleteDataData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 const addItem = () => {

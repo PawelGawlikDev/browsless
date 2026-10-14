@@ -67,3 +67,15 @@ export interface SelectedElementsPayload {
   type: 'browsless:selected-elements';
   elements: Array<Partial<ElementRect>>;
 }
+
+export interface SelectorOption {
+  value: string;
+  name: string;
+}
+
+export interface SelectedElementRect extends Partial<ElementRect> {
+  highlight?: boolean;
+  outline?: boolean;
+  elIndex?: number;
+  options?: SelectorOption[];
+}

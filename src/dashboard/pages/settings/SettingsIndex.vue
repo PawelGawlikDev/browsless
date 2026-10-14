@@ -64,29 +64,31 @@
     </div>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useStore } from '@/stores/main';
+import { useStore, type MainStoreInstance } from '@/stores/main';
 import { useTheme } from '@/composable/theme';
 import { supportLocales } from '@/utils/shared';
-const deleteLogDays = ['never', 7, 14, 30, 60, 120];
-const themeImages = import.meta.glob('../../../assets/images/theme-*.png', {
+import type { MainSettings } from '@/types/models';
+
+const deleteLogDays: Array<'never' | number> = ['never', 7, 14, 30, 60, 120];
+const themeImages = import.meta.glob<string>('../../../assets/images/theme-*.png', {
   eager: true,
   import: 'default',
 });
 const { t } = useI18n();
-const store = useStore();
+const store = useStore() as MainStoreInstance;
 const theme = useTheme();
 const isLangChange = ref(false);
 const settings = computed(() => store.settings);
-const updateSetting = (path, value) => {
-  store.updateSettings({ [path]: value });
+const updateSetting = <K extends keyof MainSettings>(path: K, value: MainSettings[K]) => {
+  store.updateSettings({ [path]: value } as Partial<MainSettings>);
 };
-const getThemeImage = (id) => {
+const getThemeImage = (id: string) => {
   return themeImages[`../../../assets/images/theme-${id}.png`];
 };
-const updateLanguage = (value) => {
+const updateLanguage = (value: string) => {
   isLangChange.value = true;
   updateSetting('locale', value);
 };

@@ -55,13 +55,14 @@
     </div>
   </ui-modal>
 </template>
-<script setup>
+<script setup lang="ts">
 import { shallowReactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'vue-toastification';
 import { parseJSON } from '@/utils/helper';
 import { useLiveQuery } from '@/composable/liveQuery';
 import dbStorage from '@/db/storage';
+import type { DbStorageVariable } from '@/types/db';
 const { t } = useI18n();
 const toast = useToast();
 const variables = useLiveQuery(() => dbStorage.variables.toArray());
@@ -93,7 +94,7 @@ const tableHeaders = [
   },
 ];
 const state = shallowReactive({
-  id: '',
+  id: undefined as number | undefined,
   query: '',
 });
 const editState = shallowReactive({
@@ -101,21 +102,23 @@ const editState = shallowReactive({
   name: '',
   value: '',
   show: false,
+  disabled: false,
 });
-const deleteVariable = ({ id }) => {
-  dbStorage.variables.delete(id);
+const deleteVariable = ({ id }: DbStorageVariable) => {
+  dbStorage.variables.delete(id as number);
 };
-const editVariable = ({ id, name, value }) => {
+const editVariable = ({ id, name, value }: DbStorageVariable) => {
   state.id = id;
   editState.name = name;
-  editState.value = typeof value !== 'string' ? JSON.stringify(value, null, 2) : value;
+  editState.value =
+    typeof value !== 'string' ? JSON.stringify(value, null, 2) : (value as string);
   editState.type = 'edit';
   editState.show = true;
 };
 const saveVariable = () => {
   if (!editState.name) return;
   const trimmedName = editState.name.trim();
-  const duplicateName = variables.value.some(
+  const duplicateName = variables.value?.some(
     ({ name, id }) => name.trim() === trimmedName && id !== state.id
   );
   if (duplicateName) {
@@ -125,7 +128,7 @@ const saveVariable = () => {
   const varValue = parseJSON(editState.value, editState.value);
   if (editState.type === 'edit') {
     dbStorage.variables
-      .update(state.id, {
+      .update(state.id as number, {
         value: varValue,
         name: trimmedName,
       })
@@ -145,9 +148,9 @@ const saveVariable = () => {
 };
 watch(
   () => editState.show,
-  (value) => {
+  (value: boolean) => {
     if (value) return;
-    state.id = '';
+    state.id = undefined;
     Object.assign(editState, {
       name: '',
       type: '',

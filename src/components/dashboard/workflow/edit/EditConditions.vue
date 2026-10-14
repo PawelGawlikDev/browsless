@@ -114,7 +114,9 @@
     </ui-modal>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { VueFlowStore } from '@vue-flow/core';
+import type { ConditionsData, ConditionItem } from '@/types/block-editor';
 import { ref, watch, onMounted, shallowReactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { nanoid } from 'nanoid';
@@ -123,15 +125,15 @@ import { debounce } from '@/utils/helper';
 import SharedConditionBuilder from '@/components/dashboard/shared/SharedConditionBuilder/index.vue';
 const props = defineProps({
   data: {
-    type: Object,
+    type: Object as () => ConditionsData,
     default: () => ({}),
   },
   editor: {
-    type: Object,
+    type: Object as () => VueFlowStore,
     default: () => ({}),
   },
   fullData: {
-    type: Object,
+    type: Object as () => { editCondition?: string },
     default: () => ({}),
   },
   blockId: {
@@ -139,8 +141,8 @@ const props = defineProps({
     default: '',
   },
 });
-const emit = defineEmits(['update:data']);
-const conditionTypes = {
+const emit = defineEmits<{ 'update:data': [value: ConditionsData] }>();
+const conditionTypes: Record<string, string> = {
   '==': 'eq',
   '!=': 'nq',
   '>': 'gt',
@@ -156,7 +158,7 @@ const state = shallowReactive({
   conditionsIndex: 0,
   showSettings: false,
 });
-const editCondition = (index) => {
+const editCondition = (index: number) => {
   state.conditionsIndex = index;
   state.showModal = true;
 };
@@ -168,13 +170,13 @@ const addCondition = () => {
     conditions: [],
   });
 };
-const deleteCondition = (index, id) => {
+const deleteCondition = (index: number, id: string) => {
   conditions.value.splice(index, 1);
   props.editor.removeEdges((edges) => {
     return edges.filter((edge) => edge.sourceHandle === `${props.blockId}-output-${id}`);
   });
 };
-const updateData = (value) => {
+const updateData = (value: Partial<ConditionsData>) => {
   emit('update:data', { ...props.data, ...value });
 };
 const onEnd = debounce(() => {
@@ -196,7 +198,7 @@ onMounted(() => {
   }
   const condition = props.data.conditions[0];
   if (condition && condition.conditions) return;
-  const generateConditionItem = (type, data) => {
+  const generateConditionItem = (type: string, data: string): ConditionItem => {
     if (type === 'value') {
       return {
         id: nanoid(),

@@ -54,98 +54,117 @@
     </template>
   </ui-modal>
 </template>
-<script>
+<script setup lang="ts">
 import { reactive, watch, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import defu from 'defu';
 import { throttle } from '@/utils/helper';
 import emitter from '@/lib/mitt';
-export default {
-  setup() {
-    const { t } = useI18n();
-    const defaultOptions = {
-      body: '',
-      title: '',
-      label: '',
-      html: false,
-      onCancel: null,
-      onConfirm: null,
-      placeholder: '',
-      inputType: 'text',
-      showLoading: false,
-      okVariant: 'accent',
-      okText: t('common.confirm'),
-      cancelText: t('common.cancel'),
-    };
-    const state = reactive({
-      type: '',
-      input: '',
-      show: false,
-      loading: false,
-      showPassword: false,
-      options: defaultOptions,
-    });
-    const handleShowDialog = ({ type, options }) => {
-      state.type = type;
-      state.input = options?.inputValue ?? '';
-      state.options = defu(options, defaultOptions);
-      state.show = true;
-    };
-    const destroy = () => {
-      state.input = '';
-      state.show = false;
-      state.showPassword = false;
-      state.options = defaultOptions;
-    };
-    const fireCallback = throttle((type) => {
-      const callback = state.options[type];
-      const param = state.type === 'prompt' ? state.input : true;
-      if (callback) {
-        const isAsync = state.options.async;
-        if (isAsync) state.loading = true;
-        const cbReturn = callback(param) ?? true;
-        if (typeof cbReturn === 'boolean') {
-          if (cbReturn) destroy();
-          state.loading = false;
-          return;
-        }
-        if (isAsync && cbReturn?.then) {
-          cbReturn.then((value) => {
-            if (value) destroy();
-            state.loading = false;
-          });
-          return;
-        }
-        destroy();
-      } else {
-        destroy();
-      }
-    }, 200);
-    const keyupHandler = ({ code }) => {
-      if (code === 'Enter') {
-        fireCallback('onConfirm');
-      } else if (code === 'Escape') {
-        fireCallback('onCancel');
-      }
-    };
-    watch(
-      () => state.show,
-      (value) => {
-        if (value) {
-          window.addEventListener('keyup', keyupHandler);
-        } else {
-          window.removeEventListener('keyup', keyupHandler);
-        }
-      }
-    );
-    emitter.on('show-dialog', handleShowDialog);
-    onUnmounted(() => {
-      emitter.off('show-dialog', handleShowDialog);
-    });
-    return {
-      state,
-      fireCallback,
-    };
-  },
+
+type DialogCallback = (value?: unknown) => boolean | void | Promise<boolean>;
+
+interface DialogOptions {
+  body?: string;
+  title?: string;
+  label?: string;
+  html?: boolean;
+  onCancel?: DialogCallback | null;
+  onConfirm?: DialogCallback | null;
+  placeholder?: string;
+  inputType?: string;
+  showLoading?: boolean;
+  okVariant?: string;
+  okText?: string;
+  cancelText?: string;
+  inputValue?: string;
+  async?: boolean;
+  custom?: boolean;
+  [key: string]: unknown;
+}
+
+interface ShowDialogPayload {
+  type: string;
+  options: DialogOptions;
+}
+
+const { t } = useI18n();
+const defaultOptions: DialogOptions = {
+  body: '',
+  title: '',
+  label: '',
+  html: false,
+  onCancel: null,
+  onConfirm: null,
+  placeholder: '',
+  inputType: 'text',
+  showLoading: false,
+  okVariant: 'accent',
+  okText: t('common.confirm'),
+  cancelText: t('common.cancel'),
 };
+const state = reactive({
+  type: '',
+  input: '',
+  show: false,
+  loading: false,
+  showPassword: false,
+  options: defaultOptions,
+});
+const handleShowDialog = ({ type, options }: ShowDialogPayload) => {
+  state.type = type;
+  state.input = (options?.inputValue as string) ?? '';
+  state.options = defu(options, defaultOptions);
+  state.show = true;
+};
+const destroy = () => {
+  state.input = '';
+  state.show = false;
+  state.showPassword = false;
+  state.options = defaultOptions;
+};
+const fireCallback = throttle((type: 'onCancel' | 'onConfirm') => {
+  const callback = state.options[type];
+  const param = state.type === 'prompt' ? state.input : true;
+  if (callback) {
+    const isAsync = state.options.async;
+    if (isAsync) state.loading = true;
+    const cbReturn = callback(param) ?? true;
+    if (typeof cbReturn === 'boolean') {
+      if (cbReturn) destroy();
+      state.loading = false;
+      return;
+    }
+    if (isAsync && cbReturn && typeof cbReturn === 'object' && 'then' in cbReturn) {
+      (cbReturn as Promise<boolean>).then((value) => {
+        if (value) destroy();
+        state.loading = false;
+      });
+      return;
+    }
+    destroy();
+  } else {
+    destroy();
+  }
+}, 200);
+const keyupHandler = ({ code }: KeyboardEvent) => {
+  if (code === 'Enter') {
+    fireCallback('onConfirm');
+  } else if (code === 'Escape') {
+    fireCallback('onCancel');
+  }
+};
+watch(
+  () => state.show,
+  (value) => {
+    if (value) {
+      window.addEventListener('keyup', keyupHandler);
+    } else {
+      window.removeEventListener('keyup', keyupHandler);
+    }
+  }
+);
+emitter.on('show-dialog', handleShowDialog as (event: unknown) => void);
+onUnmounted(() => {
+  emitter.off('show-dialog', handleShowDialog as (event: unknown) => void);
+});
 </script>

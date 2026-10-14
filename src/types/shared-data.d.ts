@@ -2,6 +2,7 @@ export interface SharedBlockDefinition {
   name?: string;
   icon?: string;
   component?: string;
+  editComponent?: string;
   category?: string;
   data?: Record<string, unknown>;
   refDataKeys?: string[];

@@ -26,37 +26,49 @@
     </ui-list>
   </ui-popover>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { VueFlowStore } from '@vue-flow/core';
 import { onMounted, reactive, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { excludeGroupBlocks } from '@/utils/shared';
 import { getReadableShortcut, getShortcut } from '@/composable/shortcut';
 const props = defineProps({
   editor: {
-    type: Object,
+    type: Object as () => VueFlowStore,
     default: () => ({}),
   },
   packageIo: Boolean,
   isPackage: Boolean,
 });
-const emit = defineEmits([
-  'copy',
-  'paste',
-  'group',
-  'ungroup',
-  'recording',
-  'saveBlock',
-  'duplicate',
-  'packageIo',
-]);
+const emit = defineEmits<{
+  copy: [data: import('@/types/editor').EditorContextSelection];
+  group: [data: import('@/types/editor').EditorContextSelection];
+  ungroup: [data: import('@/types/editor').EditorContextSelection];
+  recording: [data: import('@/types/editor').EditorContextSelection];
+  saveBlock: [data: import('@/types/editor').EditorContextSelection];
+  duplicate: [data: import('@/types/editor').EditorContextSelection];
+  paste: [position?: { clientX: number; clientY: number }];
+  packageIo: [
+    data: Partial<import('@/types/editor').EditorContextSelection> & { type: string },
+  ];
+}>();
 const { t } = useI18n();
 const state = reactive({
   show: false,
-  items: [],
+  items: [] as {
+    id: string;
+    name: string;
+    icon?: string;
+    shortcut?: string;
+    event: () => void;
+  }[],
   position: {},
 });
-let ctxData = null;
-const menuItems = {
+let ctxData: import('@/types/editor').EditorContextSelection | null = null;
+const menuItems: Record<
+  string,
+  { id: string; name: string; icon?: string; shortcut?: string; event: () => void }
+> = {
   paste: {
     id: 'paste',
     name: t('workflow.editor.paste'),
@@ -123,9 +135,9 @@ const menuItems = {
     event: () => emit('packageIo', { type: 'outputs', ...ctxData }),
   },
 };
-const showCtxMenu = (items = [], event) => {
+const showCtxMenu = (items: string[] = [], event: MouseEvent | TouchEvent) => {
   event.preventDefault();
-  const { clientX, clientY } = event;
+  const { clientX, clientY } = event instanceof MouseEvent ? event : event.touches[0];
   if (props.isPackage && items.includes('saveToFolder')) {
     items.splice(items.indexOf('saveToFolder'), 1);
   }
@@ -150,22 +162,24 @@ const clearContextMenu = () => {
 };
 onMounted(() => {
   props.editor.onNodeContextMenu(({ event, node }) => {
+    if (!(event instanceof MouseEvent)) return;
+    const target = event.target instanceof HTMLElement ? event.target : null;
     const items = ['copy', 'duplicate', 'saveToFolder', 'delete'];
     if (node.label === 'blocks-group') {
       items.splice(items.indexOf('saveToFolder'), 0, 'ungroup');
-    } else if (!excludeGroupBlocks.includes(node.label)) {
+    } else if (!excludeGroupBlocks.includes(String(node.label))) {
       items.splice(items.indexOf('saveToFolder'), 0, 'group');
     }
-    const currCtxData = {
+    const currCtxData: typeof ctxData = {
       edges: [],
       nodes: [node],
       position: { clientX: event.clientX, clientY: event.clientY },
     };
-    if (event.target.closest('[data-handleid]')) {
-      const { handleid, nodeid } = event.target.dataset;
+    if (target?.closest('[data-handleid]')) {
+      const { handleid, nodeid } = target.dataset;
       currCtxData.nodeId = nodeid;
       currCtxData.handleId = handleid;
-      const isOutput = event.target.classList.contains('source');
+      const isOutput = target.classList.contains('source');
       if (props.isPackage && props.packageIo) {
         items.unshift(isOutput ? 'setAsOutput' : 'setAsInput');
       } else if (isOutput) {

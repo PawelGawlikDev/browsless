@@ -95,7 +95,7 @@ const toggleAllSections = (value: boolean) => {
           v-model="expandedSections[section.id]"
           active-class="rounded-xl border"
           header-class="flex w-full items-center px-5 py-4 text-left"
-          panel-class="px-5 pb-5"
+          panel-class="px-5 py-5"
         >
           <template #header>
             <div class="flex flex-1 items-center justify-between gap-4">

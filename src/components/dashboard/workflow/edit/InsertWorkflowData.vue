@@ -76,12 +76,15 @@
     </template>
   </template>
 </template>
-<script setup>
+<script setup lang="ts">
+import type { InsertWorkflowDataFields } from '@/types/block-editor';
+import type { WorkflowDataColumn } from '@/types/models';
+import type { WorkflowInjectionContext } from '@/types/editor';
 import { inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 defineProps({
   data: {
-    type: Object,
+    type: Object as () => InsertWorkflowDataFields,
     default: () => ({}),
   },
   table: {
@@ -91,14 +94,14 @@ defineProps({
   extraRow: Boolean,
   variables: Boolean,
   columns: {
-    type: Array,
-    default: () => [],
+    type: Array as () => Pick<WorkflowDataColumn, 'id' | 'name'>[],
+    default: (): Pick<WorkflowDataColumn, 'id' | 'name'>[] => [],
   },
 });
-const emit = defineEmits(['update']);
+const emit = defineEmits<{ update: [data: Partial<InsertWorkflowDataFields>] }>();
 const { t } = useI18n();
-const workflow = inject('workflow', {});
-const updateData = (data) => {
+const workflow = inject<WorkflowInjectionContext>('workflow');
+const updateData = (data: Partial<InsertWorkflowDataFields>) => {
   emit('update', data);
 };
 </script>

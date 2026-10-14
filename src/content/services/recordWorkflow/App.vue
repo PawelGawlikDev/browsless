@@ -92,7 +92,7 @@
             >
               <option value="" disabled selected>Select what to do</option>
               <option v-for="block in addBlockState.blocks" :key="block" :value="block">
-                {{ tasks[block].name }}
+                {{ tasks[block as keyof typeof tasks].name }}
               </option>
             </select>
             <template
@@ -171,7 +171,7 @@
     @selected="onElementsSelected"
   />
 </template>
-<script setup>
+<script setup lang="ts">
 import { extensionStorage } from '@/lib/extensionStorage';
 import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue';
 import { browser } from 'wxt/browser';
@@ -181,14 +181,28 @@ import findSelector from '@/lib/findSelector';
 import SharedElementSelector from '@/components/content/shared/SharedElementSelector.vue';
 import { getElementRect } from '../../utils';
 import addBlock from './addBlock';
+import type { SelectedElementRect } from '@/content/elementSelector/types';
+import type { Workflow, WorkflowDataColumn } from '@/types/models';
+
 const mouseRelativePos = { x: 0, y: 0 };
-const elementsPath = {
+const elementsPath: { path: Element[]; cache: WeakMap<Element, string> } = {
   path: [],
   cache: new WeakMap(),
 };
-const rootEl = ref(null);
+const rootEl = ref<HTMLElement | null>(null);
 const tempListId = ref('');
-const selectState = reactive({
+const selectState = reactive<{
+  listId: string;
+  list: boolean;
+  pathIndex: number;
+  status: 'idle' | 'selecting';
+  isInList: boolean;
+  listSelector: string;
+  childSelector: string;
+  parentSelector: string;
+  isSelecting: boolean;
+  selectedElements: SelectedElementRect[];
+}>({
   listId: '',
   list: false,
   pathIndex: 0,
@@ -196,6 +210,7 @@ const selectState = reactive({
   isInList: false,
   listSelector: '',
   childSelector: '',
+  parentSelector: '',
   isSelecting: false,
   selectedElements: [],
 });
@@ -204,16 +219,24 @@ const draggingState = reactive({
   dragging: false,
   xPos: window.innerWidth - 300,
 });
-const addBlockState = reactive({
+const addBlockState = reactive<{
+  blocks: string[];
+  column: string;
+  varName: string;
+  attributes: Record<string, string>;
+  activeAttr: string;
+  activeBlock: string;
+  workflowColumns: WorkflowDataColumn[];
+}>({
   blocks: [],
   column: '',
   varName: '',
-  attributes: [],
+  attributes: {},
   activeAttr: '',
   activeBlock: '',
   workflowColumns: [],
 });
-const blocksList = {
+const blocksList: Record<string, string[]> = {
   IMG: ['save-assets', 'attribute-value'],
   VIDEO: ['save-assets', 'attribute-value'],
   AUDIO: ['save-assets', 'attribute-value'],
@@ -224,39 +247,48 @@ const stopRecording = () => {
     type: 'background--recording:stop',
   });
 };
-const getElementBlocks = (element) => {
+const getElementBlocks = (element?: SelectedElementRect) => {
   if (!element) return;
-  const elTag = element.tagName;
+  const elTag = element.tagName ?? '';
   const blocks = [...(blocksList[elTag] || blocksList.default)];
   const attrBlockIndex = blocks.indexOf('attribute-value');
   if (attrBlockIndex !== -1) {
-    addBlockState.attributes = element.attributes;
+    addBlockState.attributes = element.attributes ?? {};
   }
   addBlockState.blocks = blocks;
 };
-const onElementsSelected = ({ selector, elements, path }) => {
+const onElementsSelected = ({
+  selector,
+  elements,
+  path,
+}: {
+  selector?: string;
+  elements?: SelectedElementRect[];
+  path?: Node[];
+}) => {
   if (path) {
-    elementsPath.path = path;
+    elementsPath.path = path as Element[];
     selectState.pathIndex = 0;
   }
-  getElementBlocks(elements[0]);
-  selectState.selectedElements = elements;
+  getElementBlocks(elements?.[0]);
+  selectState.selectedElements = elements ?? [];
+  let nextSelector = selector ?? '';
   if (selectState.list) {
     if (!selectState.listSelector) {
       selectState.isInList = false;
-      selectState.listSelector = selector;
-      selectState.childSelector = selector;
+      selectState.listSelector = nextSelector;
+      selectState.childSelector = nextSelector;
       return;
     }
     selectState.isInList = true;
-    selector = selector.replace(selectState.listSelector, '');
+    nextSelector = nextSelector.replace(selectState.listSelector, '');
   }
-  selectState.childSelector = selector;
+  selectState.childSelector = nextSelector;
 };
 const addFlowItem = () => {
   const saveData = Boolean(addBlockState.column);
   const assignVariable = Boolean(addBlockState.varName);
-  const block = {
+  const block: { id: string; description?: string; data: Record<string, unknown> } = {
     id: addBlockState.activeBlock,
     data: {
       saveData,
@@ -284,9 +316,9 @@ const addFlowItem = () => {
     addBlockState.activeAttr = '';
   });
 };
-const selectElementPath = (type) => {
+const selectElementPath = (type: 'up' | 'down') => {
   let pathIndex = type === 'up' ? selectState.pathIndex + 1 : selectState.pathIndex - 1;
-  let element = elementsPath.path[pathIndex];
+  let element = elementsPath.path[pathIndex] as Element | undefined;
   if ((type === 'up' && !element) || element?.tagName === 'BODY') return;
   if (type === 'down' && !element) {
     const previousElement = elementsPath.path[selectState.pathIndex];
@@ -299,10 +331,10 @@ const selectElementPath = (type) => {
     pathIndex = 0;
   }
   selectState.pathIndex = pathIndex;
-  selectState.selectedElements = [getElementRect(element)];
-  selectState.childSelector = elementsPath.cache.has(element)
-    ? elementsPath.cache.get(element)
-    : findSelector(element);
+  selectState.selectedElements = [getElementRect(element as Element)];
+  selectState.childSelector = elementsPath.cache.has(element as Element)
+    ? (elementsPath.cache.get(element as Element) as string)
+    : findSelector(element as Element);
 };
 const clearSelectState = () => {
   if (selectState.list && selectState.listId) {
@@ -328,7 +360,7 @@ const clearSelectState = () => {
   });
   const frameElements = document.querySelectorAll('iframe, frame');
   frameElements.forEach((element) => {
-    element.contentWindow.postMessage(
+    (element as HTMLIFrameElement).contentWindow?.postMessage(
       {
         type: 'browsless:reset-element-selector',
       },
@@ -351,11 +383,11 @@ const saveElementListId = () => {
     },
   });
 };
-const toggleDragging = (value, event) => {
+const toggleDragging = (value: boolean, event: MouseEvent) => {
   if (value) {
-    const bounds = rootEl.value.getBoundingClientRect();
-    const y = event.clientY - bounds.top;
-    const x = event.clientX - bounds.left;
+    const bounds = rootEl.value?.getBoundingClientRect();
+    const y = event.clientY - (bounds?.top ?? 0);
+    const x = event.clientX - (bounds?.left ?? 0);
     mouseRelativePos.x = x;
     mouseRelativePos.y = y;
   } else {
@@ -364,7 +396,7 @@ const toggleDragging = (value, event) => {
   }
   draggingState.dragging = value;
 };
-const onKeyup = ({ key }) => {
+const onKeyup = ({ key }: KeyboardEvent) => {
   if (key !== 'Escape') return;
   clearSelectState();
   window.removeEventListener('keyup', onKeyup);
@@ -376,7 +408,7 @@ const startSelecting = (list = false) => {
   document.body.setAttribute('browsless-selecting', '');
   window.addEventListener('keyup', onKeyup);
 };
-const onMousemove = ({ clientX, clientY }) => {
+const onMousemove = ({ clientX, clientY }: MouseEvent) => {
   if (!draggingState.dragging) return;
   draggingState.xPos = clientX - mouseRelativePos.x;
   draggingState.yPos = clientY - mouseRelativePos.y;
@@ -401,8 +433,9 @@ onMounted(() => {
   extensionStorage.local
     .get(['recording', 'workflows'])
     .then(({ recording, workflows }) => {
-      const workflow = Object.values(workflows).find(
-        ({ id }) => recording.workflowId === id
+      const workflowMap = (workflows ?? {}) as Record<string, Workflow>;
+      const workflow = Object.values(workflowMap).find(
+        ({ id }) => (recording as { workflowId?: string })?.workflowId === id
       );
       addBlockState.workflowColumns = workflow?.table || [];
     });
