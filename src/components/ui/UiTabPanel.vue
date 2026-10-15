@@ -3,7 +3,7 @@
 </template>
 <script setup lang="ts">
 import { inject, h, useSlots } from 'vue';
-import type { UiTabPanelsContext } from './UiTabPanels.vue';
+import { uiTabPanelsKey } from './tabs-context';
 
 const props = withDefaults(
   defineProps<{
@@ -18,7 +18,8 @@ const props = withDefaults(
 );
 
 const slots = useSlots();
-const uiTabPanels = inject('ui-tab-panels') as UiTabPanelsContext;
+const uiTabPanels = inject(uiTabPanelsKey);
+if (!uiTabPanels) throw new Error('UiTabPanel must be used inside UiTabPanels');
 
 const render = () => {
   const isActive = props.value === uiTabPanels.modelValue.value;

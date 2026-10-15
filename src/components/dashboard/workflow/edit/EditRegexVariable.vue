@@ -45,7 +45,7 @@
             id="var-expression"
             :value="data.expression"
             placeholder="Expression"
-            class="w-11/12 bg-transparent py-2 px-1 focus:ring-0"
+            class="w-11/12 bg-transparent py-2 px-1"
             @input="updateData({ expression: ($event.target as HTMLInputElement).value })"
           />
           <span class="text-right">/</span>

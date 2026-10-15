@@ -8,10 +8,7 @@ import { syntaxTree } from '@codemirror/language';
 import type { CodeMirrorCompletionSource } from '@/types/editor';
 const completePropertyAfter = ['PropertyName', '.', '?.'];
 const excludeProps = ['chrome', 'Mousetrap'];
-const completeProperties = (
-  from: number,
-  object: Record<string, unknown>
-): CompletionResult => {
+const completeProperties = (from: number, object: object): CompletionResult => {
   const options: Completion[] = [];
   for (const name in object) {
     if (
@@ -21,7 +18,7 @@ const completeProperties = (
     )
       options.push({
         label: name,
-        type: typeof object[name] === 'function' ? 'function' : 'variable',
+        type: typeof Reflect.get(object, name) === 'function' ? 'function' : 'variable',
       });
   }
   return {
@@ -48,18 +45,15 @@ export const completeFromGlobalScope = (context: CompletionContext) => {
     if (object?.name === 'VariableName') {
       const from = /\./.test(nodeBefore.name) ? nodeBefore.to : nodeBefore.from;
       const variableName = context.state.sliceDoc(object.from, object.to);
-      const target = (window as unknown as Record<string, unknown>)[variableName];
+      const target: unknown = Reflect.get(window, variableName);
       if (target && typeof target === 'object') {
-        return completeProperties(from, target as Record<string, unknown>);
+        return completeProperties(from, target);
       }
     }
   } else if (nodeBefore.name === 'VariableName') {
-    return completeProperties(
-      nodeBefore.from,
-      window as unknown as Record<string, unknown>
-    );
+    return completeProperties(nodeBefore.from, window);
   } else if (context.explicit && !dontCompleteIn.includes(nodeBefore.name)) {
-    return completeProperties(context.pos, window as unknown as Record<string, unknown>);
+    return completeProperties(context.pos, window);
   }
   return null;
 };

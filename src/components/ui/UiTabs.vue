@@ -15,17 +15,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { provide, toRefs, ref, type Ref } from 'vue';
-
-export interface UiTabsContext {
-  modelValue: Ref<string | number>;
-  type: Ref<'default' | 'fill'>;
-  color: Ref<string>;
-  small: Ref<boolean>;
-  fill: Ref<boolean>;
-  updateActive: (id: string | number) => void;
-  hoverHandler: (event: MouseEvent) => void;
-}
+import { provide, toRefs, ref } from 'vue';
+import { uiTabsKey } from './tabs-context';
 
 const props = withDefaults(
   defineProps<{
@@ -56,7 +47,8 @@ const updateActive = (id: string | number) => {
   emit('update:modelValue', id);
 };
 const hoverHandler = ({ target }: MouseEvent) => {
-  const el = target as HTMLElement;
+  if (!(target instanceof HTMLElement)) return;
+  const el = target;
   const isFill = props.type === 'fill';
   if (!hoverIndicator.value) return;
   if (el.classList.contains('is-active') && isFill) {
@@ -71,7 +63,7 @@ const hoverHandler = ({ target }: MouseEvent) => {
   hoverIndicator.value.style.display = 'inline-block';
   hoverIndicator.value.style.transform = `translate(${el.offsetLeft}px, -50%)`;
 };
-provide<UiTabsContext>('ui-tabs', {
+provide(uiTabsKey, {
   updateActive,
   hoverHandler,
   ...toRefs(props),

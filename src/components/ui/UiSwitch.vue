@@ -47,6 +47,11 @@ const emitEvent = () => {
   transition: all 250ms ease;
 }
 
+.ui-switch:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
 .ui-switch:active {
   transform: scale(0.93);
 }
@@ -70,12 +75,8 @@ const emitEvent = () => {
 }
 
 .ui-switch input:checked ~ .ui-switch__ball {
-  background-color: white;
+  background-color: var(--color-primary-foreground);
   left: calc(100% - 21px);
-}
-
-.dark .ui-switch input:checked ~ .ui-switch__ball {
-  background-color: rgb(17 24 39);
 }
 
 .ui-switch input:checked ~ .ui-switch__background {

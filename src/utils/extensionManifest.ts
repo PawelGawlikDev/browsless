@@ -1,16 +1,14 @@
 import { browser } from 'wxt/browser';
-type ExtensionManifest = ReturnType<typeof browser.runtime.getManifest> & {
-  manifest_version: number;
-  version: string;
-};
+type BrowserManifest = ReturnType<typeof browser.runtime.getManifest>;
+type ExtensionManifest = Pick<BrowserManifest, 'manifest_version' | 'version'> &
+  Partial<BrowserManifest>;
 export const getExtensionManifest = (): ExtensionManifest => {
   const manifest =
     browser?.runtime?.getManifest?.() || globalThis.chrome?.runtime?.getManifest?.();
   return (
-    manifest ||
-    ({
+    manifest || {
       manifest_version: 3,
       version: '0.0.0',
-    } as ExtensionManifest)
+    }
   );
 };

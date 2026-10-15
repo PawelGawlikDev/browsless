@@ -103,7 +103,7 @@
         <div class="scroll overflow-auto p-4" style="height: calc(100vh - 8rem)">
           <input
             v-model="conditions[state.conditionsIndex].name"
-            class="mb-4 bg-transparent text-xl font-semibold focus:ring-0"
+            class="mb-4 bg-transparent text-xl font-semibold"
           />
           <shared-condition-builder
             :model-value="conditions[state.conditionsIndex].conditions"

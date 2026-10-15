@@ -137,7 +137,10 @@ const pagination = reactive({
   perPage: 10,
   currentPage: 1,
 });
-const itemRowKey = (item: TableItem) => item[props.itemKey] as string | number;
+const itemRowKey = (item: TableItem): string | number | undefined => {
+  const value = item[props.itemKey];
+  return typeof value === 'string' || typeof value === 'number' ? value : undefined;
+};
 const sortedItems = computed(() => {
   const sortedRows = sortState.id
     ? arraySorter({

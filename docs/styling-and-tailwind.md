@@ -3,7 +3,7 @@
 ## Current Styling Stack
 
 - Tailwind CSS v4
-- PostCSS via `@tailwindcss/postcss`
+- Vite integration via `@tailwindcss/vite`
 - Vue SFC scoped styles where needed
 
 ## Key Files
@@ -21,20 +21,17 @@
 
 ## Theme Tokens
 
-The main visual identity is driven by CSS variables in `src/assets/css/tailwind.css`:
+The approved palette lives in `src/assets/css/tailwind.css` in three layers:
 
-- `--color-primary`
-- `--color-secondary`
-- `--color-accent`
+1. **Primitives**: `--color-gray-50` through `--color-gray-950` are neutral grays using zinc values; `--color-cobalt-*` is the custom blue ramp. Shade numbers increase from light to dark. Do not redefine Tailwind's `slate` family to hold neutral gray values.
+2. **Semantic roles**: `--color-primary` is the action/highlight color, `--color-primary-hover` is its hover state, and `--color-primary-foreground` is text/icons placed on it. `--color-selection` is the subtle selected background; `--color-focus` is the keyboard focus indicator. `.dark` remaps roles without changing primitives.
+3. **Component tokens**: the always-dark sidebar maps `--sidebar-primary`, `--sidebar-primary-foreground`, and `--sidebar-selection` to cobalt primitives independently of the page theme.
 
-These are used by custom utilities such as:
+All color tokens contain complete CSS colors, not bare RGB channels. Use `color: var(--color-primary)` in CSS. Native Tailwind utilities such as `bg-primary`, `text-primary-foreground`, `hover:bg-primary-hover`, and `bg-primary/15` are generated from `@theme` and support opacity modifiers.
 
-- `bg-primary`
-- `text-primary`
-- `bg-accent`
-- `text-accent`
-- `border-accent`
-- `ring-accent`
+`accent` and `on-accent` are compatibility aliases for `primary` and `primary-foreground`, registered with `@theme inline` so generated utilities resolve the active theme locally. Existing `bg-accent`, `text-accent`, `border-accent`, and `ring-accent/25` usages remain supported; new code should prefer the primary role names. The former `secondary` token represented a hover state, not a second brand color, and has been replaced by `primary-hover`.
+
+The shared `ui-action` and `ui-selected` utilities compose these roles. Do not hand-write `bg-primary`/`bg-accent` utilities that bypass Tailwind's native color and opacity handling.
 
 ## Tailwind v4 Migration Notes
 

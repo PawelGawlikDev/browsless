@@ -67,10 +67,11 @@ const updatePage = (page: number, element?: HTMLElement) => {
   emitEvent(currentPage);
 };
 const selectInput = (event: Event) => {
-  (event.target as HTMLInputElement).select();
+  if (event.target instanceof HTMLInputElement) event.target.select();
 };
 const inputHandler = (event: Event) => {
-  const target = event.target as HTMLInputElement;
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
   updatePage(+target.value, target);
 };
 watch(

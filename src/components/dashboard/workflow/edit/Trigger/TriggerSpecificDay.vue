@@ -43,7 +43,7 @@
       <ui-expand
         v-for="day in sortedDaysArr"
         :key="day.id"
-        header-class="focus:ring-0 flex items-center w-full group text-left"
+        header-class="flex items-center w-full group text-left"
         type="time"
         class="w-full"
       >

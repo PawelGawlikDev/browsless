@@ -1,6 +1,6 @@
 <template>
   <div class="mt-6 border-t pt-4">
-    <div class="flex items-center text-slate-600 dark:text-slate-300">
+    <div class="flex items-center text-gray-600 dark:text-gray-300">
       <span class="flex-1"> Folders </span>
       <button
         class="rounded-md transition hover:text-black dark:hover:text-gray-100"
@@ -15,7 +15,7 @@
         small
         class="cursor-pointer"
         :active="modelValue === ''"
-        color="bg-accent/15 text-slate-900 ring-1 ring-accent/25 dark:text-slate-100"
+        color="bg-accent/15 text-gray-900 ring-1 ring-accent/25 dark:text-gray-100"
         @dragover="onDragover($event, true)"
         @dragleave="onDragover($event, false)"
         @drop="onWorkflowsDrop($event, '')"
@@ -30,7 +30,7 @@
         :active="folder.id === modelValue"
         small
         class="group cursor-pointer overflow-hidden"
-        color="bg-accent/15 text-slate-900 ring-1 ring-accent/25 dark:text-slate-100"
+        color="bg-accent/15 text-gray-900 ring-1 ring-accent/25 dark:text-gray-100"
         @dragover="onDragover($event, true)"
         @dragleave="onDragover($event, false)"
         @drop="onWorkflowsDrop($event, folder.id)"

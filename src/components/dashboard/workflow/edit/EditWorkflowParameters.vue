@@ -63,10 +63,7 @@
               </div>
             </div>
             <div class="w-full">
-              <ui-expand
-                hide-header-icon
-                header-class="flex items-center focus:ring-0 w-full"
-              >
+              <ui-expand hide-header-icon header-class="flex items-center w-full">
                 <template #header="{ show }">
                   <v-remixicon
                     :rotate="show ? 270 : 180"

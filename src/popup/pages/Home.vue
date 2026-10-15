@@ -1,7 +1,7 @@
 <template>
   <div
     :class="['h-48']"
-    class="absolute top-0 left-0 w-full rounded-b-2xl bg-accent"
+    class="absolute top-0 left-0 w-full rounded-b-2xl bg-gray-900"
   ></div>
   <div
     :class="['mb-6']"

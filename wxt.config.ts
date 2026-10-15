@@ -10,6 +10,24 @@ export default defineConfig({
   modules: ['@wxt-dev/module-vue', '@wxt-dev/auto-icons'],
   srcDir: 'src',
   entrypointsDir: '../entrypoints',
+  hooks: {
+    'build:publicAssets': (_wxt, files) => {
+      // Package the canonical legal files without maintaining duplicate copies.
+      const legalFiles = [
+        'LICENSE',
+        'LICENCE.txt',
+        'NOTICE',
+        'LICENSES/Automa-LICENSE.txt',
+        'LICENSES/Apache-2.0.txt',
+      ];
+      files.push(
+        ...legalFiles.map((relativeDest) => ({
+          absoluteSrc: path.resolve(rootDir, relativeDest),
+          relativeDest,
+        }))
+      );
+    },
+  },
   manifest: ({ mode }) => ({
     name: mode === 'development' ? 'BrowsLess-Dev' : 'BrowsLess',
     description: 'An extension for automating your browser by connecting blocks',

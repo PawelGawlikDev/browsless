@@ -4,7 +4,7 @@
       :class="{
         'pointer-events-none opacity-75': disabled,
       }"
-      class="relative inline-block h-5 w-5 rounded focus-within:ring-2 focus-within:ring-accent"
+      class="relative inline-block h-5 w-5 rounded"
     >
       <input
         :class="{ indeterminate }"
@@ -20,7 +20,7 @@
         <v-remixicon
           :name="indeterminate ? 'riSubtractLine' : 'riCheckLine'"
           size="20"
-          class="text-white dark:text-black"
+          class="text-primary-foreground"
         ></v-remixicon>
       </div>
     </div>
@@ -50,12 +50,19 @@ const emit = defineEmits<{
 }>();
 
 const changeHandler = (event: Event) => {
-  const { checked } = event.target as HTMLInputElement;
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
+  const { checked } = target;
   emit('update:modelValue', checked);
   emit('change', checked);
 };
 </script>
 <style scoped>
+.checkbox-ui__input:focus-visible ~ .checkbox-ui__mark {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
 .checkbox-ui__input:checked ~ .checkbox-ui__mark .v-remixicon,
 .checkbox-ui__input.indeterminate ~ .checkbox-ui__mark .v-remixicon {
   transform: scale(1) !important;
@@ -65,8 +72,8 @@ const changeHandler = (event: Event) => {
 }
 .checkbox-ui__input:checked ~ .checkbox-ui__mark,
 .checkbox-ui__input.indeterminate ~ .checkbox-ui__mark {
-  background-color: rgb(var(--color-accent));
-  border-color: rgb(var(--color-accent));
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 .checkbox-ui__mark {
   width: 100%;

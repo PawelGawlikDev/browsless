@@ -3,7 +3,7 @@
     <div class="flex items-center">
       <button
         v-tooltip="t('recording.stop')"
-        class="relative flex h-12 w-12 items-center justify-center rounded-full bg-red-400 focus:ring-0"
+        class="relative flex h-12 w-12 items-center justify-center rounded-full bg-red-400"
         @click="stopRecording"
       >
         <span

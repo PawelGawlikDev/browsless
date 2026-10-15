@@ -1,8 +1,6 @@
 <template>
   <label class="radio-ui inline-flex items-center">
-    <div
-      class="relative inline-block h-5 w-5 rounded-full focus-within:ring-2 focus-within:ring-accent"
-    >
+    <div class="relative inline-block h-5 w-5 rounded-full">
       <input
         type="radio"
         class="radio-ui__input opacity-0"
@@ -37,15 +35,22 @@ const emit = defineEmits<{
 }>();
 const isChecked = computed(() => props.value === props.modelValue);
 const changeHandler = (event: Event) => {
-  const { value } = event.target as HTMLInputElement;
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
+  const { value } = target;
   emit('update:modelValue', value);
   emit('change', value);
 };
 </script>
 <style scoped>
+.radio-ui__input:focus-visible ~ .radio-ui__mark {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
 .radio-ui__input:checked ~ .radio-ui__mark {
   border-width: 6px;
-  border-color: rgb(var(--color-accent));
+  border-color: var(--color-primary);
 }
 .radio-ui__mark {
   width: 100%;

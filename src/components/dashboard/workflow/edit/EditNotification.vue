@@ -33,7 +33,7 @@
           :model-value="data[type]"
           :label="t(`workflow.blocks.notification.${type}`)"
           class="w-full"
-          placeholder="https://example.com/image.png"
+          :placeholder="notificationImagePlaceholder"
           @change="updateData({ [type]: $event })"
         />
       </edit-autocomplete>
@@ -70,6 +70,8 @@ const emit = defineEmits<{
   'update:data': [value: NotificationData];
 }>();
 const { t } = useI18n();
+// Avoid vue-tsc mis-parsing URL literals in looped component props.
+const notificationImagePlaceholder = 'https://example.com/image.png';
 const permission = useHasPermissions(['notifications']);
 const permissionState = permission as typeof permission & {
   has: {

@@ -12,7 +12,7 @@
     ]"
     :tabIndex="uiTabs.modelValue.value === value ? 0 : -1"
     aria-role="tab"
-    class="ui-tab z-[1] transition-colors focus:ring-0"
+    class="ui-tab z-[1] transition-colors"
     @mouseenter="uiTabs.hoverHandler"
     @click="uiTabs.updateActive(value)"
   >
@@ -21,7 +21,7 @@
 </template>
 <script setup lang="ts">
 import { inject } from 'vue';
-import type { UiTabsContext } from './UiTabs.vue';
+import { uiTabsKey } from './tabs-context';
 
 /* eslint-disable-next-line */
 const props = withDefaults(
@@ -35,7 +35,8 @@ const props = withDefaults(
   }
 );
 
-const uiTabs = inject('ui-tabs') as UiTabsContext;
+const uiTabs = inject(uiTabsKey);
+if (!uiTabs) throw new Error('UiTab must be used inside UiTabs');
 </script>
 <style scoped>
 @reference "../../assets/css/tailwind.css";
@@ -54,16 +55,9 @@ const uiTabs = inject('ui-tabs') as UiTabsContext;
   @apply p-2;
 }
 .ui-tab.is-active {
-  @apply border-accent dark:border-gray-100 text-gray-800 dark:text-white;
+  @apply border-accent text-primary;
 }
 .ui-tab.is-active.fill {
-  background-color: rgb(15 23 42 / 0.05);
-}
-
-.dark .ui-tab.is-active.fill {
-  background-color: rgb(229 231 235 / 0.05);
-}
-.ui-tab.is-active {
-  @apply border-accent dark:border-gray-100 text-gray-800 dark:text-white;
+  background-color: var(--color-selection);
 }
 </style>

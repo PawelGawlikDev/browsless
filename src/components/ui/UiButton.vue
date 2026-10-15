@@ -22,7 +22,13 @@
     </span>
     <div v-if="loading" class="button-loading">
       <ui-spinner
-        :color="variant === 'default' ? 'text-primary' : 'text-white dark:text-gray-900'"
+        :color="
+          variant === 'primary' || variant === 'accent'
+            ? 'text-primary-foreground'
+            : variant === 'danger'
+              ? 'text-white'
+              : 'text-primary'
+        "
       ></ui-spinner>
     </div>
   </component>
@@ -58,10 +64,8 @@ const variants: Record<
   },
   fill: {
     default: 'bg-input',
-    accent:
-      'bg-accent hover:bg-gray-700 dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-black text-white',
-    primary:
-      'bg-primary text-white dark:bg-secondary dark:hover:bg-primary hover:bg-secondary',
+    accent: 'ui-action',
+    primary: 'ui-action',
     danger:
       'bg-red-400 text-white dark:bg-red-500 dark:hover:bg-red-500 hover:bg-red-400',
   },

@@ -18,14 +18,14 @@
                   state.activeTab === tab.id,
               },
             ]"
-            class="workflow-tab flex h-full cursor-default items-center border-b-2 px-4 text-slate-600 transition-colors focus:ring-0 dark:text-slate-300"
+            class="workflow-tab flex h-full cursor-default items-center border-b-2 px-4 text-gray-600 transition-colors dark:text-gray-300"
             @click="state.activeTab = tab.id"
           >
             <p :title="tab.name" class="text-overflow mr-2 max-w-[170px] flex-1">
               {{ tab.name }}
             </p>
             <span
-              class="workflow-tab-icon rounded-full p-0.5 text-slate-500 transition-colors dark:text-slate-300"
+              class="workflow-tab-icon rounded-full p-0.5 text-gray-500 transition-colors dark:text-gray-300"
               title="Close tab"
               @click.stop="closeTab(index, tab)"
             >
@@ -35,7 +35,7 @@
         </template>
       </draggable>
       <button
-        class="workflow-tab-add h-full px-2 text-slate-500 transition-colors dark:text-slate-300"
+        class="workflow-tab-add h-full px-2 text-gray-500 transition-colors dark:text-gray-300"
         @click="addTab()"
       >
         <v-remixicon name="riAddLine" />

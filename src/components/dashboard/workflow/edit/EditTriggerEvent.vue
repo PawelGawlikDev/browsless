@@ -11,7 +11,7 @@
       </option>
     </ui-select>
     <button
-      class="mb-2 mt-1 block flex w-full items-center text-left focus:ring-0"
+      class="mb-2 mt-1 block flex w-full items-center text-left"
       @click="showOptions = !showOptions"
     >
       <v-remixicon

@@ -12,14 +12,12 @@
       style="left: 50%; top: 50px; transform: translateX(-50%)"
     >
       <div class="p-4">
-        <label
-          class="bg-input flex h-12 items-center rounded-lg px-2 ring-accent transition focus-within:ring-2"
-        >
+        <label class="bg-input flex h-12 items-center rounded-lg px-2 transition">
           <img :src="logoUrl" class="h-8 w-8" />
           <input
             ref="inputRef"
             type="text"
-            class="h-full flex-1 rounded-lg bg-transparent px-2 focus:ring-0"
+            class="h-full flex-1 rounded-lg bg-transparent px-2"
             :placeholder="
               paramsState.active ? paramsState.workflow.name : 'Search workflows...'
             "

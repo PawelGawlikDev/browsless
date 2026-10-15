@@ -1,0 +1,28 @@
+Browsless licensing notice
+
+Browsless is a modified version of Automa (https://github.com/AutomaApp/automa).
+
+Unless a file or component carries a separate license notice, the Browsless
+application is distributed under the GNU Affero General Public License,
+version 3 only (SPDX-License-Identifier: AGPL-3.0-only).
+
+The complete, unmodified license text is in LICENSE. Attribution and a dated
+modification notice are in NOTICE. The original Automa licensing notice is
+preserved in LICENSES/Automa-LICENSE.txt.
+
+Copyright in the original Automa code remains with its respective copyright
+holders. Copyright in Browsless modifications remains with their respective
+contributors. This notice does not replace or remove existing copyright,
+license, or warranty notices, or narrow rights granted by upstream licensors.
+
+Separately licensed third-party code, dependencies, assets, and development
+tools retain their own licenses. In particular, src/utils/USKeyboardLayout.ts
+contains Apache-2.0-licensed Puppeteer code; its existing notice is preserved
+and the Apache License text is provided in LICENSES/Apache-2.0.txt.
+
+This project does not offer or grant an Automa Commercial License. Material
+originating in Automa's business/ directory is not licensed by this AGPL notice;
+its use or redistribution requires authorization under its applicable terms.
+
+The application is provided WITHOUT ANY WARRANTY, to the extent permitted by
+applicable law. See LICENSE for the full terms.

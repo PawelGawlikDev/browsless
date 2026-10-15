@@ -15,11 +15,12 @@ Package manager: `bun` (see `bun.lock`; ignore stray `pnpm` references in older 
 - `bun run zip` — build + package a distributable zip
 - `bun run typecheck` — `vue-tsc --noEmit`
 - `bun run lint` / `bun run lint:fix` — ESLint over `entrypoints src wxt.config.ts global.d.ts eslint.config.mjs`
+- `bun run lint:staged` — pre-commit ESLint fixes, then Prettier, for staged files only (Husky runs this automatically; `bun install` installs the hook through `prepare`)
 - `bun run format` / `bun run format:check` — Prettier over the same set plus config files
 
 There is no test suite/runner configured in this repo. Use `bun run typecheck` and `bun run lint` as the correctness gates.
 
-**Known build issue**: per `docs/build-and-install.md`, `bun run build` / `bun run zip` may fail with an `ENOENT` renaming generated HTML entrypoints (e.g. `params.html`, `dashboard.html`) inside `.output/chrome-mv3/`. If you hit this, `bun run typecheck` is the fallback for validating changes; don't assume packaging works until verified.
+**Historical build issue**: earlier WXT builds failed with an `ENOENT` renaming generated HTML entrypoints (e.g. `params.html`, `dashboard.html`) inside `.output/chrome-mv3/`. Production builds now pass locally; see `docs/build-and-install.md`. If the error recurs, report it accurately: typecheck and lint validate code, not packaging. Verify `bun run zip` separately when a distributable archive is needed.
 
 ## Architecture
 
@@ -28,6 +29,7 @@ There is no test suite/runner configured in this repo. Use `bun run typecheck` a
 WXT is configured with `srcDir: 'src'` and `entrypointsDir: '../entrypoints'` (see `wxt.config.ts`). Each surface has a thin bootstrap file under `entrypoints/` (e.g. `entrypoints/dashboard/main.ts`) that mounts the real Vue app/logic living under the matching `src/<surface>/` directory. When adding a new page/surface, wire both: the entrypoint HTML/main.ts and the `src/` implementation.
 
 Extension surfaces:
+
 - `entrypoints/background.ts` → `src/background/` — MV3 service worker
 - `entrypoints/content.ts` (+ `contentScript.bundle.ts`, `elementSelector.bundle.ts`, `recordWorkflow.bundle.ts`) → `src/content/` — injected content scripts, element picker, workflow recording
 - `entrypoints/dashboard/` → `src/dashboard/` — main app UI (workflow editor, tables, logs). Builds to `dashboard.html`, an **unlisted** page (not a `chrome_url_overrides.newtab`)
@@ -47,6 +49,7 @@ Browser extension APIs (tabs, windows, debugger, proxy, storage, etc.) are acces
 ### Workflow execution engine (`src/workflowEngine/`)
 
 This is the core runtime and the most complex part of the codebase:
+
 - `WorkflowEngine.ts` — owns one running workflow instance: parses the drawflow `nodes`/`edges` graph into `blocks` + `connectionsMap`, manages reference data (`variables`, `table`, `secrets`, `loopData`, `globalData`), history/logging, and lifecycle (`init` → spawns workers → `destroy`).
 - `WorkflowWorker.ts` — walks the block graph for one execution path (a workflow can fan out into multiple concurrent workers, e.g. loops/new tabs); resolves the next block via `connectionsMap` and dispatches to the matching handler.
 - `blocksHandler.ts` + `blocksHandler/handler*.ts` — one file per block type (e.g. `handlerNewTab.ts`, `handlerJavascriptCode.ts`, `handlerLoopElements.ts`, `handlerWebhook.ts`, `handlerCookie.ts`). Adding a new block type means adding a handler here plus its block definition (see `getSharedData`/`SharedBlocksMap`) and UI component.
@@ -70,7 +73,8 @@ User-authored JavaScript blocks get runtime helpers injected with a `browsless*`
 
 ## Styling
 
-Tailwind CSS v4, configured CSS-first from `src/assets/css/tailwind.css` (theme tokens: `--color-primary`, `--color-secondary`, `--color-accent`, exposed as utilities like `bg-primary`, `text-accent`, `border-accent`). See `docs/styling-and-tailwind.md` for v4 migration gotchas:
+Tailwind CSS v4, configured CSS-first from `src/assets/css/tailwind.css`. Primitive tokens are `--color-gray-*` (neutral zinc-gray values) and `--color-cobalt-*`. Semantic roles are `--color-primary`, `--color-primary-hover`, `--color-primary-foreground`, `--color-selection`, and `--color-focus`; `.dark` remaps these roles. Tokens contain complete CSS colors: use `var(--color-primary)`, not `rgb(var(--color-primary))`. Existing `accent`/`on-accent` utilities are compatibility aliases defined with `@theme inline`; prefer primary roles for new code. See `docs/styling-and-tailwind.md` for conventions and v4 migration gotchas:
+
 - use `@reference` only where a scoped style still needs `@apply`
 - prefer plain CSS for one-off single-property tweaks; keep `@apply` only when it composes multiple utilities and stays readable
 - avoid `bg-opacity-*`-style old opacity utilities and `@apply ... !important`
@@ -85,3 +89,5 @@ Tailwind CSS v4, configured CSS-first from `src/assets/css/tailwind.css` (theme 
 ## Lint/format conventions worth knowing
 
 `eslint.config.mjs` deliberately disables a number of default rules project-wide (`no-console`, `@typescript-eslint/no-explicit-any`, `prefer-const`, several `vue/*` style rules, etc.) — don't "fix" these findings unless asked; they're intentionally off. `.d.ts` files also have unused-vars rules turned off.
+
+Vue files, `src/components/`, and `src/utils/` override that baseline to forbid explicit `any`. Prefer typed props/emits, `InjectionKey` contexts, and runtime narrowing of unknown data or DOM targets over unchecked assertions. Do not cast unvalidated JSON or a partial object into a complete domain type. Import aliases and `as const` for literal inference are not unsafe casts.

@@ -72,7 +72,9 @@ const emit = defineEmits<{
 }>();
 const selectId = useComponentId('select');
 const emitValue = (event: Event) => {
-  let value: string | number = (event.target as HTMLSelectElement).value;
+  const target = event.target;
+  if (!(target instanceof HTMLSelectElement)) return;
+  let value: string | number = target.value;
   if (props.modelModifiers.number) {
     value = +value;
   }

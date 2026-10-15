@@ -4,12 +4,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { toRefs, provide, type Ref } from 'vue';
-
-export interface UiTabPanelsContext {
-  modelValue: Ref<string | number>;
-  cache: Ref<boolean>;
-}
+import { toRefs, provide } from 'vue';
+import { uiTabPanelsKey } from './tabs-context';
 
 const props = withDefaults(
   defineProps<{
@@ -22,5 +18,5 @@ const props = withDefaults(
   }
 );
 
-provide<UiTabPanelsContext>('ui-tab-panels', toRefs(props));
+provide(uiTabPanelsKey, toRefs(props));
 </script>

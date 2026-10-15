@@ -36,7 +36,7 @@
         />
       </template>
     </ui-input>
-    <ui-expand header-class="w-full group flex items-center focus:ring-0">
+    <ui-expand header-class="w-full group flex items-center">
       <template #header>
         {{ t('common.options') }}
       </template>
@@ -48,7 +48,7 @@
       class="mt-4 w-full"
       placeholder="CSS Selector or XPath"
     />
-    <ui-expand header-class="w-full flex items-center focus:ring-0 group">
+    <ui-expand header-class="w-full flex items-center group">
       <template #header>
         {{ t('common.options') }}
         <v-remixicon

@@ -7,7 +7,7 @@
     </p>
     <router-link
       to="/docs"
-      class="mt-4 inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
+      class="mt-4 inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
     >
       Read workflow and block documentation
     </router-link>

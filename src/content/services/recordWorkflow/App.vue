@@ -62,7 +62,7 @@
             />
             <button
               :class="{ 'opacity-75 pointer-events-none': !tempListId }"
-              class="mt-2 w-full rounded-lg bg-accent px-4 py-2 text-white"
+              class="mt-2 w-full rounded-lg ui-action px-4 py-2"
               @click="saveElementListId"
             >
               Save
@@ -146,7 +146,7 @@
                   addBlockState.activeBlock === 'attribute-value' &&
                   !addBlockState.activeAttr,
               }"
-              class="mt-4 block w-full rounded-lg bg-accent px-4 py-2 text-white"
+              class="mt-4 block w-full rounded-lg ui-action px-4 py-2"
               @click="addFlowItem"
             >
               Save

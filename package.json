@@ -1,9 +1,10 @@
 {
-  "name": "browsless-v2",
+  "name": "browsless",
   "displayName": "BrowsLess",
   "version": "1.0.0",
   "description": "An extension for automating your browser by connecting blocks",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "wxt -b chrome",
@@ -11,10 +12,17 @@
     "zip": "wxt zip -b chrome",
     "lint": "eslint entrypoints src wxt.config.ts global.d.ts eslint.config.mjs",
     "lint:fix": "eslint entrypoints src wxt.config.ts global.d.ts eslint.config.mjs --fix",
+    "lint:staged": "bun run --bun lint-staged --concurrent false",
     "format": "prettier entrypoints src wxt.config.ts global.d.ts eslint.config.mjs prettier.config.mjs package.json tsconfig.json .gitignore --ignore-unknown --write",
     "format:check": "prettier entrypoints src wxt.config.ts global.d.ts eslint.config.mjs prettier.config.mjs package.json tsconfig.json .gitignore --ignore-unknown --check",
     "typecheck": "vue-tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "{entrypoints,src}/**/*.{js,mjs,cjs,ts,tsx,vue}": "bunx --bun --no-install eslint --fix",
+    "{wxt.config.ts,global.d.ts,eslint.config.mjs}": "bunx --bun --no-install eslint --fix",
+    "*": "bunx --bun --no-install prettier --write --ignore-unknown"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
@@ -110,6 +118,8 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.11.1",
     "globals": "^17.13.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
     "typescript": "6.0.3",

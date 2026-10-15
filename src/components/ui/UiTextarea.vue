@@ -49,7 +49,9 @@ const calcHeight = () => {
   textarea.value.style.height = `${textarea.value.scrollHeight}px`;
 };
 const emitValue = (event: Event) => {
-  let { value } = event.target as HTMLTextAreaElement;
+  const target = event.target;
+  if (!(target instanceof HTMLTextAreaElement)) return;
+  let { value } = target;
   const maxLength = Math.abs(Number(props.max)) || Infinity;
   if (value.length > maxLength) {
     value = value.slice(0, maxLength);

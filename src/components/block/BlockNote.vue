@@ -49,7 +49,7 @@
       cols="30"
       rows="7"
       style="resize: both; min-width: 280px; min-height: 168px"
-      class="mt-2 bg-transparent focus:ring-0"
+      class="mt-2 bg-transparent"
       @keydown.stop
       @input="onNoteInput"
       @mousedown.stop

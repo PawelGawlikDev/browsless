@@ -10,10 +10,6 @@
       class="ml-1 text-gray-600 dark:text-gray-200"
       size="20"
     />
-    <label v-if="false" class="ml-4 flex items-center">
-      <ui-switch v-model="options.unmaskValue" />
-      <span class="ml-2">Return unmask value</span>
-    </label>
   </div>
   <div v-if="options.useMask" class="mt-2">
     <p>Masks</p>
@@ -29,25 +25,6 @@
         />
       </div>
     </div>
-    <template v-if="false">
-      <p>Custom tokens</p>
-      <div class="grid grid-cols-2 gap-4">
-        <div
-          v-for="(token, index) in options.customTokens"
-          :key="index"
-          class="flex items-center"
-        >
-          <ui-input v-model="token.symbol" placeholder="Symbol" style="width: 120px" />
-          <ui-input v-model="token.regex" placeholder="RegEx" class="ml-2 flex-1" />
-          <v-remixicon
-            name="riDeleteBin7Line"
-            class="ml-1 shrink-0 cursor-pointer"
-            @click="options.customTokens.splice(index, 1)"
-          />
-        </div>
-      </div>
-      <ui-button class="mt-4" @click="addToken"> Add token </ui-button>
-    </template>
   </div>
 </template>
 <script setup lang="ts">
@@ -113,12 +90,6 @@ const addMask = () => {
     isRegex: false,
     mask: '',
     lazy: false,
-  });
-};
-const addToken = () => {
-  options.customTokens.push({
-    symbol: '',
-    regex: '',
   });
 };
 watch(

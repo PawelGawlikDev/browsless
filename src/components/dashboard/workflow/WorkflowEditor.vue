@@ -1,5 +1,6 @@
 <template>
   <vue-flow
+    v-bind="editorOptions"
     :id="props.id"
     :class="{ disabled: isDisabled }"
     :default-edge-options="{
@@ -82,6 +83,7 @@ import type { DrawflowData } from '@/types/models';
 import { onMounted, onBeforeUnmount, watch, computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { VueFlow, useVueFlow, MarkerType, getConnectedEdges } from '@vue-flow/core';
+import type { FlowProps } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { MiniMap } from '@vue-flow/minimap';
 import cloneDeep from 'lodash.clonedeep';
@@ -92,35 +94,29 @@ import EditBlockSettings from './edit/EditBlockSettings.vue';
 import EditorCustomEdge from './editor/EditorCustomEdge.vue';
 import EditorSearchBlocks from './editor/EditorSearchBlocks.vue';
 import '@vue-flow/minimap/dist/style.css';
-const props = defineProps({
-  id: {
-    type: String,
-    default: 'editor',
-  },
-  data: {
-    type: Object as () => DrawflowData & { x?: number; y?: number },
-    default: (): DrawflowData & { x?: number; y?: number } => ({
+const props = withDefaults(
+  defineProps<{
+    id?: string;
+    data?: DrawflowData & { x?: number; y?: number };
+    options?: FlowProps & { disabled?: boolean };
+    editorControls?: boolean;
+    minimap?: boolean;
+    disabled?: boolean;
+  }>(),
+  {
+    id: 'editor',
+    data: () => ({
       x: 0,
       y: 0,
       zoom: 0,
       nodes: [],
       edges: [],
     }),
-  },
-  options: {
-    type: Object as () => import('@vue-flow/core').FlowProps & { disabled?: boolean },
-    default: () => ({}),
-  },
-  editorControls: {
-    type: Boolean,
-    default: true,
-  },
-  minimap: {
-    type: Boolean,
-    default: true,
-  },
-  disabled: Boolean,
-});
+    options: () => ({}),
+    editorControls: true,
+    minimap: true,
+  }
+);
 const emit = defineEmits<{
   edit: [data: import('@/types/editor').EditedBlock];
   init: [editor: import('@vue-flow/core').VueFlowStore];
@@ -159,8 +155,9 @@ const nodeTypes = Object.entries(blockComponents).reduce<
 const setMinValue = (num: number, min: number) => (num < min ? min : num);
 const { t } = useI18n();
 const store = useStore();
-const editor = useVueFlow({
-  id: props.id,
+const editor = useVueFlow(props.id);
+const { disabled: _disabled, ...flowOverrides } = props.options;
+const editorOptions: FlowProps = {
   edgeUpdaterRadius: 20,
   deleteKeyCode: 'Delete',
   elevateEdgesOnSelect: true,
@@ -172,8 +169,8 @@ const editor = useVueFlow({
   ),
   multiSelectionKeyCode: isMac ? 'Meta' : 'Control',
 
-  ...props.options,
-});
+  ...flowOverrides,
+};
 editor.onConnect((params) => {
   editor.addEdges([
     {

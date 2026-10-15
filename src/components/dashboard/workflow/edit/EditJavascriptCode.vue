@@ -121,7 +121,7 @@
             />
             <ui-input
               v-model="state.preloadScripts[index].src"
-              placeholder="http://example.com/script.js"
+              :placeholder="preloadScriptPlaceholder"
               class="mr-4 flex-1"
             />
             <ui-checkbox
@@ -169,6 +169,8 @@ const props = defineProps({
 });
 const emit = defineEmits<{ 'update:data': [value: JavascriptCodeData] }>();
 const { t } = useI18n();
+// Avoid vue-tsc mis-parsing URL literals in looped component props.
+const preloadScriptPlaceholder = 'http://example.com/script.js';
 const availableFuncs = [
   { name: 'browslessNextBlock(data, insert?)', id: 'browslessnextblock-data' },
   { name: 'browslessRefData(keyword, path?)', id: 'browslessrefdata-keyword-path' },

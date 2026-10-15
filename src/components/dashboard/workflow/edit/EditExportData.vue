@@ -74,7 +74,7 @@
       <ui-expand
         v-if="data.type === 'csv'"
         hide-header-icon
-        header-class="flex items-center focus:ring-0 w-full"
+        header-class="flex items-center w-full"
       >
         <template #header="{ show }">
           <v-remixicon

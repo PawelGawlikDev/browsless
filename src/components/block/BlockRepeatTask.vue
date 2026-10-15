@@ -23,7 +23,7 @@
       <input
         :value="data.repeatFor"
         placeholder="0"
-        class="bg-transparent py-2 px-4 focus:ring-0"
+        class="bg-transparent py-2 px-4"
         style="padding-right: 57px; width: 95%"
         @keydown.stop
         @input="handleInput"

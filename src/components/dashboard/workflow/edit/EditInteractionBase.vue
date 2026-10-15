@@ -41,7 +41,7 @@
       <ui-expand
         v-if="!hideSelector"
         hide-header-icon
-        header-class="flex items-center w-full focus:ring-0"
+        header-class="flex items-center w-full"
       >
         <template #header="{ show }">
           <v-remixicon

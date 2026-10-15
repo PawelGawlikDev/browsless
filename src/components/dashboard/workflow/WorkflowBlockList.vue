@@ -1,7 +1,7 @@
 <template>
   <ui-expand
     hide-header-icon
-    header-class="flex items-center py-2 focus:ring-0 w-full text-left text-gray-600 dark:text-gray-200"
+    header-class="flex items-center py-2 w-full text-left text-gray-600 dark:text-gray-200"
   >
     <template #header="{ show }">
       <span :class="category.color" class="h-3 w-3 rounded-full"></span>

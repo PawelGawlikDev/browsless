@@ -1,6 +1,6 @@
 <template>
   <aside
-    class="fixed left-0 top-0 z-50 flex h-screen w-18 flex-col items-center border-r border-white/10 bg-slate-950/95 py-6 text-slate-400 backdrop-blur"
+    class="app-sidebar fixed left-0 top-0 z-50 flex h-screen w-18 flex-col items-center border-r border-white/10 bg-gray-950 py-6 text-gray-400"
   >
     <img
       :title="`v${extensionVersion}`"
@@ -14,7 +14,7 @@
       <div
         v-show="showHoverIndicator"
         ref="hoverIndicator"
-        class="absolute left-1/2 h-10 w-10 rounded-lg bg-slate-700/90 transition-transform duration-200 dark:bg-slate-800"
+        class="absolute left-1/2 h-10 w-10 rounded-lg bg-gray-700/90 transition-transform duration-200 dark:bg-gray-800"
         style="transform: translate(-50%, 0)"
       ></div>
       <router-link
@@ -30,7 +30,7 @@
           "
           :class="{ 'is-active': isActive }"
           :href="tab.id === 'log' ? '#' : href"
-          class="tab relative z-10 flex w-full items-center justify-center text-slate-300 transition-colors hover:text-white"
+          class="tab relative z-10 flex w-full items-center justify-center text-gray-300 transition-colors hover:text-white"
           @click="navigateLink($event, navigate, tab)"
           @mouseenter="hoverHandler"
         >
@@ -39,7 +39,7 @@
           </div>
           <span
             v-if="tab.id === 'log' && runningWorkflowsLen > 0"
-            class="absolute -top-1 right-2 h-4 w-4 rounded-full bg-accent text-xs text-white dark:text-black"
+            class="absolute -top-1 right-2 h-4 w-4 rounded-full text-xs"
           >
             {{ runningWorkflowsLen }}
           </span>
@@ -49,7 +49,7 @@
     <hr class="my-4 w-8/12 border-white/10" />
     <button
       v-tooltip:right.group="$t('home.elementSelector.name')"
-      class="text-slate-300 transition-colors hover:text-white focus:ring-0"
+      class="text-gray-300 transition-colors hover:text-white"
       @click="injectElementSelector"
     >
       <v-remixicon name="riFocus3Line" />
@@ -172,6 +172,19 @@ const injectElementSelector = async () => {
 };
 </script>
 <style scoped>
+.app-sidebar {
+  /* The navigation rail stays dark in both themes. */
+  --sidebar-primary: var(--color-cobalt-400);
+  --sidebar-primary-foreground: var(--color-cobalt-950);
+  --sidebar-selection: var(--color-cobalt-900);
+  --color-focus: var(--sidebar-primary);
+}
+
+.tab > span {
+  background-color: var(--sidebar-primary);
+  color: var(--sidebar-primary-foreground);
+}
+
 .tab.is-active:after {
   content: '';
   position: absolute;
@@ -179,10 +192,14 @@ const injectElementSelector = async () => {
   top: 0;
   height: 100%;
   width: 4px;
-  background-color: rgb(var(--color-accent));
+  background-color: var(--sidebar-primary);
 }
 
 .tab.is-active {
-  color: white;
+  color: var(--sidebar-primary);
+}
+
+.tab.is-active > div {
+  background-color: var(--sidebar-selection);
 }
 </style>

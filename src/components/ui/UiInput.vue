@@ -40,7 +40,7 @@
           },
         ]"
         :value="modelValue"
-        class="bg-input w-full rounded-lg bg-transparent py-2 px-4 transition"
+        class="bg-input w-full rounded-lg py-2 px-4 transition"
         @keydown="$emit('keydown', $event)"
         @keyup="$emit('keyup', $event)"
         @blur="$emit('blur', $event)"
@@ -111,16 +111,23 @@ const emit = defineEmits<{
 }>();
 const componentId = useComponentId('ui-input');
 const statusColors: Record<string, string> = {
-  error: 'ring-red-400 ring-2 focus:ring-red-400 focus:ring-2',
+  error: 'ring-red-400 ring-2',
 };
 const emitValue = (event: Event) => {
-  const target = event.target as HTMLInputElement & {
-    maskRef?: { unmaskedValue?: string };
-  };
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
   let value: string | number = target.value;
   if (props.mask && props.unmaskValue) {
-    const { maskRef } = target;
-    if (maskRef && maskRef.unmaskedValue) value = maskRef.unmaskedValue;
+    const maskRef = 'maskRef' in target ? target.maskRef : undefined;
+    if (
+      maskRef &&
+      typeof maskRef === 'object' &&
+      'unmaskedValue' in maskRef &&
+      typeof maskRef.unmaskedValue === 'string' &&
+      maskRef.unmaskedValue
+    ) {
+      value = maskRef.unmaskedValue;
+    }
   }
   if (props.modelModifiers.lowercase) {
     value = value.toString().toLocaleLowerCase();

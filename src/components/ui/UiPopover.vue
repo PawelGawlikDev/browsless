@@ -23,7 +23,7 @@ import createTippy from '@/lib/tippy';
 
 const props = withDefaults(
   defineProps<{
-    placement?: string;
+    placement?: TippyProps['placement'];
     trigger?: string;
     padding?: string;
     to?: string | Element | HTMLElement;
@@ -98,7 +98,7 @@ onMounted(() => {
     role: 'popover',
     theme: null,
     content: content.value ?? undefined,
-    placement: props.placement as TippyProps['placement'],
+    placement: props.placement,
     trigger: props.trigger,
     interactive: true,
     appendTo: () => document.body,

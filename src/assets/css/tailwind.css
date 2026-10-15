@@ -2,9 +2,42 @@
 @custom-variant dark (&:where(.dark, .dark *));
 @plugin "@tailwindcss/typography";
 
-@theme {
+@theme static {
   --font-sans: 'Inter var', sans-serif;
   --font-mono: 'Source Code Pro', monospace;
+
+  /* Primitives: neutral gray (zinc values) and the approved cobalt ramp. */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
+  --color-gray-950: #09090b;
+  --color-cobalt-100: #ebf1ff;
+  --color-cobalt-300: #b9cdff;
+  --color-cobalt-400: #93b4ff;
+  --color-cobalt-700: #1d4ed8;
+  --color-cobalt-800: #1e40af;
+  --color-cobalt-900: #202f50;
+  --color-cobalt-950: #101e40;
+
+  /* Semantic roles use complete CSS colors, not bare RGB channels. */
+  --color-primary: var(--color-cobalt-700);
+  --color-primary-hover: var(--color-cobalt-800);
+  --color-primary-foreground: #ffffff;
+  --color-selection: var(--color-cobalt-100);
+  --color-focus: var(--color-primary);
+}
+
+@theme inline {
+  /* Compatibility names for existing components; new code uses primary roles. */
+  --color-accent: var(--color-primary);
+  --color-on-accent: var(--color-primary-foreground);
 }
 
 @utility container {
@@ -20,55 +53,43 @@
 }
 
 @utility hoverable {
-  @apply hover:bg-cyan-100 dark:hover:bg-slate-800;
+  &:hover {
+    background-color: var(--color-selection);
+  }
 }
 
 @utility bg-input {
-  @apply bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700;
+  @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600;
 }
 
 @utility bg-box-transparent {
-  @apply bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700;
+  @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700;
 }
 
 @utility bg-box-transparent-2 {
-  @apply bg-slate-200 dark:bg-slate-800;
+  @apply bg-gray-200 dark:bg-gray-800;
 }
 
-@utility bg-primary {
-  background-color: rgb(var(--color-primary));
+@utility ui-action {
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+
+  &:hover {
+    background-color: var(--color-primary-hover);
+  }
 }
 
-@utility text-primary {
-  color: rgb(var(--color-primary));
+@utility ui-selected {
+  background-color: var(--color-selection);
+  color: var(--color-primary);
 }
 
-@utility bg-accent {
-  background-color: rgb(var(--color-accent));
-}
-
-@utility text-accent {
-  color: rgb(var(--color-accent));
-}
-
-@utility border-accent {
-  border-color: rgb(var(--color-accent));
-}
-
-@utility ring-accent {
-  --tw-ring-color: rgb(var(--color-accent));
-}
-
-:host,
-:root {
-  --color-primary: 34 211 238;
-  --color-secondary: 139 92 246;
-  --color-accent: 15 23 42;
-}
 .dark {
-  --color-primary: 103 232 249;
-  --color-secondary: 167 139 250;
-  --color-accent: 248 250 252;
+  --color-primary: var(--color-cobalt-400);
+  --color-primary-hover: var(--color-cobalt-300);
+  --color-primary-foreground: var(--color-cobalt-950);
+  --color-selection: var(--color-cobalt-900);
+  --color-focus: var(--color-primary);
 }
 
 * {
@@ -76,7 +97,7 @@
 }
 
 html.dark {
-  @apply bg-slate-950;
+  @apply bg-gray-950;
 }
 
 body,
@@ -84,22 +105,29 @@ body,
   font-family: var(--font-sans) !important;
   font-size: 16px !important;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-  @apply bg-slate-50 dark:bg-slate-950 leading-normal text-slate-900 dark:text-slate-100;
-  background-image:
-    radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 28%),
-    radial-gradient(circle at top right, rgba(139, 92, 246, 0.12), transparent 24%);
+  @apply bg-gray-50 dark:bg-gray-950 leading-normal text-gray-900 dark:text-gray-100;
 }
 table th,
 table td {
   @apply py-2 px-4;
 }
-input:focus,
-button:focus,
-textarea:focus,
-select:focus,
-[role='button']:focus {
-  outline: none;
-  @apply ring-2 ring-accent dark:ring-gray-200;
+:is(input, button, textarea, select, a, [role='button'], [tabindex]):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+::selection {
+  background-color: var(--color-selection);
+  color: var(--color-primary);
+}
+
+:is(input, textarea, [contenteditable='true']) {
+  caret-color: var(--color-primary);
+}
+
+::placeholder {
+  @apply text-gray-600 dark:text-gray-400;
+  opacity: 1;
 }
 
 .text-overflow {
@@ -156,7 +184,7 @@ pre {
 }
 
 .tippy-box[data-theme~='tooltip-theme'] {
-  @apply px-2 py-1 bg-slate-900 text-sm text-slate-100 rounded-md border border-cyan-400/20 shadow-xl;
+  @apply px-2 py-1 bg-gray-900 text-sm text-gray-100 rounded-md border border-gray-700 shadow-xl;
 }
 .Vue-Toastification__toast {
   font-family: inherit !important;
@@ -169,7 +197,7 @@ pre {
   height: auto;
 }
 .ProseMirror img.ProseMirror-selectednode {
-  outline: 3px solid #68cef8;
+  outline: 3px solid var(--color-focus);
 }
 
 .input-label {

@@ -165,7 +165,7 @@ const runWorkflow = () => {
   }
 
   button:hover {
-    color: rgb(var(--color-primary));
+    color: var(--color-primary);
   }
 }
 </style>

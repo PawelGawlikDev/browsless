@@ -6,7 +6,7 @@
       <input
         :value="data.regex"
         placeholder="Regex"
-        class="w-11/12 bg-transparent p-2 focus:ring-0"
+        class="w-11/12 bg-transparent p-2"
         @input="updateData({ regex: ($event.target as HTMLInputElement).value })"
       />
       <ui-popover>

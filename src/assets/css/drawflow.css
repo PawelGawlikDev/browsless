@@ -96,7 +96,7 @@
 .drawflow .connection .main-path {
   fill: none;
   stroke-width: 5px;
-  stroke: rgb(var(--color-accent));
+  stroke: var(--color-primary);
   transition: stroke 100ms ease-in-out;
 }
 
@@ -124,7 +124,7 @@
 .drawflow .main-path {
   fill: none;
   stroke-width: 5px;
-  stroke: rgb(var(--color-accent));
+  stroke: var(--color-primary);
 }
 
 .drawflow-node .drawflow-delete {

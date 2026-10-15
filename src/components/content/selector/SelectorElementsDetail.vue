@@ -76,7 +76,7 @@
             <input
               :value="option.value"
               title="Option value"
-              class="text-overflow w-full bg-transparent focus:ring-0"
+              class="text-overflow w-full bg-transparent"
               readonly
               @click="($event.target as HTMLInputElement).select()"
             />

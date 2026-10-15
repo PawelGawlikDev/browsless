@@ -29,7 +29,7 @@
               <div class="condition-item">
                 <ui-expand
                   class="w-full rounded-lg border"
-                  header-class="px-4 py-2 w-full flex items-center h-full rounded-lg overflow-hidden group focus:ring-0"
+                  header-class="px-4 py-2 w-full flex items-center h-full rounded-lg overflow-hidden group"
                 >
                   <template #header>
                     <p class="text-overflow w-64 flex-1 space-x-2 text-left">

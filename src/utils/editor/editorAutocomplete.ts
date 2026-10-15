@@ -1,7 +1,8 @@
 import { getBlocks } from '../getSharedData';
+import { isRecord, isUnknownArray } from '../typeGuards';
 type AutocompleteEntry = Record<string, Record<string, string>>;
 type AutocompleteStore = Record<string, AutocompleteEntry>;
-type BlockData = Record<string, any>;
+type BlockData = Record<string, unknown>;
 const blocks = getBlocks();
 const autocompleteKeys: Record<string, string> = {
   loopId: 'loopData',
@@ -9,7 +10,7 @@ const autocompleteKeys: Record<string, string> = {
   variableName: 'variables',
 };
 const getData = (blockName: string, blockData: BlockData): AutocompleteEntry => {
-  const keys = blocks[blockName]?.autocomplete as string[] | undefined;
+  const keys = blocks[blockName]?.autocomplete;
   const dataList: AutocompleteEntry = {};
   if (!keys) return dataList;
   keys.forEach((key) => {
@@ -29,15 +30,13 @@ const extractBlocksAutocomplete: Record<
   trigger(blockId, data) {
     if (!this[blockId]) this[blockId] = {};
     if (!this[blockId].variables) this[blockId].variables = {};
-    (
-      data.parameters as
-        | {
-            name: string;
-          }[]
-        | undefined
-    )?.forEach((param) => {
-      this[blockId].variables[param.name] = '';
-    });
+    if (isUnknownArray(data.parameters)) {
+      data.parameters.forEach((param) => {
+        if (isRecord(param) && typeof param.name === 'string') {
+          this[blockId].variables[param.name] = '';
+        }
+      });
+    }
     if (data.type === 'context-menu') {
       Object.assign(this[blockId].variables, {
         $ctxElSelector: '',
@@ -49,26 +48,32 @@ const extractBlocksAutocomplete: Record<
   },
   'blocks-group': function (blockId, data) {
     if (!this[blockId]) this[blockId] = {};
-    (
-      data.blocks as {
-        id: string;
-        itemId: string;
-        data: BlockData;
-      }[]
-    ).forEach((block) => {
+    if (!isUnknownArray(data.blocks)) return;
+    data.blocks.forEach((block) => {
+      if (
+        !isRecord(block) ||
+        typeof block.id !== 'string' ||
+        typeof block.itemId !== 'string' ||
+        !isRecord(block.data)
+      ) {
+        return;
+      }
       this[block.itemId] = getData(block.id, block.data);
     });
   },
   'insert-data': function (blockId, data) {
     if (!this[blockId]) this[blockId] = {};
     if (!this[blockId].variables) this[blockId].variables = {};
-    (
-      data.dataList as {
-        type: string;
-        name: string;
-      }[]
-    ).forEach((item) => {
-      if (item.type !== 'variable' || !item.name.trim()) return;
+    if (!isUnknownArray(data.dataList)) return;
+    data.dataList.forEach((item) => {
+      if (
+        !isRecord(item) ||
+        item.type !== 'variable' ||
+        typeof item.name !== 'string' ||
+        !item.name.trim()
+      ) {
+        return;
+      }
       this[blockId].variables[item.name] = '';
     });
   },

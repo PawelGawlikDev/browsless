@@ -129,8 +129,10 @@ const selectedOption = computed(() =>
 const selectedOptionLabel = computed(
   () => selectedOption.value?.[props.optionLabelKey] || localInitialLabel.value
 );
-const optionKey = (option: SelectOption) =>
-  option[props.optionValueKey] as string | number;
+const optionKey = (option: SelectOption): string | number | undefined => {
+  const value = option[props.optionValueKey];
+  return typeof value === 'string' || typeof value === 'number' ? value : undefined;
+};
 const debounce = <TArgs extends unknown[]>(
   func: (...args: TArgs) => void,
   wait: number
@@ -202,22 +204,24 @@ const closeDropdown = () => {
   isOpen.value = false;
 };
 const selectOption = (option: SelectOption) => {
-  const value = option[props.optionValueKey] as string | number;
+  const value = optionKey(option);
+  if (value === undefined) return;
   const label = option[props.optionLabelKey];
-  localInitialLabel.value = (label as string) ?? '';
+  localInitialLabel.value = String(label ?? '');
   emit('update:modelValue', value);
   emit('change', value, label);
   closeDropdown();
 };
 const handleScroll = (event: Event) => {
-  const el = event.target as HTMLElement;
+  const el = event.target;
+  if (!(el instanceof HTMLElement)) return;
   const threshold = 50;
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - threshold) {
     fetchOptions(false);
   }
 };
 const handleClickOutside = (event: MouseEvent) => {
-  if (root.value && !root.value.contains(event.target as Node)) {
+  if (root.value && event.target instanceof Node && !root.value.contains(event.target)) {
     closeDropdown();
   }
 };

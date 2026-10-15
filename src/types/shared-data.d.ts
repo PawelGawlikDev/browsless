@@ -6,6 +6,7 @@ export interface SharedBlockDefinition {
   category?: string;
   data?: Record<string, unknown>;
   refDataKeys?: string[];
+  autocomplete?: string[];
   [key: string]: unknown;
 }
 

@@ -36,7 +36,7 @@
         v-tooltip.group="t(`workflow.testing.${isDataChanged ? 'disabled' : 'title'}`)"
         :class="[
           { 'cursor-default': isDataChanged },
-          workflow.testingMode ? 'bg-primary bg-opacity-20 text-primary' : 'hoverable',
+          workflow.testingMode ? 'ui-selected' : 'hoverable',
         ]"
         class="rounded-lg p-2"
         @click="toggleTestingMode"

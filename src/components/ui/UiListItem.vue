@@ -1,12 +1,12 @@
 <template>
   <component
     :is="tag"
-    class="ui-list-item flex w-full items-center rounded-lg transition focus:outline-none"
+    class="ui-list-item flex w-full items-center rounded-lg transition"
     role="listitem"
     :class="[
       active ? color : 'hoverable',
       small ? 'p-2' : 'py-2 px-4',
-      { 'pointer-events-none bg-opacity-75': disabled },
+      { 'pointer-events-none opacity-75': disabled },
     ]"
   >
     <slot></slot>
@@ -23,8 +23,7 @@ withDefaults(
   }>(),
   {
     tag: 'div',
-    color:
-      'bg-primary text-primary dark:bg-secondary dark:text-secondary bg-opacity-10 dark:bg-opacity-10',
+    color: 'ui-selected',
   }
 );
 </script>

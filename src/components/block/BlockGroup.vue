@@ -30,7 +30,7 @@
         :value="data.name"
         :placeholder="t('workflow.blocks.blocks-group.groupName')"
         type="text"
-        class="w-full bg-transparent focus:ring-0"
+        class="w-full bg-transparent"
         @keydown.stop
         @input="handleNameInput"
       />

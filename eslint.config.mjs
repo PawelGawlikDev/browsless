@@ -91,6 +91,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/components/**/*.{ts,vue}', 'src/utils/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+    },
+  },
+  {
     files: ['**/*.vue'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',

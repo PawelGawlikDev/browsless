@@ -429,7 +429,7 @@ onBeforeUnmount(() => {
   padding: 0 !important;
 }
 .main-tab .ui-tab.is-active.fill {
-  @apply bg-accent text-white;
-  color: white !important;
+  @apply bg-accent;
+  color: var(--color-primary-foreground) !important;
 }
 </style>
