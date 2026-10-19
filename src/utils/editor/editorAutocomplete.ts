@@ -6,7 +6,6 @@ type BlockData = Record<string, unknown>;
 const blocks = getBlocks();
 const autocompleteKeys: Record<string, string> = {
   loopId: 'loopData',
-  refKey: 'googleSheets',
   variableName: 'variables',
 };
 const getData = (blockName: string, blockData: BlockData): AutocompleteEntry => {

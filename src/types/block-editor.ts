@@ -456,7 +456,6 @@ export interface LoopDataData {
   loopData?: string;
   description?: string;
   variableName?: string;
-  referenceKey?: string;
   reverseLoop?: boolean;
   elementSelector?: string;
   waitForSelector?: boolean;
@@ -541,7 +540,6 @@ export interface SaveAssetsData {
   saveData?: boolean;
   assignVariable?: boolean;
   variableName?: string;
-  saveToGDrive?: boolean;
   [key: string]: unknown;
 }
 

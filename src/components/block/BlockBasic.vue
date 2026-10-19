@@ -151,12 +151,6 @@ const showTextToCopy = computed(() => {
       value: props.data.loopId,
     };
   }
-  if (block.details.id === 'google-sheets' && props.data.refKey) {
-    return {
-      name: 'Reference key',
-      value: props.data.refKey,
-    };
-  }
   return null;
 });
 const insertToClipboard = (text: string) => {

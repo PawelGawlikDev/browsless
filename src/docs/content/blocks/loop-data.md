@@ -10,7 +10,7 @@ You can use this block when you want to do looping through data.
 
 ## Loop Through
 
-Select which data that you want to loop, you can select between the [table](../workflow/table.md), numbers, [Google Sheets](./google-sheets.md), elements, [variable](../workflow/variables.md), or custom.
+Select which data that you want to loop, you can select between the [table](../workflow/table.md), numbers, elements, [variable](../workflow/variables.md), or custom.
 
 When using the custom data option, make sure you write [array](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/First_steps/Arrays) data type with [JSON](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/JSON) syntax.
 

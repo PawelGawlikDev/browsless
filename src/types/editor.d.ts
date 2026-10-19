@@ -85,7 +85,6 @@ export interface BlockNodeData {
   description?: string;
   disableBlock?: boolean;
   loopId?: string;
-  refKey?: string;
   onError?: { enable?: boolean; toDo?: 'fallback' | string };
   $breakpoint?: boolean;
   [key: string]: unknown;

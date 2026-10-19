@@ -6,15 +6,13 @@ import type {
   WorkflowHandlerContext,
 } from '@/types/workflow-engine';
 type ExportDataBlockData = ExportOptions & {
-  dataToExport?: 'data-columns' | 'google-sheets' | 'variable';
-  refKey?: string;
+  dataToExport?: 'data-columns' | 'variable';
   variableName?: string;
   csvDelimiter?: string;
   onConflict?: 'uniquify' | 'overwrite' | 'prompt';
 };
 type ExportRefData = {
   table: Record<string, unknown>[];
-  googleSheets: Record<string, unknown[]>;
   variables: Record<string, unknown>;
 };
 const blobToBase64 = (blob: Blob) => {
@@ -35,14 +33,14 @@ async function exportData(
 ) {
   const dataToExport = data.dataToExport || 'data-columns';
   let payload: unknown = refData.table;
-  if (dataToExport === 'google-sheets') {
-    payload = refData.googleSheets[data.refKey] || [];
-  } else if (dataToExport === 'variable') {
+  if (dataToExport === 'variable') {
     payload = refData.variables[data.variableName] || [];
     if (!Array.isArray(payload)) {
       payload = [payload];
       if (data.type === 'csv' && typeof payload[0] !== 'object') payload = [payload];
     }
+  } else if (dataToExport !== 'data-columns') {
+    throw new Error('Unsupported export data source');
   }
   const isDOMAvailable = typeof document !== 'undefined';
   let blobUrl = dataExporter(

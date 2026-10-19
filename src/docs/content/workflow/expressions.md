@@ -10,16 +10,15 @@ If you're using v1.21.x or below <code v-pre>{{ keyword@path }}</code> syntax is
 
 This feature allows you to set a dynamic value for a block based on data from:
 
-| Name            | Description                                                                                                                                                            | Access item                   |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `table`         | Get data from the [Table](./table.md)                                                                                                                                  | `table`                       |
-| `variables`     | Get data from the [Variables](./variables.md)                                                                                                                          | `variables.<variableName>`    |
-| `loopData`      | Get the current iteration data of the [Loop Data](/blocks/loop-data.html#accessing-data) block                                                                         | `loopData.<loopId>`           |
-| `prevBlockData` | Get the data of the previous block                                                                                                                                     | `prevBlockData`               |
-| `globalData`    | Get the global data of the workflow                                                                                                                                    | `globalData`                  |
-| `googleSheets`  | Get the [Google Sheets](/blocks/google-sheets.md) data                                                                                                                 | `googleSheets.<referenceKey>` |
-| `activeTabUrl`  | Get the active tab url                                                                                                                                                 | `activeTabUrl`                |
-| `workflow`      | Get the data ([Table](./table.md) and [Variables](./variables.md)) of the workflow that have been execute by the [Execute Workflow block](/blocks/execute-workflow.md) | `workflow.<executeId>`        |
+| Name            | Description                                                                                                                                                            | Access item                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `table`         | Get data from the [Table](./table.md)                                                                                                                                  | `table`                    |
+| `variables`     | Get data from the [Variables](./variables.md)                                                                                                                          | `variables.<variableName>` |
+| `loopData`      | Get the current iteration data of the [Loop Data](/blocks/loop-data.html#accessing-data) block                                                                         | `loopData.<loopId>`        |
+| `prevBlockData` | Get the data of the previous block                                                                                                                                     | `prevBlockData`            |
+| `globalData`    | Get the global data of the workflow                                                                                                                                    | `globalData`               |
+| `activeTabUrl`  | Get the active tab url                                                                                                                                                 | `activeTabUrl`             |
+| `workflow`      | Get the data ([Table](./table.md) and [Variables](./variables.md)) of the workflow that have been execute by the [Execute Workflow block](/blocks/execute-workflow.md) | `workflow.<executeId>`     |
 
 Automa uses mustache templating and extends it with data from above and functions.
 

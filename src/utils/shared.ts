@@ -380,7 +380,6 @@ export const tasks = {
     data: {
       disableBlock: false,
       name: '',
-      refKey: '',
       type: 'json',
       description: '',
       variableName: '',
@@ -688,7 +687,6 @@ export const tasks = {
       'selector',
       'startIndex',
       'variableName',
-      'referenceKey',
       'elementSelector',
     ],
     autocomplete: ['variableName', 'loopId'],
@@ -702,7 +700,6 @@ export const tasks = {
       loopData: '[]',
       description: '',
       variableName: '',
-      referenceKey: '',
       reverseLoop: false,
       elementSelector: '',
       waitForSelector: false,
@@ -915,7 +912,6 @@ export const tasks = {
       saveData: true,
       assignVariable: false,
       variableName: '',
-      saveToGDrive: false,
     },
   },
   'press-key': {

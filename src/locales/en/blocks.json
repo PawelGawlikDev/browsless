@@ -405,61 +405,6 @@
         "useCommas": "Use commas to separate the variable name",
         "insertAllGlobalData": "Use all current workflow globalData"
       },
-      "google-sheets-drive": {
-        "name": "@:workflow.blocks.google-sheets.name (GDrive)",
-        "description": "@:workflow.blocks.google-sheets.description",
-        "connected": "Connected sheets",
-        "select": "Select sheet",
-        "connect": "Connect sheet"
-      },
-      "google-drive": {
-        "name": "Google Drive",
-        "description": "Upload files to Google Drive",
-        "actions": {
-          "upload": "Upload files"
-        }
-      },
-      "google-sheets": {
-        "name": "Google Sheets",
-        "description": "Read or update Google Sheets data",
-        "previewData": "Preview data",
-        "firstRow": "Use the first row as keys",
-        "keysAsFirstRow": "Use keys as the first row",
-        "insertData": "Insert data",
-        "valueInputOption": "Value input option",
-        "insertDataOption": "Insert data option",
-        "rangeToSearch": "Range to start the search",
-        "dataFrom": {
-          "label": "Data from",
-          "options": {
-            "data-columns": "Table",
-            "custom": "Custom"
-          }
-        },
-        "refKey": {
-          "label": "Reference key (optional)",
-          "placeholder": "Key name"
-        },
-        "spreadsheetId": {
-          "label": "Spreadsheet Id",
-          "link": "See how to get spreadsheet Id",
-          "required": "Spreadsheet ID is required"
-        },
-        "range": {
-          "label": "Range",
-          "link": "Click to see more examples",
-          "required": "Range is required"
-        },
-        "select": {
-          "get": "Get spreadsheet cell values",
-          "getRange": "Get spreadsheet range",
-          "update": "Update spreadsheet cell values",
-          "append": "Append spreadsheet cell values",
-          "clear": "Clear spreadsheet cell values",
-          "create": "Create a spreadsheet",
-          "add-sheet": "Add sheet"
-        }
-      },
       "active-tab": {
         "name": "Active tab",
         "description": "Set the tab you're in as the active tab"
@@ -545,13 +490,11 @@
         "name": "Export data",
         "description": "Export workflow data",
         "exportAs": "Export as",
-        "refKey": "Reference key",
         "bomHeader": "Add UTF-8 BOM",
         "dataToExport": {
           "placeholder": "Data to export",
           "options": {
             "data-columns": "Table",
-            "google-sheets": "Google Sheets",
             "variable": "Variable"
           }
         }
@@ -745,7 +688,6 @@
         "name": "Loop data",
         "description": "Iterate through a table or your custom data",
         "loopId": "Loop ID",
-        "refKey": "Reference key",
         "startIndex": "Start from index",
         "resumeLastWorkflow": "Resume last workflow",
         "reverse": "Reverse loop order",
@@ -775,7 +717,6 @@
             "data-columns": "Table",
             "table": "Table",
             "custom-data": "Custom data",
-            "google-sheets": "Google Sheets",
             "elements": "Elements"
           }
         }

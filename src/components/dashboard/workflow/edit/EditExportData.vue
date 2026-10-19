@@ -26,14 +26,6 @@
         </option>
       </ui-select>
       <ui-input
-        v-if="data.dataToExport === 'google-sheets'"
-        :model-value="data.refKey"
-        :title="t('workflow.blocks.export-data.refKey')"
-        :placeholder="t('workflow.blocks.export-data.refKey')"
-        class="mt-2 w-full"
-        @change="updateData({ refKey: $event })"
-      />
-      <ui-input
         v-if="data.dataToExport === 'variable'"
         :model-value="data.variableName"
         :title="t('workflow.variables.name')"
@@ -111,8 +103,7 @@ import { useHasPermissions } from '@/composable/hasPermissions';
 import EditAutocomplete from './EditAutocomplete.vue';
 type ExportDataForm = {
   description?: string;
-  dataToExport?: 'data-columns' | 'google-sheets' | 'variable';
-  refKey?: string;
+  dataToExport?: 'data-columns' | 'variable';
   variableName?: string;
   name?: string;
   onConflict?: 'uniquify' | 'overwrite' | 'prompt';
@@ -130,7 +121,7 @@ const props = defineProps({
 const emit = defineEmits<{
   'update:data': [value: ExportDataForm];
 }>();
-const dataToExport = ['data-columns', 'google-sheets', 'variable'];
+const dataToExport = ['data-columns', 'variable'];
 const onConflict = ['uniquify', 'overwrite', 'prompt'];
 const { t } = useI18n();
 const permission = useHasPermissions(['downloads']);

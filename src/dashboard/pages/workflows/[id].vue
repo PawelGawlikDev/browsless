@@ -499,7 +499,6 @@ const workflowModals: Record<string, ModalDef> = {
 const autocompleteList = computed(() => {
   const autocompleteData: Record<string, unknown> = {
     loopData: {},
-    googleSheets: {},
     table: {},
     ...funcsAutocomplete,
     globalData: autocompleteState.common.globalData,
@@ -509,8 +508,6 @@ const autocompleteList = computed(() => {
     if (item.loopData) Object.assign(autocompleteData.loopData as object, item.loopData);
     if (item.variables)
       Object.assign(autocompleteData.variables as object, item.variables);
-    if (item.googleSheets)
-      Object.assign(autocompleteData.googleSheets as object, item.googleSheets);
   });
   return autocompleteData;
 });

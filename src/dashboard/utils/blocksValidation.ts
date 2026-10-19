@@ -127,8 +127,6 @@ export const validateExportData = async (data: Record<string, any>) => {
     );
   if (data.dataToExport === 'variable' && isEmptyStr(data.variableName)) {
     errors.push('The Variable name is empty');
-  } else if (data.dataToExport === 'google-sheets' && isEmptyStr(data.refKey)) {
-    errors.push('The Reference key is empty');
   }
   return errors;
 };
@@ -136,12 +134,6 @@ export const validateAttributeValue = async (data: Record<string, any>) => {
   const errors: string[] = [];
   if (isEmptyStr(data.selector)) errors.push('The Selector is empty');
   if (isEmptyStr(data.attributeName)) errors.push('The Attribute name is empty');
-  return errors;
-};
-export const validateGoogleSheets = async (data: Record<string, any>) => {
-  const errors: string[] = [];
-  if (isEmptyStr(data.spreadsheetId)) errors.push('The Spreadsheet Id is empty');
-  if (isEmptyStr(data.range)) errors.push('The Range is empty');
   return errors;
 };
 export const validateWebhook = async (data: Record<string, any>) => {
@@ -152,9 +144,6 @@ export const validateLoopData = async (data: Record<string, any>) => {
   const errors: string[] = [];
   if (isEmptyStr(data.loopId)) errors.push('The Loop id is empty');
   const loopThroughItems = {
-    'google-sheets': () => {
-      if (isEmptyStr(data.referenceKey)) errors.push('The Reference key is empty');
-    },
     variable: () => {
       if (isEmptyStr(data.variableName)) errors.push('The Variable name is empty');
     },
@@ -294,10 +283,6 @@ const validators: Record<
   'trigger-event': {
     ...defaultOptions,
     func: validateInteractionBasic,
-  },
-  'google-sheets': {
-    ...defaultOptions,
-    func: validateGoogleSheets,
   },
   'element-exists': {
     ...defaultOptions,

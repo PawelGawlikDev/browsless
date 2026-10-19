@@ -11,13 +11,7 @@ import type {
 } from '@/types/workflow-engine';
 
 type LoopThrough =
-  | 'numbers'
-  | 'table'
-  | 'custom-data'
-  | 'data-columns'
-  | 'google-sheets'
-  | 'variable'
-  | 'elements';
+  'numbers' | 'table' | 'custom-data' | 'data-columns' | 'variable' | 'elements';
 
 type LoopDataBlockData = {
   loopId: string;
@@ -29,7 +23,6 @@ type LoopDataBlockData = {
   resumeLastWorkflow?: boolean;
   reverseLoop?: boolean;
   loopData?: string;
-  referenceKey?: string;
   variableName?: string;
   elementSelector?: string;
   waitForSelector?: boolean;
@@ -70,8 +63,6 @@ async function loopData(
         table: () => refData.table,
         'custom-data': () => JSON.parse(data.loopData ?? ''),
         'data-columns': () => refData.table,
-        'google-sheets': () =>
-          (refData.googleSheets as Record<string, unknown>)?.[data.referenceKey ?? ''],
         variable: () => {
           let variableVal: unknown = objectPath.get(
             refData.variables as Record<string, unknown>,
@@ -126,7 +117,9 @@ async function loopData(
         },
       };
 
-      const currLoopData = await getLoopData[data.loopThrough]();
+      const resolveLoopData = getLoopData[data.loopThrough];
+      if (!resolveLoopData) throw new Error('Unsupported loop data source');
+      const currLoopData = await resolveLoopData();
       let index = 0;
 
       if (data.loopThrough !== 'numbers') {

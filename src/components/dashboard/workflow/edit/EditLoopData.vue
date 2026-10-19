@@ -24,15 +24,7 @@
       </option>
     </ui-select>
     <ui-input
-      v-if="data.loopThrough === 'google-sheets'"
-      :model-value="data.referenceKey"
-      :label="t('workflow.blocks.loop-data.refKey')"
-      placeholder="abc123"
-      class="mt-2 w-full"
-      @change="updateData({ referenceKey: $event })"
-    />
-    <ui-input
-      v-else-if="data.loopThrough === 'variable'"
+      v-if="data.loopThrough === 'variable'"
       :model-value="data.variableName"
       :label="t('workflow.variables.name')"
       placeholder="abc123"
@@ -199,14 +191,7 @@ const emit = defineEmits<{ 'update:data': [value: LoopDataData] }>();
 const { t } = useI18n();
 const toast = useToast();
 const maxFileSize = 1024 * 1024;
-const loopTypes = [
-  'data-columns',
-  'numbers',
-  'google-sheets',
-  'variable',
-  'custom-data',
-  'elements',
-];
+const loopTypes = ['data-columns', 'numbers', 'variable', 'custom-data', 'elements'];
 const state = shallowReactive({
   showOptions: false,
   showDataModal: false,

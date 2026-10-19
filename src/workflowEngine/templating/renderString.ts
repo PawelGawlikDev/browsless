@@ -19,8 +19,7 @@ const renderString = async (
   }
   const evaluateJS = str.startsWith('!!');
   if (evaluateJS) {
-    const refKeysRegex =
-      /(variables|table|secrets|loopData|workflow|googleSheets|globalData)@/g;
+    const refKeysRegex = /(variables|table|secrets|loopData|workflow|globalData)@/g;
     const strToRender = str.replace(refKeysRegex, '$1.');
     return messageSandbox<RenderedStringResult>('blockExpression', {
       str: strToRender,

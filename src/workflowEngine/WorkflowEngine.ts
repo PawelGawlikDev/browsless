@@ -29,7 +29,6 @@ type WorkflowReferenceData = {
     string,
     { table?: WorkflowTableRow[]; variables?: WorkflowVariableMap }
   >;
-  googleSheets: Record<string, unknown>;
   globalData: unknown;
 };
 
@@ -221,7 +220,6 @@ class WorkflowEngine {
       secrets: {},
       loopData: {},
       workflow: {},
-      googleSheets: {},
       globalData: parseJSON(globalData, globalData),
     };
 

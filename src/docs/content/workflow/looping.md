@@ -6,9 +6,9 @@ title: Looping
 
 Looping allows you to perform the same actions repeatedly and only stops after it loops all the items.
 
-Looping is helpful when you want to process multiple similar items, for example filling forms where the value is from a Google Sheets. There are several ways to do looping in Automa:
+Looping is helpful when you want to process multiple similar items, for example filling forms with values from a local table. There are several ways to do looping in Browsless:
 
-1. Use the [Loop Data block](../blocks/loop-data.md) to loop through a [variable](./variables.md), [table](./table.md), [google sheets](../blocks/google-sheets.md) or custom JSON Array.
+1. Use the [Loop Data block](../blocks/loop-data.md) to loop through a [variable](./variables.md), [table](./table.md) or custom JSON Array.
 2. Use the [Loop Elements](../blocks/loop-elements.md) block to loop through elements on the page.
 3. Use the [Repeat Task block](../blocks/repeat-task.md) for repeatedly doing actions a specified number of times.
 
