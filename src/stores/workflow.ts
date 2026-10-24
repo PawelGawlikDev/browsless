@@ -164,6 +164,42 @@ export const useWorkflowStore = defineStore('workflow', {
           starterWorkflowsVersion: STARTER_WORKFLOWS_VERSION,
         });
       }
+      if (import.meta.env.DEV) {
+        const { developmentWorkflows } = await import('@/utils/developmentFixtures');
+        const { developmentWorkflowIds } = await extensionStorage.local.get(
+          'developmentWorkflowIds'
+        );
+        const seededIds = new Set<string>(
+          Array.isArray(developmentWorkflowIds)
+            ? developmentWorkflowIds.filter((id): id is string => typeof id === 'string')
+            : []
+        );
+        const workflowMap = convertWorkflowsToObject(localWorkflows);
+        let changed = false;
+        for (const workflow of developmentWorkflows) {
+          if (!workflow.id) continue;
+          // Stable IDs avoid duplicates; the ledger also respects intentional deletion.
+          if (seededIds.has(workflow.id)) continue;
+          if (!workflowMap[workflow.id]) {
+            workflowMap[workflow.id] = defaultWorkflow({
+              ...workflow,
+              // Adapt only the local fixture URL, not the saved graph or package code.
+              globalData: JSON.stringify({
+                playgroundUrl: import.meta.env.BROWSLESS_PLAYGROUND_URL,
+              }),
+            });
+          }
+          seededIds.add(workflow.id);
+          changed = true;
+        }
+        if (changed) {
+          await extensionStorage.local.set({
+            workflows: workflowMap,
+            developmentWorkflowIds: [...seededIds],
+          });
+        }
+        localWorkflows = workflowMap;
+      }
       this.isFirstTime = Boolean(isFirstTime);
       this.workflows = convertWorkflowsToObject(localWorkflows);
       this.retrieved = true;

@@ -1,0 +1,497 @@
+{
+  "id": "playground-test-package-catalog-v1",
+  "name": "Playground · Package · Extract and filter catalog",
+  "description": "Open a fresh page, run the 7-step package, then verify its output connection. Inspect result.checks and packageReturned. The package is embedded as an editable snapshot.",
+  "icon": "riTestTubeLine",
+  "version": "1.0.1",
+  "extVersion": "1.0.1",
+  "drawflow": {
+    "nodes": [
+      {
+        "id": "catalog-1",
+        "label": "trigger",
+        "type": "BlockBasic",
+        "position": {
+          "x": 80,
+          "y": 100
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "",
+          "type": "manual",
+          "interval": 60,
+          "delay": 5,
+          "date": "",
+          "time": "00:00",
+          "url": "",
+          "shortcut": "",
+          "activeInInput": false,
+          "isUrlRegex": false,
+          "days": [],
+          "contextMenuName": "",
+          "contextTypes": [],
+          "parameters": [],
+          "preferParamsInTab": false,
+          "observeElement": {
+            "selector": "",
+            "baseSelector": "",
+            "matchPattern": "",
+            "targetOptions": {
+              "subtree": false,
+              "childList": true,
+              "attributes": false,
+              "attributeFilter": [],
+              "characterData": false
+            },
+            "baseElOptions": {
+              "subtree": false,
+              "childList": true,
+              "attributes": false,
+              "attributeFilter": [],
+              "characterData": false
+            }
+          }
+        }
+      },
+      {
+        "id": "catalog-2",
+        "label": "new-tab",
+        "type": "BlockBasic",
+        "position": {
+          "x": 380,
+          "y": 100
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "Open a fresh local playground (URL comes from Global data)",
+          "url": "{{globalData@playgroundUrl}}",
+          "userAgent": "",
+          "active": true,
+          "tabZoom": 1,
+          "inGroup": false,
+          "waitTabLoaded": true,
+          "updatePrevTab": false,
+          "customUserAgent": false
+        }
+      },
+      {
+        "id": "catalog-3",
+        "label": "delay",
+        "type": "BlockDelay",
+        "position": {
+          "x": 680,
+          "y": 100
+        },
+        "data": {
+          "disableBlock": false,
+          "time": 600
+        }
+      },
+      {
+        "id": "catalog-4",
+        "label": "element-scroll",
+        "type": "BlockBasic",
+        "position": {
+          "x": 980,
+          "y": 100
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "Show the section being tested",
+          "findBy": "cssSelector",
+          "waitForSelector": true,
+          "waitSelectorTimeout": 6000,
+          "selector": "#table-search",
+          "markEl": false,
+          "multiple": false,
+          "scrollY": 0,
+          "scrollX": 0,
+          "incX": false,
+          "incY": false,
+          "smooth": false,
+          "scrollIntoView": true
+        }
+      },
+      {
+        "id": "package-catalog-run",
+        "label": "block-package",
+        "type": "BlockPackage",
+        "position": {
+          "x": 1280,
+          "y": 100
+        },
+        "data": {
+          "id": "playground-package-catalog-v1",
+          "name": "Test package · Extract and filter catalog",
+          "description": "7 steps: Extract all four product names/prices into variables, filter Keyboard, then restore all rows. Variables: productNames, prices, filterStatus, result. Start on a fresh playground in the main document.",
+          "icon": "riTestTubeLine",
+          "isExtenal": false,
+          "content": null,
+          "inputs": [
+            {
+              "id": "start",
+              "name": "Start test",
+              "blockId": "catalog-5"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "done",
+              "name": "Test finished",
+              "blockId": "catalog-11",
+              "handleId": "catalog-11-output-1"
+            }
+          ],
+          "variable": [],
+          "settings": {
+            "asBlock": true
+          },
+          "data": {
+            "nodes": [
+              {
+                "id": "catalog-5",
+                "label": "get-text",
+                "type": "BlockBasic",
+                "position": {
+                  "x": 1280,
+                  "y": 100
+                },
+                "data": {
+                  "disableBlock": false,
+                  "description": "",
+                  "findBy": "cssSelector",
+                  "waitForSelector": false,
+                  "waitSelectorTimeout": 5000,
+                  "selector": "#products-table tbody .product-name",
+                  "markEl": false,
+                  "multiple": true,
+                  "regex": "",
+                  "prefixText": "",
+                  "suffixText": "",
+                  "regexExp": [],
+                  "dataColumn": "",
+                  "saveData": false,
+                  "includeTags": false,
+                  "addExtraRow": false,
+                  "assignVariable": true,
+                  "useTextContent": true,
+                  "variableName": "productNames",
+                  "extraRowValue": "",
+                  "extraRowDataColumn": ""
+                }
+              },
+              {
+                "id": "catalog-6",
+                "label": "attribute-value",
+                "type": "BlockBasic",
+                "position": {
+                  "x": 80,
+                  "y": 280
+                },
+                "data": {
+                  "disableBlock": false,
+                  "description": "",
+                  "findBy": "cssSelector",
+                  "waitForSelector": false,
+                  "waitSelectorTimeout": 5000,
+                  "selector": "#products-table tbody .price",
+                  "markEl": false,
+                  "multiple": true,
+                  "attributeValue": "",
+                  "attributeName": "data-value",
+                  "assignVariable": true,
+                  "variableName": "prices",
+                  "dataColumn": "",
+                  "saveData": false,
+                  "action": "get",
+                  "addExtraRow": false,
+                  "extraRowValue": "",
+                  "extraRowDataColumn": ""
+                }
+              },
+              {
+                "id": "catalog-7",
+                "label": "forms",
+                "type": "BlockBasic",
+                "position": {
+                  "x": 380,
+                  "y": 280
+                },
+                "data": {
+                  "disableBlock": false,
+                  "description": "",
+                  "findBy": "cssSelector",
+                  "waitForSelector": false,
+                  "waitSelectorTimeout": 5000,
+                  "selector": "#table-search",
+                  "markEl": false,
+                  "multiple": false,
+                  "selected": true,
+                  "clearValue": true,
+                  "getValue": false,
+                  "saveData": false,
+                  "dataColumn": "",
+                  "selectOptionBy": "value",
+                  "optionPosition": "1",
+                  "assignVariable": false,
+                  "variableName": "",
+                  "type": "text-field",
+                  "value": "Keyboard",
+                  "delay": 0,
+                  "events": []
+                }
+              },
+              {
+                "id": "catalog-8",
+                "label": "get-text",
+                "type": "BlockBasic",
+                "position": {
+                  "x": 680,
+                  "y": 280
+                },
+                "data": {
+                  "disableBlock": false,
+                  "description": "",
+                  "findBy": "cssSelector",
+                  "waitForSelector": false,
+                  "waitSelectorTimeout": 5000,
+                  "selector": "#table-status",
+                  "markEl": false,
+                  "multiple": false,
+                  "regex": "",
+                  "prefixText": "",
+                  "suffixText": "",
+                  "regexExp": [],
+                  "dataColumn": "",
+                  "saveData": false,
+                  "includeTags": false,
+                  "addExtraRow": false,
+                  "assignVariable": true,
+                  "useTextContent": true,
+                  "variableName": "filterStatus",
+                  "extraRowValue": "",
+                  "extraRowDataColumn": ""
+                }
+              },
+              {
+                "id": "catalog-9",
+                "label": "javascript-code",
+                "type": "BlockBasic",
+                "position": {
+                  "x": 980,
+                  "y": 280
+                },
+                "data": {
+                  "disableBlock": false,
+                  "description": "Verify results; inspect variables.result in the execution log",
+                  "timeout": 20000,
+                  "context": "website",
+                  "code": "const checks = {\n  ...(browslessRefData('variables', 'result')?.checks || {}),\n  \"filtered\": Boolean(document.querySelector('#table-status').textContent === '1 products visible.'),\n  \"correctRow\": Boolean(document.querySelector('#products-table tbody tr:not([hidden])').dataset.sku === 'KB-101')\n};\nconst passed = Object.values(checks).every(Boolean);\nbrowslessSetVariable('result', { passed, checks });\nif (!passed) {\n  console.error('Playground checks failed', checks);\n}\nbrowslessNextBlock([], false);",
+                  "preloadScripts": [],
+                  "everyNewTab": false,
+                  "runBeforeLoad": false
+                }
+              },
+              {
+                "id": "catalog-10",
+                "label": "forms",
+                "type": "BlockBasic",
+                "position": {
+                  "x": 1280,
+                  "y": 280
+                },
+                "data": {
+                  "disableBlock": false,
+                  "description": "",
+                  "findBy": "cssSelector",
+                  "waitForSelector": false,
+                  "waitSelectorTimeout": 5000,
+                  "selector": "#table-search",
+                  "markEl": false,
+                  "multiple": false,
+                  "selected": true,
+                  "clearValue": true,
+                  "getValue": false,
+                  "saveData": false,
+                  "dataColumn": "",
+                  "selectOptionBy": "value",
+                  "optionPosition": "1",
+                  "assignVariable": false,
+                  "variableName": "",
+                  "type": "text-field",
+                  "value": "",
+                  "delay": 0,
+                  "events": []
+                }
+              },
+              {
+                "id": "catalog-11",
+                "label": "javascript-code",
+                "type": "BlockBasic",
+                "position": {
+                  "x": 80,
+                  "y": 460
+                },
+                "data": {
+                  "disableBlock": false,
+                  "description": "Verify results; inspect variables.result in the execution log",
+                  "timeout": 20000,
+                  "context": "website",
+                  "code": "const checks = {\n  ...(browslessRefData('variables', 'result')?.checks || {}),\n  \"restored\": Boolean(document.querySelectorAll('#products-table tbody tr:not([hidden])').length === 4)\n};\nconst passed = Object.values(checks).every(Boolean);\nbrowslessSetVariable('result', { passed, checks });\nif (!passed) {\n  console.error('Playground checks failed', checks);\n}\nbrowslessNextBlock([], false);",
+                  "preloadScripts": [],
+                  "everyNewTab": false,
+                  "runBeforeLoad": false
+                }
+              }
+            ],
+            "edges": [
+              {
+                "id": "catalog-5-to-catalog-6",
+                "source": "catalog-5",
+                "target": "catalog-6",
+                "sourceHandle": "catalog-5-output-1",
+                "targetHandle": "catalog-6-input-1",
+                "type": "default",
+                "markerEnd": "arrowclosed"
+              },
+              {
+                "id": "catalog-6-to-catalog-7",
+                "source": "catalog-6",
+                "target": "catalog-7",
+                "sourceHandle": "catalog-6-output-1",
+                "targetHandle": "catalog-7-input-1",
+                "type": "default",
+                "markerEnd": "arrowclosed"
+              },
+              {
+                "id": "catalog-7-to-catalog-8",
+                "source": "catalog-7",
+                "target": "catalog-8",
+                "sourceHandle": "catalog-7-output-1",
+                "targetHandle": "catalog-8-input-1",
+                "type": "default",
+                "markerEnd": "arrowclosed"
+              },
+              {
+                "id": "catalog-8-to-catalog-9",
+                "source": "catalog-8",
+                "target": "catalog-9",
+                "sourceHandle": "catalog-8-output-1",
+                "targetHandle": "catalog-9-input-1",
+                "type": "default",
+                "markerEnd": "arrowclosed"
+              },
+              {
+                "id": "catalog-9-to-catalog-10",
+                "source": "catalog-9",
+                "target": "catalog-10",
+                "sourceHandle": "catalog-9-output-1",
+                "targetHandle": "catalog-10-input-1",
+                "type": "default",
+                "markerEnd": "arrowclosed"
+              },
+              {
+                "id": "catalog-10-to-catalog-11",
+                "source": "catalog-10",
+                "target": "catalog-11",
+                "sourceHandle": "catalog-10-output-1",
+                "targetHandle": "catalog-11-input-1",
+                "type": "default",
+                "markerEnd": "arrowclosed"
+              }
+            ],
+            "zoom": 0.8,
+            "position": [0, 0]
+          }
+        }
+      },
+      {
+        "id": "package-catalog-returned",
+        "label": "javascript-code",
+        "type": "BlockBasic",
+        "position": {
+          "x": 1580,
+          "y": 100
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "Verify execution continues through the package output",
+          "timeout": 20000,
+          "context": "website",
+          "code": "browslessSetVariable('packageReturned', true);\nbrowslessSetVariable('packageStepCount', 7);\nbrowslessNextBlock([], false);",
+          "preloadScripts": [],
+          "everyNewTab": false,
+          "runBeforeLoad": false
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "catalog-1-to-catalog-2",
+        "source": "catalog-1",
+        "target": "catalog-2",
+        "sourceHandle": "catalog-1-output-1",
+        "targetHandle": "catalog-2-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "catalog-2-to-catalog-3",
+        "source": "catalog-2",
+        "target": "catalog-3",
+        "sourceHandle": "catalog-2-output-1",
+        "targetHandle": "catalog-3-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "catalog-3-to-catalog-4",
+        "source": "catalog-3",
+        "target": "catalog-4",
+        "sourceHandle": "catalog-3-output-1",
+        "targetHandle": "catalog-4-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "catalog-4-to-package-catalog-run",
+        "source": "catalog-4",
+        "target": "package-catalog-run",
+        "sourceHandle": "catalog-4-output-1",
+        "targetHandle": "package-catalog-run-input-start",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "package-catalog-run-to-package-catalog-returned",
+        "source": "package-catalog-run",
+        "target": "package-catalog-returned",
+        "sourceHandle": "package-catalog-run-output-done",
+        "targetHandle": "package-catalog-returned-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      }
+    ],
+    "zoom": 0.8,
+    "position": [0, 0]
+  },
+  "table": [],
+  "settings": {
+    "publicId": "",
+    "aipowerToken": "",
+    "blockDelay": 650,
+    "saveLog": true,
+    "debugMode": false,
+    "restartTimes": 0,
+    "notification": false,
+    "execContext": "background",
+    "reuseLastState": false,
+    "inputAutocomplete": false,
+    "onError": "stop-workflow",
+    "executedBlockOnWeb": false,
+    "insertDefaultColumn": false,
+    "defaultColumnName": "column",
+    "tabLoadTimeout": 15000
+  },
+  "globalData": "{\n  \"playgroundUrl\": \"file:///Users/pawel/browsless/test-page/test-page.html\"\n}"
+}

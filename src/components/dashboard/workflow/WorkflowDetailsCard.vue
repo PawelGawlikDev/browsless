@@ -120,6 +120,7 @@ const icons = [
   'riCursorLine',
   'riDownloadLine',
   'riCommandLine',
+  'riTestTubeLine',
 ];
 const copyBlocks = getBlocks();
 delete copyBlocks['block-package'];

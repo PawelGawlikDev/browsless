@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { defineConfig } from 'wxt';
 
 const { default: tailwindcss } = await import('@tailwindcss/vite');
@@ -10,6 +10,9 @@ export default defineConfig({
   modules: ['@wxt-dev/module-vue', '@wxt-dev/auto-icons'],
   srcDir: 'src',
   entrypointsDir: '../entrypoints',
+  webExt: {
+    startUrls: [path.resolve(rootDir, 'test-page/test-page.html')],
+  },
   hooks: {
     'build:publicAssets': (_wxt, files) => {
       // Package the canonical legal files without maintaining duplicate copies.
@@ -78,7 +81,7 @@ export default defineConfig({
       pages: ['/sandbox.html'],
     },
   }),
-  vite: () => ({
+  vite: ({ mode }) => ({
     plugins: [tailwindcss()],
     server: {
       cors: true,
@@ -86,15 +89,27 @@ export default defineConfig({
     resolve: {
       alias: [
         {
+          find: /^vuedraggable$/,
+          replacement: fileURLToPath(
+            import.meta.resolve('vuedraggable/src/vuedraggable.js')
+          ),
+        },
+        {
           find: /^@\//,
           replacement: `${path.resolve(rootDir, 'src')}/`,
         },
       ],
     },
     define: {
+      'import.meta.env.BROWSLESS_PLAYGROUND_URL': JSON.stringify(
+        mode === 'development'
+          ? pathToFileURL(path.resolve(rootDir, 'test-page/test-page.html')).href
+          : ''
+      ),
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'development'),
     },
     build: {
+      minify: false,
       modulePreload: false,
     },
   }),

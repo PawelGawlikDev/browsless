@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BrowsLess — Automation playground</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #18181b;
+        --muted: #52525b;
+        --line: #d4d4d8;
+        --surface: #f4f4f5;
+        --primary: #1d4ed8;
+        --selection: #ebf1ff;
+        font:
+          16px/1.55 system-ui,
+          sans-serif;
+        color: var(--ink);
+        background: #fafafa;
+        accent-color: var(--primary);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      ::selection {
+        background: var(--selection);
+      }
+      :focus-visible {
+        outline: 3px solid var(--primary);
+        outline-offset: 3px;
+      }
+      a {
+        color: var(--primary);
+        text-underline-offset: 3px;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button,
+      .button {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0.55rem 0.9rem;
+        background: white;
+        color: var(--ink);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+      }
+      button:hover,
+      .button:hover {
+        background: var(--surface);
+      }
+      button.primary {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+      }
+      button.primary:hover {
+        background: #1e40af;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      header {
+        background: white;
+        border-bottom: 1px solid var(--line);
+        padding: 2.5rem max(1.25rem, calc((100vw - 1120px) / 2));
+      }
+      h1 {
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.75rem;
+      }
+      h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1.4rem;
+        letter-spacing: -0.02em;
+      }
+      p {
+        max-width: 72ch;
+        margin: 0.5rem 0 1rem;
+      }
+      .muted,
+      .hint {
+        color: var(--muted);
+      }
+      .hint {
+        font-size: 0.875rem;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.25rem;
+        margin-top: 1.5rem;
+      }
+      main {
+        max-width: 1160px;
+        margin: auto;
+        padding: 0 1.25rem 3rem;
+      }
+      section {
+        padding: 2.5rem 0;
+        border-bottom: 1px solid var(--line);
+        scroll-margin-top: 1rem;
+      }
+      .columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem 2.5rem;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-bottom: 1rem;
+      }
+      label,
+      legend {
+        font-weight: 550;
+      }
+      input:not([type='checkbox']):not([type='radio']):not([type='range']):not(
+          [type='color']
+        ),
+      select,
+      textarea {
+        width: 100%;
+        min-height: 44px;
+        padding: 0.55rem 0.7rem;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--ink);
+      }
+      input:disabled,
+      input[readonly] {
+        background: var(--surface) !important;
+      }
+      textarea {
+        resize: vertical;
+      }
+      fieldset {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 1rem;
+        margin: 0 0 1rem;
+      }
+      .choices {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.5rem;
+      }
+      .choices label {
+        font-weight: 400;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin: 1rem 0;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 1rem 0 0;
+        padding: 1rem;
+        border-radius: 6px;
+        background: var(--surface);
+        font-size: 0.875rem;
+        max-height: 320px;
+        overflow: auto;
+      }
+      output {
+        display: block;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        background: white;
+        font-variant-numeric: tabular-nums;
+      }
+      caption {
+        text-align: left;
+        margin-bottom: 0.75rem;
+        color: var(--muted);
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      th {
+        background: var(--surface);
+      }
+      td:last-child {
+        text-align: right;
+      }
+      [contenteditable] {
+        background: white;
+        border: 1px solid var(--line);
+        padding: 1rem;
+        border-radius: 6px;
+        min-height: 100px;
+      }
+      dialog {
+        width: min(460px, calc(100vw - 2rem));
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 1.5rem;
+      }
+      dialog::backdrop {
+        background: rgb(24 24 27 / 0.45);
+      }
+      iframe {
+        width: 100%;
+        min-height: 180px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: white;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 550;
+      }
+      #event-log {
+        min-height: 100px;
+      }
+      #delayed-result {
+        padding: 1rem;
+        background: var(--selection);
+        border-radius: 6px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      footer {
+        padding-top: 1.5rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+      @media (max-width: 680px) {
+        .columns {
+          grid-template-columns: 1fr;
+        }
+        header {
+          padding-top: 1.75rem;
+        }
+        section {
+          padding: 1.75rem 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Standalone, offline test fixture. Uses BrowsLess's neutral/cobalt palette and native controls. All records are synthetic. -->
+    <header>
+      <h1>Automation playground</h1>
+      <p class="muted">
+        A local test page for BrowsLess. Fill fields, extract records, click through
+        states, and check what your workflow actually did. No data leaves this page.
+      </p>
+      <p class="hint">
+        For local-file automation, enable <strong>Allow access to file URLs</strong> in
+        Chrome → Extensions → BrowsLess-Dev → Details. Reload this page after enabling it.
+      </p>
+      <nav aria-label="Test sections">
+        <a href="#forms">Forms</a><a href="#controls">More inputs</a
+        ><a href="#records">Table &amp; extraction</a
+        ><a href="#interactions">Interactions</a
+        ><a href="#contexts">Frames &amp; shadow DOM</a><a href="#events">Event log</a>
+      </nav>
+    </header>
+    <main>
+      <section id="forms">
+        <h2>Forms</h2>
+        <p class="muted">
+          Test typing, selection, validation, submission, and reset. Required fields use
+          native browser validation.
+        </p>
+        <form id="profile-form">
+          <div class="columns">
+            <div>
+              <div class="field">
+                <label for="full-name">Full name *</label
+                ><input
+                  id="full-name"
+                  name="fullName"
+                  autocomplete="name"
+                  placeholder="Alex Morgan"
+                  required
+                />
+              </div>
+              <div class="field">
+                <label for="email">Email *</label
+                ><input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  placeholder="alex@example.com"
+                  required
+                />
+              </div>
+              <div class="field">
+                <label for="password">Test password</label
+                ><input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="8"
+                  aria-describedby="password-hint"
+                /><span id="password-hint" class="hint"
+                  >Use dummy data only. Minimum 8 characters.</span
+                >
+              </div>
+              <div class="field">
+                <label for="phone">Phone</label
+                ><input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autocomplete="tel"
+                  placeholder="+48 555 010 020"
+                />
+              </div>
+              <div class="field">
+                <label for="website">Website</label
+                ><input
+                  id="website"
+                  name="website"
+                  type="url"
+                  placeholder="https://example.com"
+                />
+              </div>
+            </div>
+            <div>
+              <div class="field">
+                <label for="country">Country *</label
+                ><select id="country" name="country" required>
+                  <option value="">Choose a country</option>
+                  <option value="PL">Poland</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="US">United States</option>
+                  <option value="DE">Germany</option>
+                </select>
+              </div>
+              <fieldset>
+                <legend>Plan</legend>
+                <div class="choices">
+                  <label
+                    ><input type="radio" name="plan" value="starter" checked />
+                    Starter</label
+                  ><label><input type="radio" name="plan" value="pro" /> Pro</label
+                  ><label><input type="radio" name="plan" value="team" /> Team</label>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>Interests</legend>
+                <div class="choices">
+                  <label
+                    ><input type="checkbox" name="interests" value="automation" />
+                    Automation</label
+                  ><label
+                    ><input type="checkbox" name="interests" value="data" /> Data
+                    extraction</label
+                  ><label
+                    ><input type="checkbox" name="interests" value="testing" />
+                    Testing</label
+                  >
+                </div>
+              </fieldset>
+              <div class="field">
+                <label for="notes">Notes</label
+                ><textarea
+                  id="notes"
+                  name="notes"
+                  rows="3"
+                  placeholder="Write a test message…"
+                ></textarea>
+              </div>
+              <label
+                ><input id="terms" name="terms" type="checkbox" required /> I agree to the
+                demo terms *</label
+              >
+            </div>
+          </div>
+          <div class="actions">
+            <button id="submit-profile" class="primary" type="submit">
+              Submit profile</button
+            ><button id="reset-profile" type="reset">Reset form</button>
+          </div>
+          <output id="form-status" aria-live="polite">No submission yet.</output>
+          <pre id="form-result" aria-label="Submitted form JSON">{}</pre>
+        </form>
+      </section>
+      <section id="controls">
+        <h2>More input types</h2>
+        <p class="muted">Native controls and edge cases for form-filling blocks.</p>
+        <div class="columns">
+          <div>
+            <div class="field">
+              <label for="quantity">Quantity (1–20)</label
+              ><input id="quantity" type="number" min="1" max="20" value="2" />
+            </div>
+            <div class="field">
+              <label for="date">Date</label><input id="date" type="date" />
+            </div>
+            <div class="field">
+              <label for="time">Time</label><input id="time" type="time" />
+            </div>
+            <div class="field">
+              <label for="appointment">Date and time</label
+              ><input id="appointment" type="datetime-local" />
+            </div>
+            <div class="field">
+              <label for="skills">Skills (multiple selection)</label
+              ><select id="skills" multiple size="3">
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="javascript">JavaScript</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div class="field">
+              <label for="volume">Volume: <span id="volume-value">50</span></label
+              ><input id="volume" type="range" min="0" max="100" value="50" />
+            </div>
+            <div class="field">
+              <label for="color">Color</label
+              ><input id="color" type="color" value="#1d4ed8" />
+            </div>
+            <div class="field">
+              <label for="attachment">Upload files</label
+              ><input id="attachment" type="file" multiple /><output
+                id="file-result"
+                class="hint"
+                aria-live="polite"
+                >No files selected.</output
+              >
+            </div>
+            <div class="field">
+              <label for="readonly">Read-only value</label
+              ><input id="readonly" value="READ-ONLY-123" readonly />
+            </div>
+            <div class="field">
+              <label for="disabled">Disabled input</label
+              ><input id="disabled" value="Cannot edit this field" disabled />
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <span id="rich-text-label">Editable text</span>
+          <div
+            id="rich-text"
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            aria-labelledby="rich-text-label"
+          >
+            Replace this text with your workflow.
+          </div>
+        </div>
+      </section>
+      <section id="records">
+        <h2>Table &amp; extraction</h2>
+        <p class="muted">
+          Stable IDs, data attributes, repeated rows, links, and numeric values. These are
+          synthetic records.
+        </p>
+        <div class="field">
+          <label for="table-search">Filter by product name</label
+          ><input id="table-search" type="search" placeholder="Try Keyboard" />
+        </div>
+        <div class="table-wrap">
+          <table id="products-table">
+            <caption>
+              Demo product catalog · prices in USD
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">SKU</th>
+                <th scope="col">Product</th>
+                <th scope="col">Category</th>
+                <th scope="col">Stock</th>
+                <th scope="col">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-sku="KB-101">
+                <td>KB-101</td>
+                <td class="product-name">
+                  <a href="#product-keyboard">Mechanical Keyboard</a>
+                </td>
+                <td>Accessories</td>
+                <td class="stock">24</td>
+                <td class="price" data-value="89.99">$89.99</td>
+              </tr>
+              <tr data-sku="MS-202">
+                <td>MS-202</td>
+                <td class="product-name"><a href="#product-mouse">Wireless Mouse</a></td>
+                <td>Accessories</td>
+                <td class="stock">58</td>
+                <td class="price" data-value="34.50">$34.50</td>
+              </tr>
+              <tr data-sku="MN-303">
+                <td>MN-303</td>
+                <td class="product-name">
+                  <a href="#product-monitor">27-inch Monitor</a>
+                </td>
+                <td>Displays</td>
+                <td class="stock">12</td>
+                <td class="price" data-value="249.00">$249.00</td>
+              </tr>
+              <tr data-sku="HB-404">
+                <td>HB-404</td>
+                <td class="product-name"><a href="#product-hub">USB-C Hub</a></td>
+                <td>Accessories</td>
+                <td class="stock">0</td>
+                <td class="price" data-value="49.00">$49.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <output id="table-status" class="hint" aria-live="polite"
+          >4 products visible.</output
+        >
+        <div class="actions">
+          <a
+            id="download-csv"
+            class="button"
+            download="browsless-products.csv"
+            href="data:text/csv;charset=utf-8,sku%2Cname%2Cprice%0AKB-101%2CMechanical%20Keyboard%2C89.99%0AMS-202%2CWireless%20Mouse%2C34.50%0AMN-303%2C27-inch%20Monitor%2C249.00%0AHB-404%2CUSB-C%20Hub%2C49.00"
+            >Download sample CSV</a
+          ><a
+            id="new-tab-link"
+            href="test-page.html?source=new-tab"
+            target="_blank"
+            rel="noopener"
+            >Open this page in a new tab</a
+          >
+        </div>
+        <details>
+          <summary>Product details / nested text</summary>
+          <ul id="product-details">
+            <li id="product-keyboard">
+              Mechanical Keyboard: <strong>hot-swappable switches</strong>
+            </li>
+            <li id="product-mouse">
+              Wireless Mouse: <strong>rechargeable battery</strong>
+            </li>
+            <li id="product-monitor">
+              27-inch Monitor: <strong>2560 × 1440 resolution</strong>
+            </li>
+            <li id="product-hub">USB-C Hub: <strong>currently out of stock</strong></li>
+          </ul>
+        </details>
+      </section>
+      <section id="interactions">
+        <h2>Clicks, dialogs &amp; waiting</h2>
+        <p class="muted">
+          Check click counts, dialog handling, visibility, and waiting for a selector.
+        </p>
+        <div class="actions">
+          <button id="counter-button">Click counter</button
+          ><output id="counter-value" aria-live="polite">0 clicks</output
+          ><button id="double-click-button">Double-click target</button
+          ><output id="double-click-result" aria-live="polite">0 double-clicks</output>
+        </div>
+        <div class="actions">
+          <button id="open-dialog">Open dialog</button
+          ><button id="alert-button">Native alert</button
+          ><button id="confirm-button">Native confirm</button
+          ><output id="confirm-result" aria-live="polite">No confirmation yet.</output>
+        </div>
+        <div class="actions">
+          <button id="load-delayed">Load element after 2 seconds</button
+          ><button
+            id="toggle-element"
+            aria-expanded="false"
+            aria-controls="toggle-result"
+          >
+            Toggle hidden element</button
+          ><button id="disabled-button" disabled>Disabled button</button>
+        </div>
+        <output id="delayed-status" aria-live="polite"
+          >Delayed element has not loaded.</output
+        >
+        <div id="delayed-container"></div>
+        <p id="toggle-result" hidden>
+          This element is now visible. Test value: VISIBLE-456.
+        </p>
+        <dialog id="test-dialog" aria-labelledby="dialog-title">
+          <form method="dialog">
+            <h2 id="dialog-title">Demo dialog</h2>
+            <p>Fill the field, then save or cancel.</p>
+            <div class="field">
+              <label for="dialog-input">Dialog message</label
+              ><input id="dialog-input" name="message" />
+            </div>
+            <div class="actions">
+              <button id="dialog-save" class="primary" value="saved">Save message</button
+              ><button id="dialog-cancel" value="cancelled">Cancel</button>
+            </div>
+          </form>
+        </dialog>
+        <output id="dialog-result" aria-live="polite">Dialog has not been opened.</output>
+      </section>
+      <section id="contexts">
+        <h2>Frames &amp; shadow DOM</h2>
+        <p class="muted">
+          Separate DOM contexts for testing frame targeting and element selection. Shadow
+          DOM support depends on the workflow block.
+        </p>
+        <div class="columns">
+          <div>
+            <h3>Embedded frame</h3>
+            <iframe
+              id="test-frame"
+              title="Automation test frame"
+              srcdoc="<!doctype html><html lang='en'><meta charset='utf-8'><style>body{font:16px system-ui;padding:12px;color:#18181b}label{display:block;margin-bottom:8px}input,button{font:inherit;padding:8px;max-width:100%;box-sizing:border-box}p{margin-bottom:0}</style><label for='frame-input'>Frame input</label><input id='frame-input' placeholder='Type inside the iframe'><button id='frame-button' onclick='document.getElementById(&quot;frame-result&quot;).textContent = document.getElementById(&quot;frame-input&quot;).value || &quot;Frame button clicked&quot;'>Apply</button><p id='frame-result' role='status'>Waiting for frame interaction.</p></html>"
+            ></iframe>
+          </div>
+          <div>
+            <h3>Open shadow root</h3>
+            <div id="shadow-host"></div>
+          </div>
+        </div>
+      </section>
+      <section id="events">
+        <h2>Event log</h2>
+        <p class="muted">
+          Most recent events first. Input values are not logged; submitted dummy form
+          values appear above. Reload to reset the entire playground.
+        </p>
+        <div class="actions"><button id="clear-log">Clear log</button></div>
+        <pre id="event-log" aria-label="Recent interaction events">
+Ready. Waiting for interaction.</pre>
+      </section>
+      <footer>
+        BrowsLess development fixture · Works offline · No libraries, build step, or
+        server required
+      </footer>
+    </main>
+    <script>
+      const byId = (id) => document.getElementById(id);
+      const events = [];
+      function log(message) {
+        events.unshift(`${new Date().toLocaleTimeString()}  ${message}`);
+        events.length = Math.min(events.length, 80);
+        byId('event-log').textContent = events.join('\n');
+      }
+      document.addEventListener('click', (event) => {
+        const target = event.target.closest('button, a');
+        if (target) log(`click: ${target.id || target.textContent.trim()}`);
+      });
+      document.addEventListener('input', (event) => {
+        if (event.target.id) log(`input: #${event.target.id}`);
+      });
+      document.addEventListener('change', (event) => {
+        if (event.target.id || event.target.name)
+          log(`change: ${event.target.id || event.target.name}`);
+      });
+      byId('profile-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+        const result = Object.fromEntries(data);
+        result.interests = data.getAll('interests');
+        byId('form-result').textContent = JSON.stringify(result, null, 2);
+        byId('form-status').textContent = 'Profile submitted successfully.';
+        log('Profile submitted');
+      });
+      byId('profile-form').addEventListener('reset', () => {
+        byId('form-result').textContent = '{}';
+        byId('form-status').textContent = 'Form reset. No submission yet.';
+        log('Profile reset');
+      });
+      byId('volume').addEventListener('input', (event) => {
+        byId('volume-value').textContent = event.target.value;
+      });
+      byId('attachment').addEventListener('change', (event) => {
+        byId('file-result').textContent =
+          Array.from(
+            event.target.files,
+            (file) => `${file.name} (${file.size} bytes)`
+          ).join(', ') || 'No files selected.';
+      });
+      byId('table-search').addEventListener('input', (event) => {
+        let count = 0;
+        const query = event.target.value.toLowerCase().trim();
+        document.querySelectorAll('#products-table tbody tr').forEach((row) => {
+          row.hidden = !row
+            .querySelector('.product-name')
+            .textContent.toLowerCase()
+            .includes(query);
+          if (!row.hidden) count++;
+        });
+        byId('table-status').textContent = `${count} products visible.`;
+      });
+      let clicks = 0;
+      let doubleClicks = 0;
+      byId('counter-button').addEventListener('click', () => {
+        byId('counter-value').textContent = `${++clicks} clicks`;
+      });
+      byId('double-click-button').addEventListener('dblclick', () => {
+        byId('double-click-result').textContent = `${++doubleClicks} double-clicks`;
+        log('Double-click received');
+      });
+      byId('alert-button').addEventListener('click', () => {
+        window.alert('BrowsLess test alert');
+      });
+      byId('confirm-button').addEventListener('click', () => {
+        byId('confirm-result').textContent = window.confirm('Confirm this test action?')
+          ? 'Confirmed.'
+          : 'Cancelled.';
+      });
+      byId('open-dialog').addEventListener('click', () => {
+        byId('test-dialog').showModal();
+      });
+      byId('test-dialog').addEventListener('close', () => {
+        byId('dialog-result').textContent =
+          byId('test-dialog').returnValue === 'saved'
+            ? `Saved: ${byId('dialog-input').value}`
+            : 'Dialog cancelled.';
+        log('Dialog closed');
+      });
+      byId('load-delayed').addEventListener('click', () => {
+        const button = byId('load-delayed');
+        button.disabled = true;
+        byId('delayed-container').replaceChildren();
+        byId('delayed-status').textContent = 'Loading…';
+        setTimeout(() => {
+          const result = document.createElement('p');
+          result.id = 'delayed-result';
+          result.dataset.testid = 'delayed-result';
+          result.textContent = 'Delayed element ready. Test value: READY-789.';
+          byId('delayed-container').append(result);
+          byId('delayed-status').textContent = 'Loaded successfully.';
+          button.disabled = false;
+          log('Delayed element appeared');
+        }, 2000);
+      });
+      byId('toggle-element').addEventListener('click', (event) => {
+        const result = byId('toggle-result');
+        result.hidden = !result.hidden;
+        event.currentTarget.setAttribute('aria-expanded', String(!result.hidden));
+      });
+      const shadow = byId('shadow-host').attachShadow({ mode: 'open' });
+      shadow.innerHTML = `<style>:host{display:block;font:16px system-ui}label{display:block;margin-bottom:8px}input,button{font:inherit;padding:8px;border:1px solid #d4d4d8;border-radius:6px;max-width:100%;box-sizing:border-box}button{background:white;cursor:pointer;margin-top:8px}:focus-visible{outline:3px solid #1d4ed8;outline-offset:3px}</style><label for="shadow-input">Shadow input</label><input id="shadow-input" placeholder="Type inside the shadow root"><button id="shadow-button">Apply</button><p id="shadow-result" role="status">Waiting for shadow interaction.</p>`;
+      shadow.getElementById('shadow-button').addEventListener('click', () => {
+        shadow.getElementById('shadow-result').textContent =
+          shadow.getElementById('shadow-input').value || 'Shadow button clicked';
+        log('Shadow button clicked');
+      });
+      byId('clear-log').addEventListener('click', () => {
+        events.length = 0;
+        byId('event-log').textContent = 'Log cleared.';
+      });
+    </script>
+  </body>
+</html>

@@ -1,4 +1,5 @@
 import {
+  riTestTubeLine,
   riAB,
   riAddLine,
   riAlertLine,
@@ -142,6 +143,7 @@ import { computed, h, inject } from 'vue';
 import type { App, DefineComponent } from 'vue';
 
 export const icons: Record<string, string> = {
+  riTestTubeLine,
   riH1,
   riH2,
   riAB,

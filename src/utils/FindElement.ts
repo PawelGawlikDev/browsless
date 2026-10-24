@@ -34,8 +34,8 @@ class FindElement {
       const newSelector = selector.replaceAll('>>', '');
 
       return data.multiple
-        ? querySelectorAllDeep(newSelector)
-        : querySelectorDeep(newSelector);
+        ? querySelectorAllDeep(newSelector, documentCtx)
+        : querySelectorDeep(newSelector, documentCtx);
     }
 
     if (data.multiple) {

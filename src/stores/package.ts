@@ -79,6 +79,32 @@ export const usePackageStore = defineStore('packages', {
           starterPackagesSeeded: true,
         });
       }
+      if (import.meta.env.DEV) {
+        const { developmentPackages } = await import('@/utils/developmentFixtures');
+        const { developmentPackageIds } = await extensionStorage.local.get(
+          'developmentPackageIds'
+        );
+        const seededIds = new Set<string>(
+          Array.isArray(developmentPackageIds)
+            ? developmentPackageIds.filter((id): id is string => typeof id === 'string')
+            : []
+        );
+        let changed = false;
+        for (const pkg of developmentPackages) {
+          if (seededIds.has(pkg.id)) continue;
+          if (!localPackages.some((item) => item.id === pkg.id)) {
+            localPackages.push(clonePackage(pkg));
+          }
+          seededIds.add(pkg.id);
+          changed = true;
+        }
+        if (changed) {
+          await extensionStorage.local.set({
+            savedBlocks: localPackages,
+            developmentPackageIds: [...seededIds],
+          });
+        }
+      }
       this.packages = localPackages;
       this.retrieved = true;
       return this.packages;

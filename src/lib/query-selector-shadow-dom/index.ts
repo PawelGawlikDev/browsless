@@ -123,16 +123,28 @@ const isDocumentNode = (node: Node): node is Document | DocumentFragment => {
     node.nodeType === Node.DOCUMENT_FRAGMENT_NODE || node.nodeType === Node.DOCUMENT_NODE
   );
 };
-const findParentOrHost = (element: Node, _root: QueryRoot): ParentNodeLike | null => {
+const findParentOrHost = (element: Node, root: QueryRoot): ParentNodeLike | null => {
+  if (element === root) return null;
   const { parentNode } = element;
-  if (!parentNode || parentNode.nodeType === 11) return null;
+  if (!parentNode) return null;
+  if (parentNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+    if (parentNode === root) return null;
+    return 'host' in parentNode ? (parentNode as ShadowRoot).host : null;
+  }
   return parentNode as ParentNodeLike;
 };
 const getShadowRoot = (
   element: DeepQueryRoot
 ): Document | DocumentFragment | ShadowRoot | null => {
-  if (element === document) return element;
-  return chrome.dom?.openOrClosedShadowRoot?.(element as Element) ?? null;
+  if (element.nodeType === Node.DOCUMENT_NODE) return element as Document;
+  if (element.nodeType === Node.DOCUMENT_FRAGMENT_NODE)
+    return element as DocumentFragment;
+  const host = element as Element;
+  return (
+    host.shadowRoot ??
+    (typeof chrome !== 'undefined' ? chrome.dom?.openOrClosedShadowRoot?.(host) : null) ??
+    null
+  );
 };
 export const collectAllElementsDeep = (
   selector: string | null = null,
@@ -154,7 +166,7 @@ export const collectAllElementsDeep = (
       }
     };
     const rootShadowRoot = getShadowRoot(root);
-    if (rootShadowRoot) {
+    if (rootShadowRoot && rootShadowRoot !== root) {
       findAllElements(rootShadowRoot.querySelectorAll('*'));
     }
     findAllElements(root.querySelectorAll('*'));

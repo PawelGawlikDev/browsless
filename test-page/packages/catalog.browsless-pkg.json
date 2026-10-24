@@ -1,0 +1,284 @@
+{
+  "id": "playground-package-catalog-v1",
+  "name": "Test package · Extract and filter catalog",
+  "description": "7 steps: Extract all four product names/prices into variables, filter Keyboard, then restore all rows. Variables: productNames, prices, filterStatus, result. Start on a fresh playground in the main document.",
+  "icon": "riTestTubeLine",
+  "isExtenal": false,
+  "content": null,
+  "inputs": [
+    {
+      "id": "start",
+      "name": "Start test",
+      "blockId": "catalog-5"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "done",
+      "name": "Test finished",
+      "blockId": "catalog-11",
+      "handleId": "catalog-11-output-1"
+    }
+  ],
+  "variable": [],
+  "settings": {
+    "asBlock": true
+  },
+  "data": {
+    "nodes": [
+      {
+        "id": "catalog-5",
+        "label": "get-text",
+        "type": "BlockBasic",
+        "position": {
+          "x": 1280,
+          "y": 100
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "",
+          "findBy": "cssSelector",
+          "waitForSelector": false,
+          "waitSelectorTimeout": 5000,
+          "selector": "#products-table tbody .product-name",
+          "markEl": false,
+          "multiple": true,
+          "regex": "",
+          "prefixText": "",
+          "suffixText": "",
+          "regexExp": [],
+          "dataColumn": "",
+          "saveData": false,
+          "includeTags": false,
+          "addExtraRow": false,
+          "assignVariable": true,
+          "useTextContent": true,
+          "variableName": "productNames",
+          "extraRowValue": "",
+          "extraRowDataColumn": ""
+        }
+      },
+      {
+        "id": "catalog-6",
+        "label": "attribute-value",
+        "type": "BlockBasic",
+        "position": {
+          "x": 80,
+          "y": 280
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "",
+          "findBy": "cssSelector",
+          "waitForSelector": false,
+          "waitSelectorTimeout": 5000,
+          "selector": "#products-table tbody .price",
+          "markEl": false,
+          "multiple": true,
+          "attributeValue": "",
+          "attributeName": "data-value",
+          "assignVariable": true,
+          "variableName": "prices",
+          "dataColumn": "",
+          "saveData": false,
+          "action": "get",
+          "addExtraRow": false,
+          "extraRowValue": "",
+          "extraRowDataColumn": ""
+        }
+      },
+      {
+        "id": "catalog-7",
+        "label": "forms",
+        "type": "BlockBasic",
+        "position": {
+          "x": 380,
+          "y": 280
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "",
+          "findBy": "cssSelector",
+          "waitForSelector": false,
+          "waitSelectorTimeout": 5000,
+          "selector": "#table-search",
+          "markEl": false,
+          "multiple": false,
+          "selected": true,
+          "clearValue": true,
+          "getValue": false,
+          "saveData": false,
+          "dataColumn": "",
+          "selectOptionBy": "value",
+          "optionPosition": "1",
+          "assignVariable": false,
+          "variableName": "",
+          "type": "text-field",
+          "value": "Keyboard",
+          "delay": 0,
+          "events": []
+        }
+      },
+      {
+        "id": "catalog-8",
+        "label": "get-text",
+        "type": "BlockBasic",
+        "position": {
+          "x": 680,
+          "y": 280
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "",
+          "findBy": "cssSelector",
+          "waitForSelector": false,
+          "waitSelectorTimeout": 5000,
+          "selector": "#table-status",
+          "markEl": false,
+          "multiple": false,
+          "regex": "",
+          "prefixText": "",
+          "suffixText": "",
+          "regexExp": [],
+          "dataColumn": "",
+          "saveData": false,
+          "includeTags": false,
+          "addExtraRow": false,
+          "assignVariable": true,
+          "useTextContent": true,
+          "variableName": "filterStatus",
+          "extraRowValue": "",
+          "extraRowDataColumn": ""
+        }
+      },
+      {
+        "id": "catalog-9",
+        "label": "javascript-code",
+        "type": "BlockBasic",
+        "position": {
+          "x": 980,
+          "y": 280
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "Verify results; inspect variables.result in the execution log",
+          "timeout": 20000,
+          "context": "website",
+          "code": "const checks = {\n  ...(browslessRefData('variables', 'result')?.checks || {}),\n  \"filtered\": Boolean(document.querySelector('#table-status').textContent === '1 products visible.'),\n  \"correctRow\": Boolean(document.querySelector('#products-table tbody tr:not([hidden])').dataset.sku === 'KB-101')\n};\nconst passed = Object.values(checks).every(Boolean);\nbrowslessSetVariable('result', { passed, checks });\nif (!passed) {\n  console.error('Playground checks failed', checks);\n}\nbrowslessNextBlock([], false);",
+          "preloadScripts": [],
+          "everyNewTab": false,
+          "runBeforeLoad": false
+        }
+      },
+      {
+        "id": "catalog-10",
+        "label": "forms",
+        "type": "BlockBasic",
+        "position": {
+          "x": 1280,
+          "y": 280
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "",
+          "findBy": "cssSelector",
+          "waitForSelector": false,
+          "waitSelectorTimeout": 5000,
+          "selector": "#table-search",
+          "markEl": false,
+          "multiple": false,
+          "selected": true,
+          "clearValue": true,
+          "getValue": false,
+          "saveData": false,
+          "dataColumn": "",
+          "selectOptionBy": "value",
+          "optionPosition": "1",
+          "assignVariable": false,
+          "variableName": "",
+          "type": "text-field",
+          "value": "",
+          "delay": 0,
+          "events": []
+        }
+      },
+      {
+        "id": "catalog-11",
+        "label": "javascript-code",
+        "type": "BlockBasic",
+        "position": {
+          "x": 80,
+          "y": 460
+        },
+        "data": {
+          "disableBlock": false,
+          "description": "Verify results; inspect variables.result in the execution log",
+          "timeout": 20000,
+          "context": "website",
+          "code": "const checks = {\n  ...(browslessRefData('variables', 'result')?.checks || {}),\n  \"restored\": Boolean(document.querySelectorAll('#products-table tbody tr:not([hidden])').length === 4)\n};\nconst passed = Object.values(checks).every(Boolean);\nbrowslessSetVariable('result', { passed, checks });\nif (!passed) {\n  console.error('Playground checks failed', checks);\n}\nbrowslessNextBlock([], false);",
+          "preloadScripts": [],
+          "everyNewTab": false,
+          "runBeforeLoad": false
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "catalog-5-to-catalog-6",
+        "source": "catalog-5",
+        "target": "catalog-6",
+        "sourceHandle": "catalog-5-output-1",
+        "targetHandle": "catalog-6-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "catalog-6-to-catalog-7",
+        "source": "catalog-6",
+        "target": "catalog-7",
+        "sourceHandle": "catalog-6-output-1",
+        "targetHandle": "catalog-7-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "catalog-7-to-catalog-8",
+        "source": "catalog-7",
+        "target": "catalog-8",
+        "sourceHandle": "catalog-7-output-1",
+        "targetHandle": "catalog-8-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "catalog-8-to-catalog-9",
+        "source": "catalog-8",
+        "target": "catalog-9",
+        "sourceHandle": "catalog-8-output-1",
+        "targetHandle": "catalog-9-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "catalog-9-to-catalog-10",
+        "source": "catalog-9",
+        "target": "catalog-10",
+        "sourceHandle": "catalog-9-output-1",
+        "targetHandle": "catalog-10-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "catalog-10-to-catalog-11",
+        "source": "catalog-10",
+        "target": "catalog-11",
+        "sourceHandle": "catalog-10-output-1",
+        "targetHandle": "catalog-11-input-1",
+        "type": "default",
+        "markerEnd": "arrowclosed"
+      }
+    ],
+    "zoom": 0.8,
+    "position": [0, 0]
+  }
+}
