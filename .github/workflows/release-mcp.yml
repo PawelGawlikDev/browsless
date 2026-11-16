@@ -4,159 +4,71 @@ on:
   push:
     tags:
       - 'mcp-v*'
-  # Manual runs validate/package only; publishing requires a tag push.
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 concurrency:
-  group: release-mcp-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-    if: github.event_name == 'workflow_dispatch' || github.event.deleted == false
+  release:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       HUSKY: '0'
-    outputs:
-      tag: ${{ steps.metadata.outputs.tag }}
-      version: ${{ steps.metadata.outputs.version }}
-      filename: ${{ steps.metadata.outputs.filename }}
-      prerelease: ${{ steps.metadata.outputs.prerelease }}
     steps:
-      - name: Check out release source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           package-manager-cache: false
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.4.2'
+      - name: Install Bun
+        run: npm install --global bun@1.4.2
 
-      - name: Validate version and release tag
-        id: metadata
-        run: bun scripts/mcp-release.mjs
-
-      - name: Check release metadata guards
-        run: bun scripts/check-mcp-release.mjs
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Typecheck extension and companion
+      - name: Check tag matches package version
+        if: github.event_name == 'push'
         run: |
-          bun run typecheck
-          bun run typecheck:mcp
+          version="$(node -p "require('./packages/mcp/package.json').version")"
+          test "$GITHUB_REF_NAME" = "mcp-v$version"
 
-      - name: Lint extension and companion
-        run: |
-          bun run lint
-          bunx --no-install eslint packages/mcp/src packages/mcp/scripts scripts/build-mcp.mjs scripts/mcp-release.mjs scripts/check-mcp-release.mjs
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run typecheck:mcp
+      - run: bun run lint
+      - run: bunx --no-install eslint packages/mcp/src packages/mcp/scripts scripts/build-mcp.mjs
+      - run: bun run build:mcp
 
-      - name: Build companion and extension
-        run: |
-          bun run build:mcp
-          bun run build
-
-      - name: Check MCP integration
-        run: bun run check:mcp
-
-      - name: Create package directory
-        run: mkdir -p release-artifacts
-
-      - name: Pack standalone companion
+      - name: Pack MCP companion
         working-directory: packages/mcp
-        run: bun pm pack --destination "$GITHUB_WORKSPACE/release-artifacts"
+        run: bun pm pack
 
-      - name: Test installation from the packed archive
-        env:
-          BROWSLESS_MCP_ARCHIVE: ${{ github.workspace }}/release-artifacts/${{ steps.metadata.outputs.filename }}
-        run: bun run check:mcp
-
-      - name: Calculate SHA-256 checksum
-        working-directory: release-artifacts
-        env:
-          ARCHIVE: ${{ steps.metadata.outputs.filename }}
-        run: sha256sum "$ARCHIVE" > "$ARCHIVE.sha256"
-
-      - name: Save validated release assets
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: mcp-release-assets
-          path: release-artifacts/
-          if-no-files-found: error
-          retention-days: 7
-
-  publish:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/mcp-v')
-    needs: build
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    steps:
-      # No checkout or execution of repository/package code in the write-token job.
-      - name: Download validated release assets
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: mcp-release-assets
-          path: release-artifacts
-
-      - name: Verify release checksum
-        working-directory: release-artifacts
-        env:
-          ARCHIVE: ${{ needs.build.outputs.filename }}
-        run: sha256sum --check "$ARCHIVE.sha256"
+      - name: Check packaged MCP
+        run: |
+          version="$(node -p "require('./packages/mcp/package.json').version")"
+          BROWSLESS_MCP_ARCHIVE="$PWD/packages/mcp/browsless-mcp-$version.tgz" bun run check:mcp
 
       - name: Publish GitHub Release
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ needs.build.outputs.tag }}
-          VERSION: ${{ needs.build.outputs.version }}
-          ARCHIVE: ${{ needs.build.outputs.filename }}
-          PRERELEASE: ${{ needs.build.outputs.prerelease }}
-          SOURCE_SHA: ${{ github.sha }}
-        shell: bash
         run: |
-          resolved_sha="$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq '.sha')"
-          if [[ "$resolved_sha" != "$SOURCE_SHA" ]]; then
-            echo "::error::Release tag moved since the build; refusing to publish."
-            exit 1
-          fi
-          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            echo "::error::Release already exists. Publish a new version instead of replacing assets."
-            exit 1
-          fi
-          cat > release-notes.md <<'NOTES'
-          Standalone local MCP companion for Browsless.
-
-          Requires Node.js 22+ and a compatible Browsless extension with Settings → External AI.
-          Pairing grants block discovery, validation, and disabled draft creation only.
-          This release does not publish an extension build or an npm package.
-          NOTES
-          printf '\n[Setup and pairing instructions](https://github.com/%s/blob/%s/packages/mcp/README.md)\n' "$GH_REPO" "$SOURCE_SHA" >> release-notes.md
+          version="$(node -p "require('./packages/mcp/package.json').version")"
           flags=()
-          if [[ "$PRERELEASE" == "true" ]]; then
+          if [[ "${version%%+*}" == *-* ]]; then
             flags+=(--prerelease)
           fi
-          gh release create "$RELEASE_TAG" \
-            "release-artifacts/$ARCHIVE" \
-            "release-artifacts/$ARCHIVE.sha256" \
-            --repo "$GH_REPO" \
+          gh release create "$GITHUB_REF_NAME" \
+            "packages/mcp/browsless-mcp-$version.tgz" \
             --verify-tag \
-            --title "Browsless MCP $VERSION" \
-            --notes-file release-notes.md \
+            --title "Browsless MCP $version" \
+            --generate-notes \
             --latest=false \
             "${flags[@]}"

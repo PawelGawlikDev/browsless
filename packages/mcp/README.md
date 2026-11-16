@@ -138,18 +138,18 @@ Release assets automatically.
    ```
 
 The tag's commit must contain the workflow. GitHub Actions must be enabled.
-The workflow validates versions, runs both typechecks and lint, builds both
-surfaces, checks MCP integration, and tests `npx` installation from the packed
-archive before publishing `browsless-mcp-0.1.0.tgz` and its SHA-256 checksum.
+The workflow checks the tag against the package version, runs both typechecks and
+lint, builds the companion, and tests `npx` installation and MCP integration from
+the packed archive before publishing `browsless-mcp-0.1.0.tgz`.
 Publishing uses GitHub's built-in `GITHUB_TOKEN`; no npm token or personal access
-token is required. Organization policy must permit the publish job's
+token is required. Organization policy must permit the workflow's
 `contents: write` permission.
 
 Versions such as `0.2.0-rc.1` become GitHub prereleases. MCP releases do not replace
 the repository's "latest release" designation, which may belong to the extension.
 Existing releases/assets are never overwritten: bump the version for a new
-release. A manual **Run workflow** validates and uploads temporary Actions
-artifacts only; it does not publish a GitHub Release.
+release. A manual **Run workflow** runs the same checks and packaging without
+publishing a GitHub Release. The extension build is distributed separately.
 
 To package manually instead, build and run `bun pm pack` from this directory.
 Users can configure `npx` with the actual release URL:
