@@ -18,6 +18,7 @@ Browsless is an independently modified version of [Automa](https://github.com/Au
 
 - **Visual workflow editor** — connect blocks for navigation, page interactions, conditions, loops, and data processing.
 - **Workflow recording and element picking** — capture browser interactions and identify page elements.
+- **External AI workflow builder** — pair a local MCP companion with Claude Desktop, Codex, or another client to create disabled workflow drafts. See [MCP setup](docs/mcp-connection.md).
 - **Scheduling** — configure triggers to run workflows automatically.
 - **Local data tools** — work with variables, parameters, tables, and execution logs.
 - **JavaScript blocks** — extend workflows with the public `browsless*` runtime helpers.
@@ -80,11 +81,13 @@ WXT manages the development build. Its development output is `.output/chrome-mv3
 `bun install` configures **Husky** through the `prepare` script. The pre-commit hook uses **lint-staged** to run ESLint fixes, then Prettier, and blocks the commit if errors remain. Avoid whole-project fix commands when you only intend to change staged files.
 
 There is no automated unit or end-to-end test runner configured. Before submitting a change, run typecheck, lint, and build, then manually check the affected extension surfaces.
+For the MCP companion, use `bun run build:mcp`, `bun run typecheck:mcp`, and `bun run check:mcp`.
 
 ## Project structure
 
 ```text
 entrypoints/         WXT bootstraps: background, content, dashboard, popup, and other surfaces
+packages/mcp/        Standalone local MCP companion for external AI clients
 src/background/      MV3 service worker implementation
 src/content/         Injected UI, element selection, recording, and page interactions
 src/dashboard/       Dashboard routes and application shell

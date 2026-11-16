@@ -4,9 +4,15 @@
   "version": "1.0.1",
   "description": "An extension for automating your browser by connecting blocks",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
+    "build:mcp": "bun scripts/build-mcp.mjs",
+    "check:mcp": "bun packages/mcp/scripts/check.mjs",
+    "typecheck:mcp": "tsc --noEmit -p packages/mcp/tsconfig.json",
     "dev": "wxt -b chrome",
     "build": "wxt build -b chrome",
     "zip": "wxt zip -b chrome",
@@ -96,7 +102,8 @@
     "vue-toastification": "2.0.0-rc.5",
     "vuedraggable": "^4.1.0",
     "vuex": "^4.1.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.19.1/xlsx-0.19.1.tgz"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.19.1/xlsx-0.19.1.tgz",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

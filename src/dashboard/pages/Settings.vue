@@ -19,7 +19,9 @@
             @click="navigate"
           >
             <v-remixicon :name="menu.icon" class="mr-2 -ml-1" />
-            {{ t(`settings.menu.${menu.id}`) }}
+            {{
+              menu.id === 'external-ai' ? 'External AI' : t(`settings.menu.${menu.id}`)
+            }}
           </ui-list-item>
         </router-link>
       </ui-list>
@@ -30,7 +32,9 @@
           @change="onSelectChanged"
         >
           <option v-for="menu in menus" :key="menu.id" :value="menu.path">
-            {{ t(`settings.menu.${menu.id}`) }}
+            {{
+              menu.id === 'external-ai' ? 'External AI' : t(`settings.menu.${menu.id}`)
+            }}
           </option>
         </ui-select>
         <router-view />
@@ -48,6 +52,7 @@ const menus = [
   { id: 'backup', path: '/backup', icon: 'riDatabase2Line' },
   { id: 'editor', path: '/editor', icon: 'riMindMap' },
   { id: 'shortcuts', path: '/shortcuts', icon: 'riKeyboardLine' },
+  { id: 'external-ai', path: '/external-ai', icon: 'riLinksLine' },
 ];
 const onSelectChanged = (value: string | number) => {
   router.push(value as string);

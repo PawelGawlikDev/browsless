@@ -1,4 +1,18 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": ["CLAUDE.md"]
+  "instructions": ["CLAUDE.md"],
+  "mcp": {
+    "servers": {
+      "browsless": {
+        "type": "local",
+        "command": ["node", "packages/mcp/dist/index.js"],
+        "cwd": ".",
+        "protocol": "legacy"
+      },
+      "chrome-devtools": {
+        "type": "local",
+        "command": ["npx", "chrome-devtools-mcp"]
+      }
+    }
+  }
 }
