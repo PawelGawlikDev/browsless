@@ -8,6 +8,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+/packages/mcp/dist/
+/packages/mcp/LICENSE
+*.tgz
 .output
 stats.html
 stats-*.json

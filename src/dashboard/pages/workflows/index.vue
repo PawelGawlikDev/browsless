@@ -3,6 +3,13 @@
     <h1 class="text-2xl font-semibold capitalize">
       {{ t('common.workflow', 2) }}
     </h1>
+    <p
+      v-if="importError"
+      role="alert"
+      class="mt-4 whitespace-pre-wrap text-sm text-red-600 dark:text-red-400"
+    >
+      {{ importError }}
+    </p>
     <div class="mt-8 flex items-start">
       <div class="sticky top-8 hidden w-60 lg:block">
         <div class="flex w-full">
@@ -200,7 +207,7 @@ import {
 } from '@/lib/extensionStorage';
 import { useWorkflowStore, type WorkflowStoreInstance } from '@/stores/workflow';
 import { getWorkflowPermissions, importWorkflow } from '@/utils/workflowData';
-import { onMounted, shallowReactive, watch } from 'vue';
+import { onMounted, shallowReactive, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import type { Workflow } from '@/types/models';
@@ -291,13 +298,17 @@ const checkWorkflowPermissions = async (workflows: Workflow[]) => {
   permissionState.showModal = true;
 };
 const openImportDialog = async () => {
+  importError.value = '';
   try {
     const workflows = await importWorkflow({ multiple: true });
     await checkWorkflowPermissions(Object.values(workflows));
   } catch (error) {
+    importError.value =
+      error instanceof Error ? error.message : 'Unable to import workflow';
     console.error(error);
   }
 };
+const importError = shallowRef('');
 const shortcut = useShortcut(['action:search', 'action:new'], ({ id }) => {
   if (id === 'action:search') {
     const searchInput = document.querySelector<HTMLInputElement>('#search-input input');

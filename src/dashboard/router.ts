@@ -16,6 +16,7 @@ import SettingsBackup from './pages/settings/SettingsBackup.vue';
 import SettingsEditor from './pages/settings/SettingsEditor.vue';
 import DocsIndex from './pages/DocsIndex.vue';
 import DocsArticle from './pages/DocsArticle.vue';
+import McpConnectionPanel from '@/components/dashboard/mcp/McpConnectionPanel.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -92,6 +93,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/backup', component: SettingsBackup },
       { path: '/editor', component: SettingsEditor },
       { path: '/shortcuts', component: SettingsShortcuts },
+      { path: '/external-ai', component: McpConnectionPanel },
     ],
   },
 ];

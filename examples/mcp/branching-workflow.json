@@ -1,0 +1,54 @@
+{
+  "name": "Read the heading if present",
+  "nodes": [
+    { "id": "start", "block": "trigger", "data": { "type": "manual" } },
+    {
+      "id": "open",
+      "block": "new-tab",
+      "data": { "url": "https://example.com", "waitTabLoaded": true }
+    },
+    {
+      "id": "check",
+      "block": "conditions",
+      "data": {
+        "conditions": [
+          {
+            "id": "heading-present",
+            "conditions": [
+              {
+                "conditions": [
+                  {
+                    "items": [
+                      {
+                        "category": "value",
+                        "type": "element#exists",
+                        "data": { "selector": "h1" }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "read",
+      "block": "get-text",
+      "data": {
+        "selector": "h1",
+        "saveData": false,
+        "assignVariable": true,
+        "variableName": "heading"
+      }
+    },
+    { "id": "missing", "block": "delay", "data": { "time": 0 } }
+  ],
+  "edges": [
+    { "source": "start", "target": "open" },
+    { "source": "open", "target": "check" },
+    { "source": "check", "target": "read", "output": "heading-present" },
+    { "source": "check", "target": "missing", "output": "fallback" }
+  ]
+}

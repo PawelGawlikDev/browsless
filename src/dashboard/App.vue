@@ -5,6 +5,7 @@
       <router-view />
     </main>
     <app-logs />
+    <McpConnectionStatus />
     <ui-dialog>
       <template #auth></template>
     </ui-dialog>
@@ -62,6 +63,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { browser } from 'wxt/browser';
 import { getExtensionManifest } from '@/utils/extensionManifest';
+import McpConnectionStatus from '@/components/dashboard/mcp/McpConnectionStatus.vue';
 import type { Workflow, WorkflowStateEntry } from '@/types/models';
 
 interface OpenLogsMessage {

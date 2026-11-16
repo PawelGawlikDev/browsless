@@ -90,79 +90,54 @@ export const getWorkflowPermissions = async (drawflow: string | DrawflowData) =>
   }
   return permissions;
 };
-export const importWorkflow = (attrs: Record<string, unknown> = {}) => {
-  return new Promise<Record<string, Workflow>>((resolve, reject) => {
-    openFilePicker(['application/json'], attrs)
-      .then((files) => {
-        const handleOnLoadReader = ({ target }: ProgressEvent<FileReader>) => {
-          const workflow = JSON.parse(
-            String(target?.result || '{}')
-          ) as DeepPartial<Workflow> & {
-            includedWorkflows?: Record<string, DeepPartial<Workflow>>;
-            dataColumns?: Workflow['table'];
-          };
-          const workflowStore = useWorkflowStore() as ReturnType<
-            typeof useWorkflowStore
-          > & {
-            workflows: Record<string, Workflow>;
-            insert: (
-              data: DeepPartial<Workflow>,
-              options?: {
-                duplicateId?: boolean;
-              }
-            ) => Promise<Record<string, Workflow>>;
-            getById: (id: string) => Workflow | undefined;
-          };
-          if (workflow.includedWorkflows) {
-            Object.keys(workflow.includedWorkflows).forEach((workflowId) => {
-              const isWorkflowExists = Boolean(workflowStore.workflows[workflowId]);
-              if (isWorkflowExists) return;
-              const currentWorkflow = workflow.includedWorkflows[workflowId];
-              currentWorkflow.table =
-                currentWorkflow.table || currentWorkflow.dataColumns;
-              delete currentWorkflow.dataColumns;
-              workflowStore.insert(
-                {
-                  ...currentWorkflow,
-                  id: workflowId,
-                  createdAt: Date.now(),
-                },
-                { duplicateId: true }
-              );
-            });
-            delete workflow.includedWorkflows;
-          }
-          workflow.table = workflow.table || workflow.dataColumns;
-          delete workflow.dataColumns;
-          if (typeof workflow.drawflow === 'string') {
-            workflow.drawflow = parseJSON(workflow.drawflow, {} as DrawflowData);
-          }
-          workflowStore
-            .insert({
-              ...workflow,
-              createdAt: Date.now(),
-            })
-            .then((result) => {
-              Object.values(result as Record<string, Workflow>).forEach((item) => {
-                const triggerBlock = findTriggerBlock(item.drawflow);
-                if (triggerBlock) {
-                  registerWorkflowTrigger(item.id, triggerBlock as WorkflowNode);
-                }
-              });
-              resolve(result);
-            });
-        };
-        (files as File[]).forEach((file) => {
-          const reader = new FileReader();
-          reader.onload = handleOnLoadReader;
-          reader.readAsText(file);
-        });
-      })
-      .catch((error) => {
-        console.error(error);
-        reject(error);
-      });
-  });
+export const importWorkflow = async (attrs: Record<string, unknown> = {}) => {
+  const files = await openFilePicker(['application/json'], attrs);
+  const workflows = await Promise.all(
+    files.map(async (file) => {
+      const input: unknown = JSON.parse(await file.text());
+      if (
+        !input ||
+        typeof input !== 'object' ||
+        Array.isArray(input) ||
+        !('drawflow' in input)
+      ) {
+        throw new Error(`${file.name}: expected a native workflow with drawflow data`);
+      }
+      return input as DeepPartial<Workflow> & {
+        includedWorkflows?: Record<string, DeepPartial<Workflow>>;
+      };
+    })
+  );
+  const workflowStore = useWorkflowStore();
+  const imported: Record<string, Workflow> = {};
+  for (const workflow of workflows) {
+    if (workflow.includedWorkflows) {
+      for (const [workflowId, currentWorkflow] of Object.entries(
+        workflow.includedWorkflows
+      )) {
+        if (workflowStore.workflows[workflowId]) continue;
+        currentWorkflow.table = currentWorkflow.table || currentWorkflow.dataColumns;
+        delete currentWorkflow.dataColumns;
+        await workflowStore.insert(
+          { ...currentWorkflow, id: workflowId, createdAt: Date.now() },
+          { duplicateId: true }
+        );
+      }
+      delete workflow.includedWorkflows;
+    }
+    workflow.table = workflow.table || workflow.dataColumns;
+    delete workflow.dataColumns;
+    if (typeof workflow.drawflow === 'string') {
+      workflow.drawflow = parseJSON(workflow.drawflow, {} as DrawflowData);
+    }
+    const result = await workflowStore.insert({ ...workflow, createdAt: Date.now() });
+    Object.values(result).forEach((item) => {
+      const triggerBlock = findTriggerBlock(item.drawflow);
+      if (triggerBlock) registerWorkflowTrigger(item.id, triggerBlock as WorkflowNode);
+    });
+    Object.assign(imported, result);
+  }
+  return imported;
 };
 const defaultValue: Partial<Workflow> = {
   name: '',
